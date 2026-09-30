@@ -134,9 +134,10 @@ npm run dev
 
 ## Miembros del equipo:
 
-- Jorge
-- nico
-- *(completar con el resto del equipo)*
+- Sebastián Bustos
+- Genesis Parada
+- Nicolás Parada
+- Jorge Rocha
 
 ---
 
