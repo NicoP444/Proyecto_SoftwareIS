@@ -72,20 +72,20 @@ export default function Coberturas() {
 
   //funcion para el envio del formulario cliente
   const handleCrearCliente = async (e) => {
-    e.preventDefault(); //evita recargar la pagina al enviar el formulario
-    setError(null); //limpiamos el error anterior
+    e.preventDefault();
+    setError(null); 
     try {
-      await crearCliente(nuevoCliente); //await para esperar la respuesta y crearCliente usara la informacion de nuevoCliente para la insercion
-      setNuevoCliente({ nombre: '', telefono: '', correo: '' }); //una vez ya usados los datos ingresados se limpia el formulario
+      await crearCliente(nuevoCliente);
+      setNuevoCliente({ nombre: '', telefono: '', correo: '' });
       cargarDatos(); //actualizar lista en pantalla 
     } catch (err) { setError(err.message); }
   };
 
   const handleCrearCobertura = async (e) => {
-    e.preventDefault(); //evita recargar la pagina 
-    setError(null); //limpiamos el error anterior
+    e.preventDefault(); 
+    setError(null); 
     try {
-      await crearCobertura(nuevaCobertura); //esperamos la respuesta y crearCobertura usara la info almacenada en nuevaCobertura para la insercion
+      await crearCobertura(nuevaCobertura); 
       setNuevaCobertura({ //limpiamos el formulario
         tipo: '', fecha: '', hora_inicio: '', hora_termino: '', direccion: '',
         cantidad_camaras: 1, precio_acordado: '', observaciones: '',
@@ -96,10 +96,10 @@ export default function Coberturas() {
   };
 
   const handleEliminar = async (id) => {
-    setError(null); //limpiamos el error anterior
+    setError(null);
     try {
-      await eliminarCobertura(id); //esperamos la respuesta y usamos eliminarCobertura
-      cargarDatos(); //actualizamos lista en pantalla
+      await eliminarCobertura(id); 
+      cargarDatos(); 
     } catch (err) { setError(err.message); }
   };
 

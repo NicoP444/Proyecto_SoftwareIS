@@ -1,11 +1,10 @@
-import prisma from '../config/prisma.js';
-export const validarId = (req, res, next) => {
-  /*Funcion= Verificar si el ID es un numero y si es mayor a 0*/
-  
-  const id = Number(req.params.id); // tomamos el ID
+import prisma from '../config/prisma.js'; //inportamos la instancia de prisma (para comunicarme con la base de datos)
 
-  if(!Number.isInteger(id) || id <= 0){ // verfificamos...
-    return res.status(400).json({ mensaje: 'El id no es válido', campo: 'id' });
+//Funcion para Verificar si el ID es un numero y si es mayor a 0
+export const validarId = (req, res, next) => { //req: info que envio el cliente; res: respuesta que enviara el servidor; next:permite continuar al siguiente middleware
+  const id = Number(req.params.id); // tomamos el ID (viene en string)
+  if(!Number.isInteger(id) || id <= 0){ // validamos preguntando si es distinto de un entero o si es menor o igual a 0
+    return res.status(400).json({ mensaje: 'El id no es válido', campo: 'id' }); //responde deteniendo la peticion y entregando error 400
   }
   next(); // Todo ok, siguimos...
 };
