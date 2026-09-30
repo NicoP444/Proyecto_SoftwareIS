@@ -1,0 +1,641 @@
+// ============================================================
+//  Sistema de gestión de transmisiones en vivo · Six Seven
+//  Esquema Prisma (v6) generado a partir del Modelo Relacional
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ------------------------------------------------------------
+//  Dominios (enums)
+// ------------------------------------------------------------
+
+enum EstadoCuenta {
+  ACTIVO
+  INACTIVO
+}
+
+enum EstadoEvento {
+  PENDIENTE_ADELANTO
+  CONFIRMADO
+  REALIZADO
+  CERRADO
+}
+
+enum EstadoRendicion {
+  PENDIENTE
+  RENDIDA
+  SIN_GASTOS
+}
+
+enum EstadoPago {
+  POR_PAGAR
+  PAGADA
+}
+
+enum NivelKit {
+  BASICO
+  ESTANDAR
+  ALTA_GAMA
+}
+
+enum EstadoKit {
+  DISPONIBLE
+  EN_TERRENO
+  INCOMPLETO
+}
+
+enum TipoPago {
+  ADELANTO
+  SALDO
+  PAGO_TOTAL
+}
+
+enum TipoGasto {
+  MOVILIZACION
+  PEAJE
+  PASAJE
+  ALIMENTACION
+  OTRO
+}
+
+enum EstadoMes {
+  ABIERTO
+  CERRADO
+}
+
+enum Clasificacion {
+  CONFIABLE
+  NO_CONFIABLE
+}
+
+enum TipoAporte {
+  DINERO
+  CANJE
+}
+
+enum EstadoAcuerdo {
+  PENDIENTE
+  PARCIAL
+  CUMPLIDO
+  VENCIDO
+  INCOBRABLE
+}
+
+enum CategoriaEquipo {
+  CAMARA
+  TRIPODE
+  MICROFONO
+  SWITCH_VIDEO
+  OTRO
+}
+
+enum EstadoEquipo {
+  OPERATIVO
+  DANADO
+  PERDIDO
+  ROBADO
+  DADO_DE_BAJA
+}
+
+enum EstadoRetorno {
+  OPERATIVO
+  DANADO
+  PERDIDO
+  ROBADO
+}
+
+enum TipoIncidente {
+  DANO
+  PERDIDA
+  ROBO
+}
+
+// ------------------------------------------------------------
+//  Perfiles (independientes)
+// ------------------------------------------------------------
+
+model Dueno {
+  id_dueno          Int          @id @default(autoincrement())
+  nombre            String       @db.VarChar(80)
+  correo            String       @unique @db.VarChar(120)
+  contrasena        String       @db.VarChar(255)
+  estado            EstadoCuenta @default(ACTIVO)
+  intentos_fallidos Int          @default(0) @db.SmallInt
+  bloqueado_hasta   DateTime?    @db.Timestamp(6)
+
+  sesiones        Sesion[]
+  historial       HistorialCambio[]
+  clientes        Cliente[]
+  recintos        Recinto[]
+  eventos         Evento[]
+  trabajadores    Trabajador[]
+  roles           RolTrabajo[]
+  disponibilidades Disponibilidad[]
+  asignaciones    AsignacionPersonal[]
+  reservas_kit    ReservaKit[]
+  auspiciadores   Auspiciador[]
+  acuerdos        AcuerdoAuspicio[]
+
+  @@map("dueno")
+}
+
+model Contador {
+  id_contador       Int          @id @default(autoincrement())
+  nombre            String       @db.VarChar(80)
+  correo            String       @unique @db.VarChar(120)
+  contrasena        String       @db.VarChar(255)
+  estado            EstadoCuenta @default(ACTIVO)
+  intentos_fallidos Int          @default(0) @db.SmallInt
+  bloqueado_hasta   DateTime?    @db.Timestamp(6)
+
+  sesiones             Sesion[]
+  pagos_cliente        PagoCliente[]
+  gastos_evento        GastoEvento[]
+  pagos_remuneracion   PagoRemuneracion[]
+  meses_cerrados       MesContable[]
+  gastos_fijos         GastoFijo[]
+  cumplimientos_aporte CumplimientoAporte[]
+
+  @@map("contador")
+}
+
+model JefeAreaTecnica {
+  id_jefe           Int          @id @default(autoincrement())
+  nombre            String       @db.VarChar(80)
+  correo            String       @unique @db.VarChar(120)
+  contrasena        String       @db.VarChar(255)
+  estado            EstadoCuenta @default(ACTIVO)
+  intentos_fallidos Int          @default(0) @db.SmallInt
+  bloqueado_hasta   DateTime?    @db.Timestamp(6)
+
+  sesiones   Sesion[]
+  kits       Kit[]
+  equipos    Equipo[]
+  salidas    SalidaKit[]
+  incidentes Incidente[]
+
+  @@map("jefe_area_tecnica")
+}
+
+// Una sesión pertenece exactamente a UNO de los tres perfiles
+// (regla CHECK que se agrega en la migración, ver nota al final)
+model Sesion {
+  id_sesion         Int       @id @default(autoincrement())
+  fecha_hora_inicio DateTime  @db.Timestamp(6)
+  ultima_actividad  DateTime  @db.Timestamp(6)
+  fecha_hora_cierre DateTime? @db.Timestamp(6)
+  id_dueno          Int?
+  id_contador       Int?
+  id_jefe           Int?
+
+  dueno    Dueno?           @relation(fields: [id_dueno], references: [id_dueno])
+  contador Contador?        @relation(fields: [id_contador], references: [id_contador])
+  jefe     JefeAreaTecnica? @relation(fields: [id_jefe], references: [id_jefe])
+
+  @@map("sesion")
+}
+
+model HistorialCambio {
+  id_cambio      Int      @id @default(autoincrement())
+  fecha_hora     DateTime @default(now()) @db.Timestamp(6)
+  tabla_afectada String   @db.VarChar(40)
+  dato           String   @db.VarChar(60)
+  valor_anterior String?  @db.VarChar(255)
+  valor_nuevo    String?  @db.VarChar(255)
+  motivo         String?  @db.VarChar(255)
+  id_dueno       Int
+  id_evento      Int?
+
+  dueno  Dueno   @relation(fields: [id_dueno], references: [id_dueno], onDelete: Restrict)
+  evento Evento? @relation(fields: [id_evento], references: [id_evento], onDelete: Restrict)
+
+  @@map("historial_cambio")
+}
+
+// ------------------------------------------------------------
+//  Agenda de eventos
+// ------------------------------------------------------------
+
+model Cliente {
+  id_cliente Int     @id @default(autoincrement())
+  nombre     String  @db.VarChar(80)
+  contacto   String? @db.VarChar(80)
+  telefono   String  @db.VarChar(20)
+  correo     String? @db.VarChar(120)
+  id_dueno   Int
+
+  dueno   Dueno    @relation(fields: [id_dueno], references: [id_dueno], onDelete: Restrict)
+  eventos Evento[]
+
+  @@map("cliente")
+}
+
+model Recinto {
+  id_recinto Int     @id @default(autoincrement())
+  nombre     String  @db.VarChar(80)
+  direccion  String? @db.VarChar(120)
+  comuna     String  @db.VarChar(60)
+  id_dueno   Int
+
+  dueno   Dueno    @relation(fields: [id_dueno], references: [id_dueno], onDelete: Restrict)
+
+  @@map("recinto")
+}
+
+model Evento {
+  id_evento          Int          @id @default(autoincrement())
+  tipo               String       @db.VarChar(40)
+  fecha              DateTime     @db.Date
+  hora_inicio        DateTime     @db.Time(6)
+  hora_termino       DateTime     @db.Time(6)
+  direccion          String       @db.VarChar(120)
+  precio_acordado    Int
+  cantidad_camaras   Int          @default(1) @db.SmallInt
+  cantidad_repuestos Int          @default(0) @db.SmallInt
+  gastos_estimados   Int          @default(0)
+  observaciones      String?      @db.VarChar(255)
+  estado             EstadoEvento
+  rentabilidad_final Int?
+  fecha_cierre       DateTime?    @db.Timestamp(6)
+  id_cliente         Int
+  id_dueno           Int
+  fecha_registro     DateTime     @default(now()) @db.Timestamp(6)
+
+  cliente Cliente @relation(fields: [id_cliente], references: [id_cliente], onDelete: Restrict)
+  dueno   Dueno   @relation(fields: [id_dueno], references: [id_dueno], onDelete: Restrict)
+
+  historial     HistorialCambio[]
+  reservas_kit  ReservaKit[]
+  asignaciones  AsignacionPersonal[]
+  pagos_cliente PagoCliente[]
+  acuerdos      AcuerdoAuspicio[]
+  repuestos     Equipo[]
+  incidentes    Incidente[]
+
+  @@map("evento")
+}
+
+// ------------------------------------------------------------
+//  Personal
+// ------------------------------------------------------------
+
+model Trabajador {
+  id_trabajador     Int          @id @default(autoincrement())
+  nombre            String       @db.VarChar(80)
+  telefono_whatsapp String       @db.VarChar(20)
+  observaciones     String?      @db.VarChar(255)
+  rol_fijo          Boolean      @default(false)
+  estado            EstadoCuenta @default(ACTIVO)
+  id_dueno          Int
+
+  dueno            Dueno                @relation(fields: [id_dueno], references: [id_dueno], onDelete: Restrict)
+  roles            Desempena[]
+  disponibilidades Disponibilidad[]
+  asignaciones     AsignacionPersonal[]
+  incidentes       Incidente[]
+
+  @@map("trabajador")
+}
+
+model RolTrabajo {
+  id_rol                 Int          @id @default(autoincrement())
+  nombre                 String       @unique @db.VarChar(40)
+  porcentaje_referencial Decimal?     @db.Decimal(5, 2)
+  estado                 EstadoCuenta @default(ACTIVO)
+  id_dueno               Int
+
+  dueno        Dueno                @relation(fields: [id_dueno], references: [id_dueno], onDelete: Restrict)
+  trabajadores Desempena[]
+  asignaciones AsignacionPersonal[]
+
+  @@map("rol_trabajo")
+}
+
+// Relación N:M TRABAJADOR - ROL_TRABAJO
+model Desempena {
+  id_trabajador Int
+  id_rol        Int
+
+  trabajador Trabajador @relation(fields: [id_trabajador], references: [id_trabajador], onDelete: Cascade)
+  rol        RolTrabajo @relation(fields: [id_rol], references: [id_rol], onDelete: Restrict)
+
+  @@id([id_trabajador, id_rol])
+  @@map("desempena")
+}
+
+// Entidad débil de TRABAJADOR
+model Disponibilidad {
+  id_trabajador Int
+  nro_bloque    Int
+  fecha         DateTime @db.Date
+  hora_inicio   DateTime @db.Time(6)
+  hora_termino  DateTime @db.Time(6)
+  id_dueno      Int
+
+  trabajador Trabajador @relation(fields: [id_trabajador], references: [id_trabajador], onDelete: Cascade)
+  dueno      Dueno      @relation(fields: [id_dueno], references: [id_dueno], onDelete: Restrict)
+
+  @@id([id_trabajador, nro_bloque])
+  @@map("disponibilidad")
+}
+
+model AsignacionPersonal {
+  id_asignacion    Int              @id @default(autoincrement())
+  porcentaje       Decimal?         @db.Decimal(5, 2)
+  remuneracion     Int?
+  estado_rendicion EstadoRendicion?
+  estado_pago      EstadoPago       @default(POR_PAGAR)
+  id_evento        Int
+  id_trabajador    Int
+  id_rol           Int
+  id_dueno         Int
+  fecha_asignacion DateTime         @default(now()) @db.Timestamp(6)
+
+  evento     Evento     @relation(fields: [id_evento], references: [id_evento], onDelete: Restrict)
+  trabajador Trabajador @relation(fields: [id_trabajador], references: [id_trabajador], onDelete: Restrict)
+  rol        RolTrabajo @relation(fields: [id_rol], references: [id_rol], onDelete: Restrict)
+  dueno      Dueno      @relation(fields: [id_dueno], references: [id_dueno], onDelete: Restrict)
+
+  gastos             GastoEvento[]
+  pagos_remuneracion PagoRemuneracion[]
+  salidas_a_cargo    SalidaKit[]
+
+  @@unique([id_evento, id_trabajador])
+  @@map("asignacion_personal")
+}
+
+// ------------------------------------------------------------
+//  Finanzas
+// ------------------------------------------------------------
+
+model PagoCliente {
+  id_pago     Int      @id @default(autoincrement())
+  tipo_pago   TipoPago
+  monto       Int
+  fecha       DateTime @db.Date
+  medio_pago  String   @db.VarChar(20)
+  id_evento   Int
+  id_contador Int
+
+  evento   Evento   @relation(fields: [id_evento], references: [id_evento], onDelete: Restrict)
+  contador Contador @relation(fields: [id_contador], references: [id_contador], onDelete: Restrict)
+
+  @@map("pago_cliente")
+}
+
+model GastoEvento {
+  id_gasto      Int       @id @default(autoincrement())
+  tipo_gasto    TipoGasto
+  monto         Int
+  fecha         DateTime  @db.Date
+  descripcion   String?   @db.VarChar(255)
+  origen        String?   @db.VarChar(80)
+  destino       String?   @db.VarChar(80)
+  evidencia     String    @db.VarChar(255)
+  id_asignacion Int
+  id_contador   Int
+
+  asignacion AsignacionPersonal @relation(fields: [id_asignacion], references: [id_asignacion], onDelete: Restrict)
+  contador   Contador           @relation(fields: [id_contador], references: [id_contador], onDelete: Restrict)
+
+  @@map("gasto_evento")
+}
+
+model PagoRemuneracion {
+  id_pago_rem   Int      @id @default(autoincrement())
+  fecha         DateTime @db.Date
+  monto         Int
+  medio_pago    String   @db.VarChar(20)
+  id_asignacion Int
+  id_contador   Int
+
+  asignacion AsignacionPersonal @relation(fields: [id_asignacion], references: [id_asignacion], onDelete: Restrict)
+  contador   Contador           @relation(fields: [id_contador], references: [id_contador], onDelete: Restrict)
+
+  @@map("pago_remuneracion")
+}
+
+model MesContable {
+  id_mes               Int       @id @default(autoincrement())
+  anio                 Int       @db.SmallInt
+  mes                  Int       @db.SmallInt
+  estado               EstadoMes @default(ABIERTO)
+  fecha_cierre         DateTime? @db.Timestamp(6)
+  total_ingresos       Int?
+  total_aportes        Int?
+  total_remuneraciones Int?
+  total_gastos_evento  Int?
+  total_gastos_fijos   Int?
+  total_perdidas       Int?
+  utilidad_neta        Int?
+  id_contador          Int?
+
+  contador     Contador?   @relation(fields: [id_contador], references: [id_contador], onDelete: Restrict)
+  gastos_fijos GastoFijo[]
+
+  @@unique([anio, mes])
+  @@map("mes_contable")
+}
+
+model GastoFijo {
+  id_gasto_fijo Int     @id @default(autoincrement())
+  descripcion   String  @db.VarChar(255)
+  monto         Int
+  evidencia     String? @db.VarChar(255)
+  id_mes        Int
+  id_contador   Int
+
+  mes      MesContable @relation(fields: [id_mes], references: [id_mes], onDelete: Restrict)
+  contador Contador    @relation(fields: [id_contador], references: [id_contador], onDelete: Restrict)
+
+  @@map("gasto_fijo")
+}
+
+// ------------------------------------------------------------
+//  Auspiciadores
+// ------------------------------------------------------------
+
+model Auspiciador {
+  id_auspiciador       Int           @id @default(autoincrement())
+  nombre               String        @db.VarChar(80)
+  rubro                String?       @db.VarChar(60)
+  contacto             String?       @db.VarChar(80)
+  telefono             String        @db.VarChar(20)
+  clasificacion        Clasificacion @default(CONFIABLE)
+  motivo_clasificacion String?       @db.VarChar(255)
+  id_dueno             Int
+
+  dueno    Dueno             @relation(fields: [id_dueno], references: [id_dueno], onDelete: Restrict)
+  acuerdos AcuerdoAuspicio[]
+
+  @@map("auspiciador")
+}
+
+model AcuerdoAuspicio {
+  id_acuerdo         Int           @id @default(autoincrement())
+  glosa              String        @db.VarChar(255)
+  tipo_aporte        TipoAporte
+  monto_comprometido Int
+  descripcion_canje  String?       @db.VarChar(255)
+  cant_menciones     Int?          @db.SmallInt
+  fecha_comprometida DateTime      @db.Date
+  estado             EstadoAcuerdo @default(PENDIENTE)
+  motivo_incobrable  String?       @db.VarChar(255)
+  id_auspiciador     Int
+  id_evento          Int
+  id_dueno           Int
+
+  auspiciador   Auspiciador          @relation(fields: [id_auspiciador], references: [id_auspiciador], onDelete: Restrict)
+  evento        Evento               @relation(fields: [id_evento], references: [id_evento], onDelete: Restrict)
+  dueno         Dueno                @relation(fields: [id_dueno], references: [id_dueno], onDelete: Restrict)
+  cumplimientos CumplimientoAporte[]
+
+  @@map("acuerdo_auspicio")
+}
+
+// Entidad débil de ACUERDO_AUSPICIO
+model CumplimientoAporte {
+  id_acuerdo       Int
+  nro_cumplimiento Int
+  fecha            DateTime @db.Date
+  monto_recibido   Int
+  id_contador      Int
+
+  acuerdo  AcuerdoAuspicio @relation(fields: [id_acuerdo], references: [id_acuerdo], onDelete: Cascade)
+  contador Contador        @relation(fields: [id_contador], references: [id_contador], onDelete: Restrict)
+
+  @@id([id_acuerdo, nro_cumplimiento])
+  @@map("cumplimiento_aporte")
+}
+
+// ------------------------------------------------------------
+//  Inventario, salidas e incidentes
+// ------------------------------------------------------------
+
+model Kit {
+  id_kit      Int       @id @default(autoincrement())
+  nombre      String    @unique @db.VarChar(60)
+  nivel       NivelKit
+  recargo_pct Decimal   @default(0) @db.Decimal(5, 2)
+  estado      EstadoKit @default(DISPONIBLE)
+  id_jefe     Int
+
+  jefe     JefeAreaTecnica @relation(fields: [id_jefe], references: [id_jefe], onDelete: Restrict)
+  equipos  Equipo[]
+  reservas ReservaKit[]
+
+  @@map("kit")
+}
+
+model ReservaKit {
+  id_reserva    Int      @id @default(autoincrement())
+  fecha_reserva DateTime @default(now()) @db.Timestamp(6)
+  id_evento     Int
+  id_kit        Int
+  id_dueno      Int
+
+  evento Evento     @relation(fields: [id_evento], references: [id_evento], onDelete: Restrict)
+  kit    Kit        @relation(fields: [id_kit], references: [id_kit], onDelete: Restrict)
+  dueno  Dueno      @relation(fields: [id_dueno], references: [id_dueno], onDelete: Restrict)
+  salida SalidaKit?
+
+  @@unique([id_evento, id_kit])
+  @@map("reserva_kit")
+}
+
+model Equipo {
+  codigo             String          @id @db.VarChar(15)
+  nombre             String          @db.VarChar(80)
+  categoria          CategoriaEquipo
+  marca              String?         @db.VarChar(40)
+  modelo             String?         @db.VarChar(40)
+  fecha_compra       DateTime        @db.Date
+  valor_compra       Int
+  estado             EstadoEquipo    @default(OPERATIVO)
+  motivo_baja        String?         @db.VarChar(255)
+  fecha_baja         DateTime?       @db.Date
+  id_kit             Int?
+  id_evento_repuesto Int?
+  id_jefe            Int
+
+  kit              Kit?            @relation(fields: [id_kit], references: [id_kit], onDelete: SetNull)
+  evento_repuesto  Evento?         @relation(fields: [id_evento_repuesto], references: [id_evento], onDelete: SetNull)
+  jefe             JefeAreaTecnica @relation(fields: [id_jefe], references: [id_jefe], onDelete: Restrict)
+  revisiones       Revisa[]
+  incidentes       Incidente[]
+
+  @@map("equipo")
+}
+
+model SalidaKit {
+  id_salida          Int       @id @default(autoincrement())
+  fecha_hora_salida  DateTime  @db.Timestamp(6)
+  fecha_hora_retorno DateTime? @db.Timestamp(6)
+  id_reserva         Int       @unique
+  id_asignacion      Int
+  id_jefe            Int
+
+  reserva     ReservaKit         @relation(fields: [id_reserva], references: [id_reserva], onDelete: Restrict)
+  responsable AsignacionPersonal @relation(fields: [id_asignacion], references: [id_asignacion], onDelete: Restrict)
+  jefe        JefeAreaTecnica    @relation(fields: [id_jefe], references: [id_jefe], onDelete: Restrict)
+  revisiones  Revisa[]
+
+  @@map("salida_kit")
+}
+
+// Relación N:M SALIDA_KIT - EQUIPO (estado de cada equipo al retornar)
+model Revisa {
+  id_salida      Int
+  codigo         String        @db.VarChar(15)
+  estado_retorno EstadoRetorno
+  observacion    String?       @db.VarChar(255)
+
+  salida SalidaKit @relation(fields: [id_salida], references: [id_salida], onDelete: Cascade)
+  equipo Equipo    @relation(fields: [codigo], references: [codigo], onDelete: Restrict)
+
+  @@id([id_salida, codigo])
+  @@map("revisa")
+}
+
+model Incidente {
+  id_incidente  Int           @id @default(autoincrement())
+  tipo          TipoIncidente
+  fecha         DateTime      @db.Date
+  descripcion   String        @db.VarChar(255)
+  valor         Int
+  codigo        String        @db.VarChar(15)
+  id_evento     Int?
+  id_trabajador Int?
+  id_jefe       Int
+
+  equipo     Equipo          @relation(fields: [codigo], references: [codigo], onDelete: Restrict)
+  evento     Evento?         @relation(fields: [id_evento], references: [id_evento], onDelete: Restrict)
+  trabajador Trabajador?     @relation(fields: [id_trabajador], references: [id_trabajador], onDelete: Restrict)
+  jefe       JefeAreaTecnica @relation(fields: [id_jefe], references: [id_jefe], onDelete: Restrict)
+
+  @@map("incidente")
+}
+
+// ------------------------------------------------------------
+//  NOTA: reglas que Prisma no expresa en el schema.
+//  Agregarlas en la migración SQL (npx prisma migrate dev --create-only):
+//
+//  ALTER TABLE sesion ADD CONSTRAINT sesion_un_perfil CHECK (
+//    (id_dueno IS NOT NULL)::int + (id_contador IS NOT NULL)::int + (id_jefe IS NOT NULL)::int = 1);
+//  ALTER TABLE evento ADD CONSTRAINT evento_horario CHECK (hora_termino > hora_inicio);
+//  ALTER TABLE evento ADD CONSTRAINT evento_precio CHECK (precio_acordado > 0);
+//  ALTER TABLE evento ADD CONSTRAINT evento_repuestos CHECK (cantidad_repuestos >= 0);
+//  ALTER TABLE asignacion_personal ADD CONSTRAINT asig_pct CHECK (porcentaje BETWEEN 0 AND 100);
+//  ALTER TABLE kit ADD CONSTRAINT kit_recargo CHECK (recargo_pct BETWEEN 0 AND 100);
+//  ALTER TABLE equipo ADD CONSTRAINT equipo_valor CHECK (valor_compra > 0);
+//  ALTER TABLE pago_cliente ADD CONSTRAINT pago_monto CHECK (monto > 0);
+//  ALTER TABLE gasto_evento ADD CONSTRAINT gasto_monto CHECK (monto > 0);
+//  ALTER TABLE mes_contable ADD CONSTRAINT mes_rango CHECK (mes BETWEEN 1 AND 12);
+// ------------------------------------------------------------

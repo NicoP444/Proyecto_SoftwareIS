@@ -1,0 +1,74 @@
+.trabajadores {
+  padding: 24px;
+  font-family: sans-serif;
+}
+
+.trabajadores .caja {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.trabajadores .caja h2,
+.trabajadores .caja h3 {
+  margin-top: 0;
+}
+
+.trabajadores form.caja {
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+}
+
+.trabajadores label {
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+.trabajadores input,
+.trabajadores textarea {
+  padding: 8px;
+  margin-top: 4px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 15px;
+}
+
+.trabajadores .lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.trabajadores .botones {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.trabajadores .boton {
+  background: #14263f;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.trabajadores .boton:hover {
+  background: #22395a;
+}
+
+.trabajadores .boton-gris {
+  background: #888;
+}
+
+.trabajadores .error {
+  color: #c0392b;
+}
+
+.trabajadores .exito {
+  color: #1e7a46;
+}
