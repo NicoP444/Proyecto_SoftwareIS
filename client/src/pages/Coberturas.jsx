@@ -1,18 +1,23 @@
-import { useEffect, useState } from 'react';
+//useEffect:ejecuta codigo automatico cuando ocurre algo determinado; useState: guarda informacion que puede cambiar dentro del componente
+import { useEffect, useState } from 'react'; 
+//use Navigate: permite cambiar de pagina mediante codigo
 import { useNavigate } from 'react-router-dom';
+//importacion de funciones de otros archivos 
 import {
   listarClientes, crearCliente,
   listarCoberturas, crearCobertura, eliminarCobertura
 } from '../services/coberturas.service.js';
 
-const ESTADOS = {
+//Estados posibles que puede tomar un evento.
+const ESTADOS = { 
   PENDIENTE_ADELANTO: { texto: 'Pendiente de adelanto', color: '#b45309', fondo: '#fef3c7' },
   CONFIRMADO: { texto: 'Confirmado', color: '#065f46', fondo: '#d1fae5' },
   REALIZADO: { texto: 'Realizado', color: '#1e3a8a', fondo: '#dbeafe' },
   CERRADO: { texto: 'Cerrado', color: '#374151', fondo: '#e5e7eb' }
 };
 
-function EstadoBadge({ estado }) {
+//obtencion del estado de un evento y convertido a etiqueta
+function EstadoBadge({ estado }) { 
   const info = ESTADOS[estado] || { texto: estado, color: '#374151', fondo: '#e5e7eb' };
   return (
     <span style={{ padding: '4px 10px', borderRadius: '999px', fontSize: '12px', fontWeight: 'bold', color: info.color, background: info.fondo }}>
@@ -21,77 +26,80 @@ function EstadoBadge({ estado }) {
   );
 }
 
+//formato de hora compleeto yyyy/mm/dd > a string > finalmente extraemos las posiciones 11 y 16 que corresponden a la hora
 function formatHora(valor) {
   if (!valor) return '';
   return new Date(valor).toISOString().substring(11, 16);
 }
 
+//formato de hora compleeto yyyy/mm/dd > a string > finalmente extraemos las posiciones 0 y 10 que corresponden fecha
 function formatFecha(valor) {
   if (!valor) return '';
   return new Date(valor).toISOString().substring(0, 10);
 }
 
+//Estilos
 const inputStyle = { width: '100%', padding: '8px', boxSizing: 'border-box', borderRadius: '4px', border: '1px solid #ccc', marginBottom: '10px' };
 const labelStyle = { display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: 'bold' };
 const cardStyle = { border: '1px solid #e5e7eb', borderRadius: '8px', padding: '20px', marginBottom: '24px' };
 
+//funcion para la presentacion y renderizacion del formulario cliente y evento
 export default function Coberturas() {
-  const navigate = useNavigate();
+  const navigate = useNavigate(); //para volver al inicio
 
-  const [clientes, setClientes] = useState([]);
-  const [coberturas, setCoberturas] = useState([]);
-  const [error, setError] = useState(null);
+  const [clientes, setClientes] = useState([]); //crea un estado llamado "clientes" vacio, serClientes permite cambiarlo
+  const [coberturas, setCoberturas] = useState([]); //crea un estado llamado "coberturas" vacio, setCoberturas permite cambiarlo
+  const [error, setError] = useState(null); //guarda posibles errores
 
-  const [nuevoCliente, setNuevoCliente] = useState({ nombre: '', telefono: '', correo: '' });
-  const [nuevaCobertura, setNuevaCobertura] = useState({
+  const [nuevoCliente, setNuevoCliente] = useState({ nombre: '', telefono: '', correo: '' }); //almacenamos lo escrito por el usuario en el formulario
+  const [nuevaCobertura, setNuevaCobertura] = useState({ //almacenamos lo escrito por el usuario en el formulario
     tipo: '', fecha: '', hora_inicio: '', hora_termino: '', direccion: '',
     cantidad_camaras: 1, precio_acordado: '', observaciones: '',
     id_cliente: ''
   });
 
-  const cargarDatos = async () => {
+  const cargarDatos = async () => { //definicion de funcion > async: realizara operaciones que pueden tardar pedir, consultar, esperar
     try {
-      const [clientesData, coberturasData] = await Promise.all([
-        listarClientes(), listarCoberturas()
-      ]);
-      setClientes(clientesData);
-      setCoberturas(coberturasData);
+      const [clientesData, coberturasData] = await Promise.all([listarClientes(), listarCoberturas()])// obtenemos los clientes y coberturas con promise.all para esperar ambos
+      setClientes(clientesData); //guardamos clientes en este estado
+      setCoberturas(coberturasData); //guardamos coberturas en este estado
     } catch (err) {
       setError(err.message);
     }
   };
 
-  useEffect(() => { cargarDatos(); }, []);
+  useEffect(() => { cargarDatos(); }, []); //indica al inicio del componente la funcion cargardatos para mostrar actualizada la lista desde el inicio
 
+  //funcion para el envio del formulario cliente
   const handleCrearCliente = async (e) => {
-    e.preventDefault();
-    setError(null);
+    e.preventDefault(); //evita recargar la pagina al enviar el formulario
+    setError(null); //limpiamos el error anterior
     try {
-      await crearCliente(nuevoCliente);
-      setNuevoCliente({ nombre: '', telefono: '', correo: '' });
-      cargarDatos();
+      await crearCliente(nuevoCliente); //await para esperar la respuesta y crearCliente usara la informacion de nuevoCliente para la insercion
+      setNuevoCliente({ nombre: '', telefono: '', correo: '' }); //una vez ya usados los datos ingresados se limpia el formulario
+      cargarDatos(); //actualizar lista en pantalla 
     } catch (err) { setError(err.message); }
   };
 
   const handleCrearCobertura = async (e) => {
-    e.preventDefault();
-    setError(null);
+    e.preventDefault(); //evita recargar la pagina 
+    setError(null); //limpiamos el error anterior
     try {
-      await crearCobertura(nuevaCobertura);
-      setNuevaCobertura({
+      await crearCobertura(nuevaCobertura); //esperamos la respuesta y crearCobertura usara la info almacenada en nuevaCobertura para la insercion
+      setNuevaCobertura({ //limpiamos el formulario
         tipo: '', fecha: '', hora_inicio: '', hora_termino: '', direccion: '',
         cantidad_camaras: 1, precio_acordado: '', observaciones: '',
         id_cliente: ''
       });
-      cargarDatos();
+      cargarDatos(); //actualizamos lista en pantalla
     } catch (err) { setError(err.message); }
   };
 
   const handleEliminar = async (id) => {
-    setError(null);
+    setError(null); //limpiamos el error anterior
     try {
-      await eliminarCobertura(id);
-      cargarDatos();
+      await eliminarCobertura(id); //esperamos la respuesta y usamos eliminarCobertura
+      cargarDatos(); //actualizamos lista en pantalla
     } catch (err) { setError(err.message); }
   };
 
