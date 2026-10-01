@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 //importacion de funciones de otros archivos 
 import {
-  listarClientes, crearCliente,
+  listarClientes
+} from '../services/cliente.service.js';
+import {
   listarCoberturas, crearCobertura, eliminarCobertura
 } from '../services/coberturas.service.js';
 
@@ -51,7 +53,6 @@ export default function Coberturas() {
   const [coberturas, setCoberturas] = useState([]); //crea un estado llamado "coberturas" vacio, setCoberturas permite cambiarlo
   const [error, setError] = useState(null); //guarda posibles errores
 
-  const [nuevoCliente, setNuevoCliente] = useState({ nombre: '', telefono: '', correo: '' }); //almacenamos lo escrito por el usuario en el formulario
   const [nuevaCobertura, setNuevaCobertura] = useState({ //almacenamos lo escrito por el usuario en el formulario
     tipo: '', fecha: '', hora_inicio: '', hora_termino: '', direccion: '',
     cantidad_camaras: 1, precio_acordado: '', observaciones: '',
@@ -69,17 +70,6 @@ export default function Coberturas() {
   };
 
   useEffect(() => { cargarDatos(); }, []); //indica al inicio del componente la funcion cargardatos para mostrar actualizada la lista desde el inicio
-
-  //funcion para el envio del formulario cliente
-  const handleCrearCliente = async (e) => {
-    e.preventDefault();
-    setError(null); 
-    try {
-      await crearCliente(nuevoCliente);
-      setNuevoCliente({ nombre: '', telefono: '', correo: '' });
-      cargarDatos(); //actualizar lista en pantalla 
-    } catch (err) { setError(err.message); }
-  };
 
   const handleCrearCobertura = async (e) => {
     e.preventDefault(); 
@@ -116,26 +106,6 @@ export default function Coberturas() {
           {error}
         </div>
       )}
-
-      <div style={cardStyle}>
-        <h2>Clientes</h2>
-        <form onSubmit={handleCrearCliente}>
-          <label style={labelStyle}>Nombre</label>
-          <input style={inputStyle} value={nuevoCliente.nombre} onChange={(e) => setNuevoCliente({ ...nuevoCliente, nombre: e.target.value })} required />
-          <label style={labelStyle}>Teléfono</label>
-          <input style={inputStyle} value={nuevoCliente.telefono} onChange={(e) => setNuevoCliente({ ...nuevoCliente, telefono: e.target.value })} placeholder="+56 9 1234 5678" required />
-          <label style={labelStyle}>Correo (opcional)</label>
-          <input style={inputStyle} type="email" value={nuevoCliente.correo} onChange={(e) => setNuevoCliente({ ...nuevoCliente, correo: e.target.value })} />
-          <button type="submit" style={{ padding: '8px 14px', background: '#1e293b', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Crear cliente</button>
-        </form>
-
-        <h3 style={{ marginTop: '20px' }}>Lista de clientes</h3>
-        {clientes.length === 0 ? <p>Todavía no hay clientes registrados.</p> : (
-          <ul>
-            {clientes.map((c) => <li key={c.id_cliente}>{c.nombre} — {c.telefono}</li>)}
-          </ul>
-        )}
-      </div>
 
       <div style={cardStyle}>
         <h2>Agendar cobertura</h2>
