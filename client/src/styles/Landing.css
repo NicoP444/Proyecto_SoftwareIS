@@ -1,0 +1,79 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+.landing{
+  --bg:#FAFAFA; --text:#171717; --muted:#525252; --border:#E5E5E5;
+  --accent:#38BDF8; --accent-dark:#0284C7; --dark:#262626;
+  --radius-btn:8px;
+  font-family:'Inter',system-ui,sans-serif; color:var(--text); background:var(--bg);
+  min-height:100vh;
+}
+.landing *{box-sizing:border-box;}
+.landing a{color:inherit; text-decoration:none;}
+.landing .wrap{max-width:1152px; margin:0 auto; padding:0 24px;}
+
+/* NAV */
+.landing nav{display:flex; align-items:center; padding:24px; max-width:1152px; margin:0 auto;}
+.landing .brand{display:flex; align-items:center; gap:12px; font-weight:600; font-size:16px;}
+/* Logo: imagen PNG (client/public/img/NombreEmpresa.png). Alto fijo, ancho proporcional. */
+.landing .brand-icon{height:40px; width:auto; display:block; object-fit:contain;}
+.landing .nav-links{display:flex; gap:40px; font-size:14px; color:var(--muted); margin-left:48px;}
+.landing .nav-actions{display:flex; gap:12px; margin-left:auto;}
+.landing .btn{
+  padding:10px 16px; border-radius:var(--radius-btn); font-family:inherit; font-size:14px; font-weight:500;
+  color:var(--text); background:transparent; border:1px solid var(--border); cursor:pointer;
+  display:inline-flex; align-items:center; line-height:1.4;
+}
+.landing .btn-dark{background:var(--dark); color:#fff; border-color:var(--dark); font-weight:600;}
+@media (max-width:760px){.landing .nav-links{display:none;}}
+
+/* HERO */
+.landing .hero-text{position:relative; z-index:2;}
+.landing .hero{padding:60px 0 0; position:relative; overflow:hidden;}
+.landing .hero-grid{display:grid; grid-template-columns:1fr 1fr; gap:40px; align-items:center;}
+@media (max-width:900px){.landing .hero-grid{grid-template-columns:1fr;}}
+.landing h1{font-size:clamp(32px,4vw,48px); line-height:1.1; font-weight:500; letter-spacing:-0.02em; margin:0 0 20px;}
+.landing .lead{color:var(--muted); font-size:18px; line-height:1.7; max-width:46ch; margin:0 0 30px;}
+.landing .hero-ctas{display:flex; gap:16px; align-items:center;}
+
+/* VISUAL + CÍRCULOS */
+.landing .hero-visual{position:relative; min-height:640px; display:flex; align-items:center; justify-content:center;}
+
+/* top = distancia desde arriba de la columna hasta el centro de los círculos (más alto = más abajo) */
+.landing .rings{
+  position:absolute; top:520px; left:70%; width:1100px; height:1100px;
+  transform:translate(-50%,-50%); pointer-events:none; z-index:0;
+}
+.landing .rings svg{position:absolute; inset:0; width:100%; height:100%; overflow:visible;}
+.landing .ring{fill:none; stroke:#E5E5E5; stroke-width:1;}
+
+/* Imagen dentro de los círculos: anclada abajo y centrada, por encima de los anillos.
+   Ajusta max-width / max-height para hacerla más grande o más chica. */
+.landing .hero-img{
+  position:absolute; bottom:0; left:80%; transform:translateX(-50%);
+  z-index:1; display:block;
+  width:690px; height:auto; max-width:none; max-height:none;
+  object-fit:contain;
+}
+
+/* Línea fugaz: cada SVG gira sobre el centro, recorriendo la mitad de arriba del círculo.
+   Las dos salen a la vez: la exterior de izquierda a derecha, la interior de derecha a izquierda. */
+.landing .comet{
+  transform-origin:50% 50%;
+  opacity:0;
+  animation:comet-sweep 3.5s cubic-bezier(.45,0,.55,1) infinite;
+}
+.landing .comet-outer{--from:-100deg; --to:100deg; --rest:60deg;}
+.landing .comet-inner{--from:100deg;  --to:-100deg; --rest:-50deg;}
+
+@keyframes comet-sweep{
+  0%   {transform:rotate(var(--from)); opacity:0;}
+  6%   {opacity:1;}
+  54%  {opacity:1;}
+  62%  {transform:rotate(var(--to)); opacity:0;}
+  100% {transform:rotate(var(--to)); opacity:0;}
+}
+
+/* Con "reducir movimiento" activo en el sistema: sin animación, estela fija como en la referencia */
+@media (prefers-reduced-motion:reduce){
+  .landing .comet{animation:none; opacity:1; transform:rotate(var(--rest));}
+}
