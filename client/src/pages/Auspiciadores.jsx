@@ -47,7 +47,7 @@ export default function Auspiciadores() {
       {/* 3. Botón para volver al inicio */}
       <button 
         type="button" 
-        onClick={() => navigate('/')}
+        onClick={() => navigate('/home')} //redirige a home
         style={{
           backgroundColor: '#6c757d',
           color: 'white',
@@ -59,7 +59,7 @@ export default function Auspiciadores() {
           fontSize: '14px'
         }}
       >
-        ← Volver al inicio
+        ← Volver al Home
       </button>
 
       <h1>Registrar Auspiciador</h1>

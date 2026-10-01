@@ -112,7 +112,7 @@ const cargarDatos = async () => {
     <div style={{ maxWidth: '900px', margin: '2rem auto', padding: '1rem', fontFamily: 'sans-serif' }}>
       <button
         type="button"
-        onClick={() => navigate('/')}
+        onClick={() => navigate('/home')} //redirige a home
         style={{
           backgroundColor: '#6c757d',
           color: '#ffffff',
@@ -127,7 +127,7 @@ const cargarDatos = async () => {
           gap: '6px'
         }}
       >
-        ← Volver al inicio
+        ← Volver al Home
       </button>
 
       <h2>Registrar Incidente</h2>
