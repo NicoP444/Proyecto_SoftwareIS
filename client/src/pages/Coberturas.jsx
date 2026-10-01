@@ -95,8 +95,8 @@ export default function Coberturas() {
 
   return (
     <div style={{ padding: '24px', fontFamily: 'sans-serif', maxWidth: '900px', margin: '0 auto' }}>
-      <button onClick={() => navigate('/')} style={{ marginBottom: '20px', padding: '8px 14px', background: '#6b7280', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-        ← Volver al inicio
+      <button onClick={() => navigate('/home')} style={{ marginBottom: '20px', padding: '8px 14px', background: '#6b7280', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+        ← Volver al home
       </button>
 
       <h1 style={{ marginBottom: '20px' }}>Coberturas</h1>

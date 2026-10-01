@@ -70,7 +70,7 @@ export default function Trabajadores() {
 
   return (
     <div className="trabajadores">
-      <button className="boton boton-gris" onClick={() => navigate('/')}>
+      <button className="boton boton-gris" onClick={() => navigate('/home')}> //redirige a la página de home
         ← Volver al inicio
       </button>
 

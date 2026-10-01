@@ -23,7 +23,7 @@ export default function Login({ onLogin }) {
 
       if (onLogin) onLogin(data.usuario);
 
-      navigate("/home", { replace: true }); // <-- esto faltaba
+      navigate("/home", { replace: true }); //redirige a página de inicio después del login
     } catch (err) {
       setError(err.message);
     } finally {
