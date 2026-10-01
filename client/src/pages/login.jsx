@@ -24,7 +24,7 @@ export default function Login({ onLogin }) {
 
       
       if (onLogin) onLogin(data.usuario);
-      navigate('/');
+      
     } catch (err) {
       setError(err.message);
     } finally {

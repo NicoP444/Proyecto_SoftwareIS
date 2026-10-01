@@ -1,15 +1,16 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './pages/login';
-import Home from './pages/Home';
-import Trabajadores from './pages/Trabajadores'; 
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import Landing from "./pages/Landing";
+import Login from "./pages/login";
+import Home from "./pages/Home";
+import Trabajadores from "./pages/Trabajadores";
 import Auspiciadores from "./pages/Auspiciadores";
-import Coberturas from './pages/Coberturas';
-import Incidentes from './pages/Incidentes';
-import Clientes from './pages/Clientes';
+import Coberturas from "./pages/Coberturas";
+import Incidentes from "./pages/Incidentes";
+import Clientes from "./pages/Clientes";
 
 // Componente para proteger rutas privadas (solo si hay token)
 function RutaProtegida({ children }) {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem("token");
   return token ? children : <Navigate to="/login" replace />;
 }
 
@@ -18,27 +19,26 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         {/* Ruta pública */}
+        <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
-
         {/* Rutas privadas (Inicio y módulos) */}
-        <Route 
-          path="/" 
+        <Route
+          path="/home"
           element={
             <RutaProtegida>
               <>
                 <Home />
               </>
             </RutaProtegida>
-          } 
+          }
         />
-
-        <Route 
-          path="/trabajadores" 
+        <Route
+          path="/trabajadores"
           element={
             <RutaProtegida>
-               <Trabajadores /> {/*nico*/}
+              <Trabajadores /> {/*nico*/}
             </RutaProtegida>
-          } 
+          }
         />
         <Route
           path="/clientes"
@@ -48,15 +48,15 @@ export default function App() {
             </RutaProtegida>
           }
         />
-        <Route 
-          path="/auspiciadores" 
+        <Route
+          path="/auspiciadores"
           element={
             <RutaProtegida>
-               <Auspiciadores />
+              <Auspiciadores />
             </RutaProtegida>
-          } 
+          }
         />
-          
+
         <Route
           path="/coberturas"
           element={
