@@ -59,7 +59,7 @@ export default function Auspiciadores() {
           fontSize: '14px'
         }}
       >
-        ← Volver al inicio
+        ← Volver al Home
       </button>
 
       <h1>Registrar Auspiciador</h1>

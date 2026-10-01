@@ -127,7 +127,7 @@ const cargarDatos = async () => {
           gap: '6px'
         }}
       >
-        ← Volver al inicio
+        ← Volver al Home
       </button>
 
       <h2>Registrar Incidente</h2>
