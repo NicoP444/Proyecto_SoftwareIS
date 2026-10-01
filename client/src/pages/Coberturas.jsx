@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 //importacion de funciones de otros archivos 
 import {
-  listarClientes, crearCliente,
+  listarClientes, crearCliente
+} from '../services/cliente.service.js';
+import {
   listarCoberturas, crearCobertura, eliminarCobertura
 } from '../services/coberturas.service.js';
 

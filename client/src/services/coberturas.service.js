@@ -7,12 +7,6 @@ async function manejarRespuesta(response) {
   return data; //la peticion fue exitosa y retornamos
 }
 
-export const listarClientes = () => fetch(`${API_URL}/clientes`).then(manejarRespuesta); 
-//recibe cliente que viene de await crearCliente(nuevoCliente)
-export const crearCliente = (cliente) => fetch(`${API_URL}/clientes`, {
-  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cliente)
-}).then(manejarRespuesta);
-
 export const listarCoberturas = () => fetch(`${API_URL}/coberturas`).then(manejarRespuesta);
 export const crearCobertura = (cobertura) => fetch(`${API_URL}/coberturas`, {
   method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cobertura)
