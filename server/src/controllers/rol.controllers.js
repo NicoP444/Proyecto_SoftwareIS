@@ -13,6 +13,14 @@ export const ListarRol = async (req, res) =>{
 };
 
 
-
+export const CrearRol = async (req, res) => {
+  try {
+    // Tienes que extraer específicamente el 'req.body'
+    const nuevoRol = await RolServicio.CrearRol(req.body); 
+    res.json(nuevoRol);
+  } catch (error) {
+    manejarError(res, error);
+  }
+};
 
 
