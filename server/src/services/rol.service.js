@@ -23,5 +23,23 @@ export const CrearRol = async ({nombre, porcentaje_referencial, id_dueno}) =>{
         dueno: { connect: { id_dueno: Number(id_dueno) } },
       },
     })
+    return nuevo;
 }
 
+
+
+export const ActualizarRol = async (id_rol, { nombre, porcentaje_referencial, id_dueno }) => {
+  const update = await prisma.rolTrabajo.update({
+    // 1. El 'where' busca exactamente qué fila vamos a modificar
+    where: { 
+      id_rol: Number(id_rol) 
+    },
+    data: {
+      nombre,
+      porcentaje_referencial,
+      id_dueno
+    }
+  });
+
+  return update;
+};

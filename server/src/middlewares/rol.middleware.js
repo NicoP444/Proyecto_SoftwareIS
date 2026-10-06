@@ -32,3 +32,9 @@ export const validarCrearRol = [
 ];
 
 
+export const validarActualizarRol = [
+    validarBody,
+    verificarSchemaRol,
+    validarDueno
+];
+

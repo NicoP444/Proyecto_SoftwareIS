@@ -1,8 +1,6 @@
 import * as RolServicio from '../services/rol.service.js'
 import { manejarError } from '../utils/errores.js';
 
-
-
 export const ListarRol = async (req, res) =>{
     try{
         const lista = await RolServicio.ListarTrabajadores(req.query.id_dueno);
@@ -24,3 +22,12 @@ export const CrearRol = async (req, res) => {
 };
 
 
+export const ActualizarRol = async (req, res) =>{
+  try{
+    const actuRol = await RolServicio.ActualizarRol(req.params.id, req.body)
+    res.json(actuRol);
+
+  }catch (error){
+    manejarError(res, error);
+  }
+};
