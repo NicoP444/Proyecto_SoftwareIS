@@ -4,7 +4,6 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import authRoutes from './routes/auth.routes.js';
-import trabajadorRoutes from './routes/trabajador.routes.js'; // nico
 import routes from './routes/index.js'; //gene
 import clienteRoutes from './routes/cliente.routes.js'; //jorge
 import recintoRoutes from './routes/recinto.routes.js'; //jorge
@@ -26,9 +25,8 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 
 // Trabajadores y roles
-app.use('/api/trabajadores', trabajadorRoutes); // nico
 app.use('/api', routes);//gene
-app.use('/api', routes); // nico, nos vamos a rutas...
+app.use('/api', routes); // nico
 
 //JORGE
 app.use('/api/clientes', clienteRoutes);
