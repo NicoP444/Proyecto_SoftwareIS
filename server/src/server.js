@@ -28,6 +28,7 @@ app.use('/api/auth', authRoutes);
 // Trabajadores y roles
 app.use('/api/trabajadores', trabajadorRoutes); // nico
 app.use('/api', routes);//gene
+app.use('/api', routes); // nico, nos vamos a rutas...
 
 //JORGE
 app.use('/api/clientes', clienteRoutes);
