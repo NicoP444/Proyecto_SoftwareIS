@@ -3,8 +3,8 @@ import prisma from '../config/prisma.js'; // Necesario para VerificarDuplicado
 
 
 export const ValidarPorcentaje = (porcentaje) => {
-    if (telefono === undefined) return undefined;
-    if (telefono === null || telefono === '') return null;
+    if (porcentaje === undefined) return undefined;
+    if (porcentaje === null || porcentaje === '') return null;
 
     const limpio = String(porcentaje).trim();
     if (!/^\d+(\.\d{1,2})?$/.test(limpio)) {
