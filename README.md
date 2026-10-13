@@ -1,4 +1,4 @@
-# Proyecto - Ingeniería de Software
+a# Proyecto - Ingeniería de Software
 ## Sistema de Gestión de Cobertura de Transmisiones en Vivo
 
 Este repositorio contiene el código fuente y las evidencias del proyecto final para la asignatura de Ingeniería de Software.
