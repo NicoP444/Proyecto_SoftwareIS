@@ -47,3 +47,13 @@ export const auspiciadorController = {
     }
   }
 };
+// server/src/services/auspiciador.service.js (o donde manejes auspiciadores)
+export const clasificarAuspiciador = async (id, clasificacion, motivo) => {
+  return await prisma.auspiciador.update({
+    where: { id_auspiciador: Number(id) },
+    data: {
+      clasificacion, // "CONFIABLE" o "NO_CONFIABLE" (según tu enum Clasificacion)
+      motivo_clasificacion: motivo,
+    },
+  });
+};

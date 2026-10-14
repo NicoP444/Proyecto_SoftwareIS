@@ -28,6 +28,14 @@ export default function Auspiciadores() {
   const [cargandoAcuerdos, setCargandoAcuerdos] = useState(true);
   const [listaAuspiciadores, setListaAuspiciadores] = useState([]);
 
+  // Estado para el modal de cambio de clasificación (RF-P4-07)
+  const [modalClasificacion, setModalClasificacion] = useState({
+    abierto: false,
+    auspiciador: null,
+    nuevoEstado: '',
+    motivo: ''
+  });
+
   // 1. Cargar acuerdos registrados
   const cargarAcuerdos = async () => {
     try {
@@ -126,6 +134,44 @@ export default function Auspiciadores() {
     }
   };
 
+  // Abre el modal al hacer clic en el badge
+  const abrirModalCambio = (item) => {
+    const esNoConfiable = item.clasificacion === 'NO_CONFIABLE';
+    setModalClasificacion({
+      abierto: true,
+      auspiciador: item,
+      nuevoEstado: esNoConfiable ? 'CONFIABLE' : 'NO_CONFIABLE',
+      motivo: item.motivo_clasificacion || ''
+    });
+  };
+
+  // Guarda la nueva clasificación con el motivo en el backend
+  const confirmarCambioClasificacion = async (e) => {
+    e.preventDefault();
+    const { auspiciador, nuevoEstado, motivo } = modalClasificacion;
+    const id = auspiciador.id_auspiciador || auspiciador.id;
+
+    try {
+      const res = await fetch(`http://localhost:3000/api/auspiciadores/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...auspiciador,
+          clasificacion: nuevoEstado,
+          motivo_clasificacion: motivo
+        })
+      });
+
+      if (!res.ok) throw new Error('No se pudo actualizar');
+
+      setMensaje(`Clasificación de ${auspiciador.nombre} cambiada a ${nuevoEstado}.`);
+      setModalClasificacion({ abierto: false, auspiciador: null, nuevoEstado: '', motivo: '' });
+      cargarAuspiciadores();
+    } catch (error) {
+      alert('Error al actualizar: ' + error.message);
+    }
+  };
+
   return (
     <div style={{ padding: '30px 20px', maxWidth: '1000px', margin: '0 auto', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       
@@ -186,7 +232,7 @@ export default function Auspiciadores() {
         </button>
       </div>
 
-      {/* VISTA 1: MODO REGISTRAR/GESTIONAR AUSPICIADORES (cuando el botón está activo) */}
+      {/* VISTA 1: MODO REGISTRAR/GESTIONAR AUSPICIADORES */}
       {mostrarFormulario ? (
         <div>
           {/* Formulario */}
@@ -205,7 +251,7 @@ export default function Auspiciadores() {
             {mensaje && (
               <p style={{
                 fontWeight: 'bold',
-                color: mensaje.includes('éxito') ? '#198754' : '#dc3545',
+                color: mensaje.includes('éxito') || mensaje.includes('cambiada') ? '#198754' : '#dc3545',
                 marginBottom: '15px'
               }}>
                 {mensaje}
@@ -295,7 +341,7 @@ export default function Auspiciadores() {
             </form>
           </div>
 
-          {/* Lista de Auspiciadores registrados debajo del formulario */}
+          {/* Lista de Auspiciadores registrados */}
           <div style={{
             backgroundColor: '#ffffff',
             borderRadius: '16px',
@@ -313,22 +359,59 @@ export default function Auspiciadores() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
                 {listaAuspiciadores.map((item) => {
                   const id = item.id_auspiciador || item.id;
+                  const esNoConfiable = item.clasificacion === 'NO_CONFIABLE';
+
                   return (
                     <div
                       key={id}
                       style={{
-                        border: '1px solid #dee2e6',
-                        borderRadius: '8px',
+                        border: esNoConfiable ? '1px solid #fca5a5' : '1px solid #dee2e6',
+                        borderRadius: '10px',
                         padding: '16px',
-                        backgroundColor: '#ffffff'
+                        backgroundColor: esNoConfiable ? '#fffdfd' : '#ffffff',
+                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.02)'
                       }}
                     >
-                      <h4 style={{ margin: '0 0 8px 0', fontSize: '16px', color: '#0f172a' }}>{item.nombre}</h4>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <h4 style={{ margin: 0, fontSize: '16px', color: '#0f172a' }}>{item.nombre}</h4>
+                        
+                        {/* BOTÓN/BADGE INTERACTIVO */}
+                        <button
+                          type="button"
+                          onClick={() => abrirModalCambio(item)}
+                          title="Haz clic para cambiar la clasificación"
+                          style={{
+                            border: 'none',
+                            padding: '4px 10px',
+                            borderRadius: '14px',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            backgroundColor: esNoConfiable ? '#fee2e2' : '#dcfce7',
+                            color: esNoConfiable ? '#991b1b' : '#166534',
+                            transition: 'opacity 0.15s ease'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                          onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                        >
+                          {esNoConfiable ? '⚠️ No confiable' : '✓ Confiable'}
+                        </button>
+                      </div>
+
                       <p style={{ margin: '4px 0', fontSize: '14px' }}><strong>Rubro:</strong> {item.rubro}</p>
                       <p style={{ margin: '4px 0', fontSize: '14px' }}><strong>Contacto:</strong> {item.contacto}</p>
                       <p style={{ margin: '4px 0', fontSize: '14px' }}><strong>Teléfono:</strong> {item.telefono}</p>
 
-                      <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                      {item.motivo_clasificacion && (
+                        <p style={{ margin: '6px 0 0 0', fontSize: '12px', color: '#64748b', fontStyle: 'italic' }}>
+                          <strong>Motivo:</strong> {item.motivo_clasificacion}
+                        </p>
+                      )}
+
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
                         <button
                           type="button"
                           onClick={() => iniciarEdicion(item)}
@@ -349,7 +432,7 @@ export default function Auspiciadores() {
                           type="button"
                           onClick={() => manejarEliminar(id)}
                           style={{
-                            backgroundColor: '#dc3545',
+                            backgroundColor: '#6c757d',
                             color: 'white',
                             border: 'none',
                             padding: '6px 12px',
@@ -369,7 +452,7 @@ export default function Auspiciadores() {
           </div>
         </div>
       ) : (
-        /* VISTA 2: PORTADA PRINCIPAL (solo se ven los Acuerdos de Auspicio) */
+        /* VISTA 2: PORTADA PRINCIPAL */
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '16px',
@@ -408,12 +491,10 @@ export default function Auspiciadores() {
                     const id = item.id_acuerdo || item.id;
                     const nombreAuspiciador = item.auspiciador?.nombre || `Auspiciador #${item.id_auspiciador || '-'}`;
                     const nombreEvento = item.evento?.tipo || item.evento?.nombre || `Evento #${item.id_evento || '-'}`;
-                    
                     const tipoPago = item.tipo_aporte || item.tipo_pago || 'Aporte';
                     const detalleMonto = item.monto_comprometido || item.monto 
                       ? ` — $${Number(item.monto_comprometido || item.monto).toLocaleString('es-CL')}` 
                       : '';
-
                     const fechaPlazo = item.fecha_comprometida || item.fecha_limite 
                       ? new Date(item.fecha_comprometida || item.fecha_limite).toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit' })
                       : '--';
@@ -455,6 +536,106 @@ export default function Auspiciadores() {
               </table>
             </div>
           )}
+        </div>
+      )}
+
+      {/* MODAL LIMPIO INTEGRADO PARA CAMBIAR CLASIFICACIÓN (RF-P4-07) */}
+      {modalClasificacion.abierto && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
+            padding: '24px',
+            maxWidth: '460px',
+            width: '100%',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+          }}>
+            <h3 style={{ marginTop: 0, marginBottom: '10px', fontSize: '18px', color: '#0f172a' }}>
+              Cambiar clasificación a: {modalClasificacion.nuevoEstado === 'NO_CONFIABLE' ? '⚠️ No Confiable' : '✓ Confiable'}
+            </h3>
+            
+            <p style={{ margin: '0 0 14px 0', fontSize: '14px', color: '#64748b' }}>
+              Auspiciador: <strong>{modalClasificacion.auspiciador?.nombre}</strong>
+            </p>
+
+            {modalClasificacion.nuevoEstado === 'NO_CONFIABLE' && (
+              <div style={{
+                backgroundColor: '#fef2f2',
+                border: '1px solid #fee2e2',
+                borderRadius: '6px',
+                padding: '10px 12px',
+                marginBottom: '14px',
+                fontSize: '13px',
+                color: '#991b1b'
+              }}>
+                Al marcarlo como <strong>No Confiable</strong>, el sistema advertirá en rojo al agendar futuros acuerdos de auspicio con él[cite: 22, 30].
+              </div>
+            )}
+
+            <form onSubmit={confirmarCambioClasificacion}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '6px', color: '#334155' }}>
+                Motivo del cambio (requerido):
+              </label>
+              <textarea
+                value={modalClasificacion.motivo}
+                onChange={(e) => setModalClasificacion({ ...modalClasificacion, motivo: e.target.value })}
+                placeholder="Ej: Retraso reiterado de pagos o incumplimiento de aportes..."
+                required
+                rows={3}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  boxSizing: 'border-box',
+                  fontSize: '14px',
+                  marginBottom: '16px'
+                }}
+              />
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setModalClasificacion({ abierto: false, auspiciador: null, nuevoEstado: '', motivo: '' })}
+                  style={{
+                    backgroundColor: '#e2e8f0',
+                    color: '#334155',
+                    border: 'none',
+                    padding: '8px 14px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    backgroundColor: modalClasificacion.nuevoEstado === 'NO_CONFIABLE' ? '#dc2626' : '#166534',
+                    color: 'white',
+                    border: 'none',
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600'
+                  }}
+                >
+                  Guardar Clasificación
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
