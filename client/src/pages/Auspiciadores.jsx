@@ -1,53 +1,122 @@
-/// client/src/pages/AuspiciadoresPage.jsx
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // 1. Importamos el hook de navegación
-import { registrarAuspiciador } from '../services/auspiciadorService'; // Importamos el "cable" que hicimos
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  registrarAuspiciador,
+  obtenerAuspiciadores,
+  modificarAuspiciador,
+  eliminarAuspiciador
+} from '../services/auspiciadorService';
 
 export default function Auspiciadores() {
-  const navigate = useNavigate(); // 2. Inicializamos la navegación
+  const navigate = useNavigate();
 
-  // Aquí guardamos temporalmente lo que el usuario escribe en las cajitas (Estado)
+  // Estado del formulario
   const [formData, setFormData] = useState({
     nombre: '',
     rubro: '',
     contacto: '',
     telefono: '',
-    id_dueno: 1 // Lo dejamos en 1 temporalmente para la prueba, como vimos con Postman
+    id_dueno: 1
   });
 
-  const [mensaje, setMensaje] = useState(''); // Para mostrar avisos de éxito o error
+  // Estado para saber si estamos editando (guarda el id_auspiciador)
+  const [idEditando, setIdEditando] = useState(null);
 
-  // Esta función se ejecuta cada vez que el usuario teclea algo
+  const [mensaje, setMensaje] = useState('');
+  const [listaAuspiciadores, setListaAuspiciadores] = useState([]);
+
+  // Cargar lista desde la base de datos
+  const cargarLista = async () => {
+    try {
+      const data = await obtenerAuspiciadores();
+      setListaAuspiciadores(data || []);
+    } catch (error) {
+      console.error('Error al cargar lista:', error);
+    }
+  };
+
+  useEffect(() => {
+    cargarLista();
+  }, []);
+
   const manejarCambio = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
-  // Esta función se ejecuta cuando el usuario presiona "Guardar"
+  // Función al presionar "Editar" en una tarjeta
+  const iniciarEdicion = (item) => {
+    setIdEditando(item.id_auspiciador || item.id);
+    setFormData({
+      nombre: item.nombre || '',
+      rubro: item.rubro || '',
+      contacto: item.contacto || '',
+      telefono: item.telefono || '',
+      id_dueno: item.id_dueno || 1
+    });
+    setMensaje('');
+    // Scrollear hacia arriba suavemente para ver el formulario
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Cancelar modo edición
+  const cancelarEdicion = () => {
+    setIdEditando(null);
+    setFormData({
+      nombre: '',
+      rubro: '',
+      contacto: '',
+      telefono: '',
+      id_dueno: 1
+    });
+    setMensaje('');
+  };
+
+  // Guardar (Crear o Actualizar)
   const manejarEnvio = async (e) => {
-    e.preventDefault(); // Evita que la página se recargue sola
-    setMensaje("Enviando...");
+    e.preventDefault();
+    setMensaje("Guardando...");
 
     try {
-      // Usamos nuestro servicio para mandar los datos al backend
-      await registrarAuspiciador(formData);
-      setMensaje(" Auspiciador registrado con éxito!");
+      if (idEditando) {
+        // Modo modificación
+        await modificarAuspiciador(idEditando, formData);
+        setMensaje("Auspiciador actualizado con éxito!");
+      } else {
+        // Modo creación
+        await registrarAuspiciador(formData);
+        setMensaje("Auspiciador registrado con éxito!");
+      }
 
-      // Limpiamos el formulario
-      setFormData({ nombre: '', rubro: '', contacto: '', telefono: '', id_dueno: 1 });
+      cancelarEdicion();
+      cargarLista();
     } catch (error) {
-      setMensaje(" Hubo un error al registrar. Revisa la consola.");
+      console.error(error);
+      setMensaje(error.message || "Hubo un error al guardar. Revisa la consola.");
     }
   };
 
-  // Esta es la parte visual (HTML mezclado con JavaScript)
+  // Eliminar auspiciador (valida si tiene acuerdos mediante la respuesta del backend)
+  const manejarEliminar = async (id) => {
+    const confirmar = window.confirm("¿Seguro que deseas eliminar este auspiciador?");
+    if (!confirmar) return;
+
+    try {
+      await eliminarAuspiciador(id);
+      setMensaje("Auspiciador eliminado con éxito.");
+      cargarLista();
+    } catch (error) {
+      console.error(error);
+      // Muestra el mensaje de la regla de negocio que arrojó tu service backend
+      alert(error.message || "No se puede eliminar el auspiciador.");
+    }
+  };
+
   return (
     <div style={{ padding: '20px', maxWidth: '500px', margin: '0 auto', fontFamily: 'sans-serif' }}>
-      
-      {/* 3. Botón para volver al inicio */}
-      <button 
-        type="button" 
-        onClick={() => navigate('/home')} //redirige a home
+      <button
+        type="button"
+        onClick={() => navigate('/home')}
         style={{
           backgroundColor: '#6c757d',
           color: 'white',
@@ -62,13 +131,19 @@ export default function Auspiciadores() {
         ← Volver al Home
       </button>
 
-      <h1>Registrar Auspiciador</h1>
+      <h1>{idEditando ? 'Modificar Auspiciador' : 'Registrar Auspiciador'}</h1>
 
-      {/* Mostramos el mensaje si es que hay uno */}
-      {mensaje && <p style={{ fontWeight: 'bold' }}>{mensaje}</p>}
+      {mensaje && (
+        <p style={{
+          fontWeight: 'bold',
+          color: mensaje.includes('éxito') ? '#198754' : '#dc3545'
+        }}>
+          {mensaje}
+        </p>
+      )}
 
+      {/* FORMULARIO */}
       <form onSubmit={manejarEnvio} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-        
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <label>Nombre del Auspiciador:</label>
           <input
@@ -88,6 +163,7 @@ export default function Auspiciadores() {
             name="rubro"
             value={formData.rubro}
             onChange={manejarCambio}
+            required
             style={{ padding: '8px', fontSize: '16px' }}
           />
         </div>
@@ -99,6 +175,7 @@ export default function Auspiciadores() {
             name="contacto"
             value={formData.contacto}
             onChange={manejarCambio}
+            required
             style={{ padding: '8px', fontSize: '16px' }}
           />
         </div>
@@ -115,14 +192,105 @@ export default function Auspiciadores() {
           />
         </div>
 
-        <button 
-          type="submit"
-          style={{ padding: '10px', fontSize: '16px', backgroundColor: '#0056b3', color: 'white', border: 'none', cursor: 'pointer', marginTop: '10px' }}
-        >
-          Guardar Auspiciador
-        </button>
+        <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+          <button
+            type="submit"
+            style={{
+              flex: 1,
+              padding: '10px',
+              fontSize: '16px',
+              backgroundColor: idEditando ? '#28a745' : '#0056b3',
+              color: 'white',
+              border: 'none',
+              cursor: 'pointer'
+            }}
+          >
+            {idEditando ? 'Guardar Cambios' : 'Guardar Auspiciador'}
+          </button>
 
+          {idEditando && (
+            <button
+              type="button"
+              onClick={cancelarEdicion}
+              style={{
+                padding: '10px 16px',
+                fontSize: '16px',
+                backgroundColor: '#6c757d',
+                color: 'white',
+                border: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              Cancelar
+            </button>
+          )}
+        </div>
       </form>
+
+      {/* LISTA DE AUSPICIADORES */}
+      <div style={{ marginTop: '40px' }}>
+        <h2>Lista de auspiciadores</h2>
+
+        {listaAuspiciadores.length === 0 ? (
+          <p style={{ color: '#6c757d' }}>No hay auspiciadores registrados aún.</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
+            {listaAuspiciadores.map((item) => {
+              const id = item.id_auspiciador || item.id;
+              return (
+                <div
+                  key={id}
+                  style={{
+                    border: '1px solid #dee2e6',
+                    borderRadius: '8px',
+                    padding: '16px',
+                    backgroundColor: '#ffffff'
+                  }}
+                >
+                  <h3 style={{ margin: '0 0 10px 0', fontSize: '18px' }}>{item.nombre}</h3>
+                  <p style={{ margin: '4px 0' }}><strong>Rubro:</strong> {item.rubro}</p>
+                  <p style={{ margin: '4px 0' }}><strong>Contacto:</strong> {item.contacto}</p>
+                  <p style={{ margin: '4px 0' }}><strong>Teléfono:</strong> {item.telefono}</p>
+
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
+                    <button
+                      type="button"
+                      onClick={() => iniciarEdicion(item)}
+                      style={{
+                        backgroundColor: '#1b2a4a',
+                        color: 'white',
+                        border: 'none',
+                        padding: '6px 14px',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '14px'
+                      }}
+                    >
+                      Editar
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => manejarEliminar(id)}
+                      style={{
+                        backgroundColor: '#dc3545',
+                        color: 'white',
+                        border: 'none',
+                        padding: '6px 14px',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '14px'
+                      }}
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

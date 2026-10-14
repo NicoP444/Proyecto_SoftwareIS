@@ -26,7 +26,6 @@ export default function Home() {
         <button onClick={() => navigate('/auspiciadores')}>Módulo Auspiciadores</button>
         <button onClick={() => navigate('/coberturas')}>Módulo Coberturas</button>
         <button onClick={() => navigate('/incidentes')}>Módulo Incidentes</button>
-        <button onClick={() => navigate('/clientes')}>Módulo Clientes</button>
       </nav>
 
       <main style={{ marginTop: '30px' }}>
