@@ -7,6 +7,7 @@ import Auspiciadores from "./pages/Auspiciadores";
 import Coberturas from "./pages/Coberturas";
 import Incidentes from "./pages/Incidentes";
 import Clientes from "./pages/Clientes";
+import RegistrarAcuerdoPage from './pages/RegistrarAcuerdo';
 
 // Componente para proteger rutas privadas (solo si hay token)
 function RutaProtegida({ children }) {
@@ -53,6 +54,14 @@ export default function App() {
           element={
             <RutaProtegida>
               <Auspiciadores />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/auspiciadores/registrar-acuerdo"
+          element={
+            <RutaProtegida>
+              <RegistrarAcuerdoPage />
             </RutaProtegida>
           }
         />
