@@ -8,6 +8,7 @@ import Coberturas from "./pages/Coberturas";
 import Incidentes from "./pages/Incidentes";
 import Clientes from "./pages/Clientes";
 import RegistrarAcuerdoPage from './pages/RegistrarAcuerdo';
+import SalidaKits from "./pages/SalidaKits";
 
 // Componente para proteger rutas privadas (solo si hay token)
 function RutaProtegida({ children }) {
@@ -82,6 +83,15 @@ export default function App() {
               <Incidentes />
             </RutaProtegida>
           }
+        />
+
+        <Route 
+          path="/salida-kits" 
+          element={
+            <RutaProtegida>
+              <SalidaKits />
+            </RutaProtegida>
+          } 
         />
         {/* Cada compañero agregará aquí su ruta, por ejemplo:
         <Route path="/productos" element={<RutaProtegida><Productos /></RutaProtegida>} />
