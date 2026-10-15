@@ -5,6 +5,7 @@ import rolRoutes from './rol.routes.js';
 import trabajadorRoutes from './trabajador.routes.js';
 import desempenaRoutes from './desempena.routes.js';
 import acuerdoRoutes from './acuerdo.routes.js';
+import salidaKitRoutes from './salidaKit.routes.js';
 
 const router = Router();
 
@@ -15,6 +16,6 @@ router.use('/rol', rolRoutes);
 router.use('/trabajadores',trabajadorRoutes);
 router.use('/', desempenaRoutes);
 router.use('/acuerdos', acuerdoRoutes);
-
+router.use('/salidas-kits', salidaKitRoutes);
 
 export default router;
