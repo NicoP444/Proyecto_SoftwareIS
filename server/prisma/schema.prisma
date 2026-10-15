@@ -334,8 +334,9 @@ model Desempena {
 model Disponibilidad {
   id_trabajador Int
   nro_bloque    Int
-  fecha         DateTime @db.Date
-  hora_inicio   DateTime @db.Time(6)
+  fecha_inicio  DateTime @db.Date // fecha de inicio del bloque de disponibilidad 
+  fecha_termino DateTime @db.Date // fecha de término del bloque de disponibilidad
+  hora_inicio   DateTime @db.Time(6) 
   hora_termino  DateTime @db.Time(6)
   id_dueno      Int
 

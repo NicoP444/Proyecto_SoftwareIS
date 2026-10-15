@@ -5,6 +5,7 @@ import rolRoutes from './rol.routes.js';
 import trabajadorRoutes from './trabajador.routes.js';
 import desempenaRoutes from './desempena.routes.js';
 import acuerdoRoutes from './acuerdo.routes.js';
+import disponibilidadRoutes from './disponibilidad.routes.js';
 
 const router = Router();
 
@@ -12,9 +13,11 @@ const router = Router();
 router.use('/auspiciadores', auspiciadorRoutes);
 router.use('/incidentes', incidenteRoutes);
 router.use('/rol', rolRoutes);
+router.use('/trabajadores/:id/disponibilidad', disponibilidadRoutes);
 router.use('/trabajadores',trabajadorRoutes);
 router.use('/', desempenaRoutes);
 router.use('/acuerdos', acuerdoRoutes);
+
 
 
 export default router;
