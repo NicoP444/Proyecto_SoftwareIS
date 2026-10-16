@@ -117,8 +117,8 @@ export default function Landing() {
                     x2="550"
                     y2="0"
                   >
-                    <stop offset="0" stopColor="#38BDF8" stopOpacity="0" />
-                    <stop offset="1" stopColor="#38BDF8" stopOpacity="1" />
+                    <stop offset="0" stopColor="#333c87" stopOpacity="0" />
+                    <stop offset="1" stopColor="#333c87" stopOpacity="1" />
                   </linearGradient>
                 </defs>
                 <path
@@ -141,8 +141,8 @@ export default function Landing() {
                     x2="550"
                     y2="0"
                   >
-                    <stop offset="0" stopColor="#38BDF8" stopOpacity="0" />
-                    <stop offset="1" stopColor="#38BDF8" stopOpacity="1" />
+                    <stop offset="0" stopColor="#333c87" stopOpacity="0" />
+                    <stop offset="1" stopColor="#333c87" stopOpacity="1" />
                   </linearGradient>
                 </defs>
                 <path
