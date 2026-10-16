@@ -1,19 +1,18 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Landing from "./pages/Landing";
-import Login from "./pages/login";
 import Home from "./pages/Home";
 import Trabajadores from "./pages/Trabajadores";
 import Auspiciadores from "./pages/Auspiciadores";
 import Coberturas from "./pages/Coberturas";
 import Incidentes from "./pages/Incidentes";
 import Clientes from "./pages/Clientes";
-import RegistrarAcuerdoPage from './pages/RegistrarAcuerdo';
+import RegistrarAcuerdoPage from "./pages/RegistrarAcuerdo";
 import SalidaKits from "./pages/SalidaKits";
 
 // Componente para proteger rutas privadas (solo si hay token)
 function RutaProtegida({ children }) {
   const token = localStorage.getItem("token");
-  return token ? children : <Navigate to="/login" replace />;
+  return token ? children : <Navigate to="/" replace />;
 }
 
 export default function App() {
@@ -22,7 +21,6 @@ export default function App() {
       <Routes>
         {/* Ruta pública */}
         <Route path="/" element={<Landing />} />
-        <Route path="/login" element={<Login />} />
         {/* Rutas privadas (Inicio y módulos) */}
         <Route
           path="/home"
@@ -85,13 +83,13 @@ export default function App() {
           }
         />
 
-        <Route 
-          path="/salida-kits" 
+        <Route
+          path="/salida-kits"
           element={
             <RutaProtegida>
               <SalidaKits />
             </RutaProtegida>
-          } 
+          }
         />
         {/* Cada compañero agregará aquí su ruta, por ejemplo:
         <Route path="/productos" element={<RutaProtegida><Productos /></RutaProtegida>} />
