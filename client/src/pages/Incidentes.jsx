@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { 
   registrarIncidente, 
   obtenerIncidentes, 
@@ -9,7 +8,6 @@ import {
 } from '../services/incidente.service.js';
 
 export default function Incidentes() {
-  const navigate = useNavigate();
   const [incidentes, setIncidentes] = useState([]);
   const [equipos, setEquipos] = useState([]);
   const [eventos, setEventos] = useState([]);
@@ -29,12 +27,11 @@ export default function Incidentes() {
   const [mensaje, setMensaje] = useState(null);
   const [cargando, setCargando] = useState(false);
 
-  // Cargar datos al montar
   useEffect(() => {
     cargarDatos();
   }, []);
 
-const cargarDatos = async () => {
+  const cargarDatos = async () => {
     try {
       const resIncidentes = await obtenerIncidentes();
       setIncidentes(resIncidentes?.data || resIncidentes || []);
@@ -67,7 +64,7 @@ const cargarDatos = async () => {
   const handleEquipoChange = (codigo) => {
     const eq = equipos.find((e) => e.codigo === codigo);
     setEquipoSeleccionado(eq || null);
-    setFormData({ ...formData, codigo });
+    setFormData((prev) => ({ ...prev, codigo }));
   };
 
   const handleSubmit = async (e) => {
@@ -84,9 +81,14 @@ const cargarDatos = async () => {
       };
 
       await registrarIncidente(payload);
-      setMensaje({ tipo: 'exito', texto: 'Incidente registrado con éxito. Estado del equipo actualizado.' });
       
-      // Limpiar formulario y recargar lista
+      // Mensaje de éxito limpio sin emojis
+      setMensaje({ 
+        tipo: 'exito', 
+        texto: 'Incidente registrado correctamente. El estado del equipo ha sido actualizado.' 
+      });
+      
+      // Limpiar formulario completo
       setFormData({
         codigo: '',
         tipo: 'DANO',
@@ -97,11 +99,13 @@ const cargarDatos = async () => {
         costo_reparacion: '',
       });
       setEquipoSeleccionado(null);
+
+      // Recargar lista para ver reflejado el nuevo incidente
       cargarDatos();
     } catch (error) {
       setMensaje({
         tipo: 'error',
-        texto: error.response?.data?.message || 'Error al registrar el incidente.',
+        texto: error.response?.data?.message || 'Error al intentar registrar el incidente en el sistema.',
       });
     } finally {
       setCargando(false);
@@ -109,230 +113,244 @@ const cargarDatos = async () => {
   };
 
   return (
-    <div style={{ maxWidth: '900px', margin: '2rem auto', padding: '1rem', fontFamily: 'sans-serif' }}>
-      <button
-        type="button"
-        onClick={() => navigate('/home')} //redirige a home
-        style={{
-          backgroundColor: '#6c757d',
-          color: '#ffffff',
-          border: 'none',
-          padding: '8px 16px',
-          borderRadius: '6px',
-          cursor: 'pointer',
-          marginBottom: '1.5rem',
-          fontSize: '14px',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '6px'
-        }}
-      >
-        ← Volver al Home
-      </button>
+    <div style={{ fontFamily: 'sans-serif' }}>
+      <h2 style={{ marginBottom: '0.2rem' }}>Registrar Incidente Directo</h2>
+      <p style={{ color: '#4b5563', fontSize: '0.9rem', marginTop: '0', marginBottom: '1.5rem' }}>
+        Reporte de daño, pérdida o robo de equipos en bodega o fuera de un evento
+      </p>
 
-      <h2>Registrar Incidente</h2>
-      <p style={{ color: '#666' }}>Formulario para el Jefe de Área Técnica</p>
-
+      {/* Cartel de retroalimentación sin emojis */}
       {mensaje && (
         <div style={{
           padding: '0.75rem 1rem',
           marginBottom: '1rem',
           borderRadius: '4px',
-          backgroundColor: mensaje.tipo === 'exito' ? '#d4edda' : '#f8d7da',
-          color: mensaje.tipo === 'exito' ? '#155724' : '#721c24'
+          backgroundColor: mensaje.tipo === 'exito' ? '#e8f5e9' : '#ffebee',
+          color: mensaje.tipo === 'exito' ? '#2e7d32' : '#c62828',
+          border: `1px solid ${mensaje.tipo === 'exito' ? '#c8e6c9' : '#ffcdd2'}`,
+          fontSize: '0.9rem',
+          fontWeight: 500
         }}>
           {mensaje.texto}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '1rem', background: '#f9f9f9', padding: '1.5rem', borderRadius: '8px' }}>
-        <div>
-          <label><strong>Equipo involucrado:</strong></label>
-          {equipos.length > 0 ? (
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {/* Fila 1 */}
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          <div style={{ flex: 1 }}>
+            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.3rem', fontSize: '0.9rem' }}>
+              Tipo de Incidente:
+            </label>
             <select
-              value={formData.codigo}
-              onChange={(e) => handleEquipoChange(e.target.value)}
-              required
-              style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
+              value={formData.tipo}
+              onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
+              style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
             >
-              <option value="">-- Selecciona un equipo --</option>
-              {equipos.map((eq) => (
-                <option key={eq.codigo} value={eq.codigo}>
-                  {eq.codigo} - {eq.nombre} ({eq.estado})
-                </option>
-              ))}
+              <option value="DANO">Dañado</option>
+              <option value="PERDIDA">Perdido</option>
+              <option value="ROBO">Robado</option>
             </select>
-          ) : (
-            <input
-              type="text"
-              placeholder="Código del equipo (ej: CAM-001)"
-              value={formData.codigo}
-              onChange={(e) => setFormData({ ...formData, codigo: e.target.value })}
-              required
-              style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
-            />
-          )}
+          </div>
+
+          <div style={{ flex: 1 }}>
+            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.3rem', fontSize: '0.9rem' }}>
+              Evento (Opcional si fue en bodega):
+            </label>
+            {eventos.length > 0 ? (
+              <select
+                value={formData.id_evento}
+                onChange={(e) => setFormData({ ...formData, id_evento: e.target.value })}
+                style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+              >
+                <option value="">-- Sin evento / Incidente en Bodega --</option>
+                {eventos.map((ev) => (
+                  <option key={ev.id_evento} value={ev.id_evento}>
+                    Evento #{ev.id_evento} - {ev.tipo || ev.nombre}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="number"
+                placeholder="ID del Evento (opcional)"
+                value={formData.id_evento}
+                onChange={(e) => setFormData({ ...formData, id_evento: e.target.value })}
+                style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+              />
+            )}
+          </div>
         </div>
 
-        <div>
-          <label><strong>Tipo de Incidente:</strong></label>
-          <select
-            value={formData.tipo}
-            onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
-            style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
-          >
-            <option value="DANO">Daño (Costo de reparación)</option>
-            <option value="PERDIDA">Pérdida (Valor de compra)</option>
-            <option value="ROBO">Robo (Valor de compra)</option>
-          </select>
+        {/* Fila 2 */}
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          <div style={{ flex: 1 }}>
+            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.3rem', fontSize: '0.9rem' }}>
+              Código o ID del Equipo:
+            </label>
+            {equipos.length > 0 ? (
+              <select
+                value={formData.codigo}
+                onChange={(e) => handleEquipoChange(e.target.value)}
+                required
+                style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+              >
+                <option value="">-- Selecciona un equipo --</option>
+                {equipos.map((eq) => (
+                  <option key={eq.codigo} value={eq.codigo}>
+                    {eq.codigo} - {eq.nombre} ({eq.estado})
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                placeholder="Ej: CAM-001 o Micrófono..."
+                value={formData.codigo}
+                onChange={(e) => setFormData({ ...formData, codigo: e.target.value })}
+                required
+                style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+              />
+            )}
+          </div>
+
+          <div style={{ flex: 1 }}>
+            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.3rem', fontSize: '0.9rem' }}>
+              Quién tenía el equipo / Responsable:
+            </label>
+            {trabajadores.length > 0 ? (
+              <select
+                value={formData.id_trabajador}
+                onChange={(e) => setFormData({ ...formData, id_trabajador: e.target.value })}
+                style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+              >
+                <option value="">-- Ninguno / Bodega / No identificado --</option>
+                {trabajadores.map((t) => (
+                  <option key={t.id_trabajador} value={t.id_trabajador}>
+                    {t.nombre}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                placeholder="Nombre del trabajador o Bodeguero..."
+                value={formData.id_trabajador}
+                onChange={(e) => setFormData({ ...formData, id_trabajador: e.target.value })}
+                style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+              />
+            )}
+          </div>
         </div>
 
+        {/* Fila 3 */}
         {formData.tipo === 'DANO' ? (
           <div>
-            <label><strong>Costo Estimado de Reparación ($):</strong></label>
+            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.3rem', fontSize: '0.9rem' }}>
+              Costo Estimado de Reparación ($):
+            </label>
             <input
               type="number"
-              placeholder="Ej: 45000"
+              placeholder="Ej: 35000"
               value={formData.costo_reparacion}
               onChange={(e) => setFormData({ ...formData, costo_reparacion: e.target.value })}
               required
-              style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
+              style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
             />
           </div>
         ) : (
-          <div style={{ background: '#e9ecef', padding: '0.75rem', borderRadius: '4px' }}>
-            <p style={{ margin: 0, fontSize: '0.9rem' }}>
-              ℹ️ Se valorizará automáticamente al <strong>valor de compra</strong> del equipo registrado en el sistema.
-              {equipoSeleccionado && ` (Valor: $${equipoSeleccionado.valor_compra})`}
+          <div style={{ background: '#f3f4f6', padding: '0.75rem', borderRadius: '4px', borderLeft: '4px solid #333c87' }}>
+            <p style={{ margin: 0, fontSize: '0.85rem', color: '#374151' }}>
+              Se valorizará automáticamente al <strong>valor de compra</strong> registrado en el sistema.
+              {equipoSeleccionado && ` (Valor inventario: $${equipoSeleccionado.valor_compra})`}
             </p>
           </div>
         )}
 
+        {/* Fila 4 */}
         <div>
-          <label><strong>Fecha del incidente:</strong></label>
-          <input
-            type="date"
-            value={formData.fecha}
-            onChange={(e) => setFormData({ ...formData, fecha: e.target.value })}
-            required
-            style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
-          />
-        </div>
-
-        <div>
-          <label><strong>Evento asociado (si corresponde):</strong></label>
-          {eventos.length > 0 ? (
-            <select
-              value={formData.id_evento}
-              onChange={(e) => setFormData({ ...formData, id_evento: e.target.value })}
-              style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
-            >
-              <option value="">-- Fuera de evento / Ninguno --</option>
-              {eventos.map((ev) => (
-                <option key={ev.id_evento} value={ev.id_evento}>
-                  Evento #{ev.id_evento} - {ev.tipo}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <input
-              type="number"
-              placeholder="ID del Evento (opcional)"
-              value={formData.id_evento}
-              onChange={(e) => setFormData({ ...formData, id_evento: e.target.value })}
-              style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
-            />
-          )}
-        </div>
-
-        <div>
-          <label><strong>Responsable (¿Quién tenía el equipo?):</strong></label>
-          {trabajadores.length > 0 ? (
-            <select
-              value={formData.id_trabajador}
-              onChange={(e) => setFormData({ ...formData, id_trabajador: e.target.value })}
-              style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
-            >
-              <option value="">-- Ninguno / No identificado --</option>
-              {trabajadores.map((t) => (
-                <option key={t.id_trabajador} value={t.id_trabajador}>
-                  {t.nombre}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <input
-              type="number"
-              placeholder="ID del Trabajador (opcional)"
-              value={formData.id_trabajador}
-              onChange={(e) => setFormData({ ...formData, id_trabajador: e.target.value })}
-              style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
-            />
-          )}
-        </div>
-
-        <div>
-          <label><strong>Descripción del incidente:</strong></label>
+          <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.3rem', fontSize: '0.9rem' }}>
+            Descripción del Incidente:
+          </label>
           <textarea
             rows="3"
-            placeholder="Detalles de cómo ocurrió el hecho..."
+            placeholder="Detalla qué sucedió con el equipo..."
             value={formData.descripcion}
             onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
             required
-            style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
+            style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
           />
         </div>
 
+        {/* Botón de envío */}
         <button
           type="submit"
           disabled={cargando}
           style={{
-            padding: '0.75rem',
-            backgroundColor: '#0070f3',
+            backgroundColor: '#333c87',
             color: 'white',
             border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
+            padding: '0.75rem',
+            borderRadius: '6px',
             fontWeight: 'bold',
+            cursor: cargando ? 'not-allowed' : 'pointer',
+            fontSize: '0.95rem',
+            marginTop: '0.5rem'
           }}
         >
-          {cargando ? 'Registrando...' : 'Registrar Incidente'}
+          {cargando ? 'Registrando...' : 'Registrar Incidente en Sistema'}
         </button>
       </form>
 
-      <hr style={{ margin: '2rem 0' }} />
-
-      <h3>Historial de Incidentes Registrados</h3>
-      <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '1rem' }} border="1" cellPadding="8">
-        <thead>
-          <tr style={{ background: '#eee' }}>
-            <th>Fecha</th>
-            <th>Equipo</th>
-            <th>Tipo</th>
-            <th>Valor/Costo</th>
-            <th>Responsable</th>
-            <th>Descripción</th>
-          </tr>
-        </thead>
-        <tbody>
-          {incidentes.length === 0 ? (
-            <tr>
-              <td colSpan="6" style={{ textAlign: 'center' }}>No hay incidentes registrados.</td>
-            </tr>
-          ) : (
-            incidentes.map((inc) => (
-              <tr key={inc.id_incidente}>
-                <td>{new Date(inc.fecha).toLocaleDateString()}</td>
-                <td>{inc.equipo ? `${inc.equipo.nombre} (${inc.codigo})` : inc.codigo}</td>
-                <td><strong>{inc.tipo}</strong></td>
-                <td>${inc.valor.toLocaleString()}</td>
-                <td>{inc.trabajador ? inc.trabajador.nombre : 'No asignado'}</td>
-                <td>{inc.descripcion}</td>
+      {/* Historial de Incidentes Registrados */}
+      <div style={{ marginTop: '3rem' }}>
+        <h3 style={{ marginBottom: '1rem' }}>Historial de Incidentes Registrados</h3>
+        <div style={{ overflowX: 'auto', border: '1px solid #e5e7eb', borderRadius: '6px' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+            <thead>
+              <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb', color: '#4b5563' }}>
+                <th style={{ padding: '0.75rem' }}>Fecha</th>
+                <th style={{ padding: '0.75rem' }}>Equipo</th>
+                <th style={{ padding: '0.75rem' }}>Tipo</th>
+                <th style={{ padding: '0.75rem' }}>Valor/Costo</th>
+                <th style={{ padding: '0.75rem' }}>Responsable</th>
+                <th style={{ padding: '0.75rem' }}>Descripción</th>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+            </thead>
+            <tbody>
+              {incidentes.length === 0 ? (
+                <tr>
+                  <td colSpan="6" style={{ padding: '1.5rem', textAlign: 'center', color: '#6b7280' }}>
+                    No hay incidentes registrados.
+                  </td>
+                </tr>
+              ) : (
+                incidentes.map((inc) => (
+                  <tr key={inc.id_incidente} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                    <td style={{ padding: '0.75rem' }}>{new Date(inc.fecha).toLocaleDateString()}</td>
+                    <td style={{ padding: '0.75rem' }}><strong>{inc.codigo}</strong> {inc.equipo?.nombre ? `(${inc.equipo.nombre})` : ''}</td>
+                    <td style={{ padding: '0.75rem' }}>
+                      <span style={{
+                        padding: '0.2rem 0.5rem',
+                        borderRadius: '4px',
+                        fontSize: '0.8rem',
+                        fontWeight: 'bold',
+                        backgroundColor: inc.tipo === 'DANO' ? '#fef3c7' : '#fee2e2',
+                        color: inc.tipo === 'DANO' ? '#b45309' : '#b91c1c'
+                      }}>
+                        {inc.tipo === 'DANO' ? 'DAÑO' : inc.tipo}
+                      </span>
+                    </td>
+                    <td style={{ padding: '0.75rem' }}>${Number(inc.valor || 0).toLocaleString()}</td>
+                    <td style={{ padding: '0.75rem' }}>{inc.trabajador?.nombre || 'No asignado'}</td>
+                    <td style={{ padding: '0.75rem', color: '#4b5563' }}>{inc.descripcion}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
