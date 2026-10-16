@@ -100,6 +100,47 @@ async function main() {
     kits.push(kit);
   }
 
+  // 6.1 Equipos asignados a cada Kit
+  const equiposBase = [
+  // Equipos para Kit 1
+  { codigo: 'CAM-001', nombre: 'Cámara Sony FX3', categoria: 'CAMARA', valor_compra: 3500000, id_kit: kits[0].id_kit },
+  { codigo: 'TRI-001', nombre: 'Trípode Manfrotto Pro', categoria: 'TRIPODE', valor_compra: 350000, id_kit: kits[0].id_kit },
+  { codigo: 'MIC-001', nombre: 'Micrófono Rode Wireless GO II', categoria: 'MICROFONO', valor_compra: 280000, id_kit: kits[0].id_kit },
+
+  // Equipos para Kit 2
+  { codigo: 'CAM-002', nombre: 'Cámara Blackmagic 4K', categoria: 'CAMARA', valor_compra: 1800000, id_kit: kits[1].id_kit },
+  { codigo: 'TRI-002', nombre: 'Trípode Benro', categoria: 'TRIPODE', valor_compra: 220000, id_kit: kits[1].id_kit },
+  { codigo: 'MIC-002', nombre: 'Micrófono Corbatero Sennheiser', categoria: 'MICROFONO', valor_compra: 320000, id_kit: kits[1].id_kit },
+
+  // Equipos para Kit 3
+  { codigo: 'CAM-003', nombre: 'Cámara Canon R6 Mark II', categoria: 'CAMARA', valor_compra: 2400000, id_kit: kits[2].id_kit },
+  { codigo: 'TRI-003', nombre: 'Trípode Compacto K&F', categoria: 'TRIPODE', valor_compra: 120000, id_kit: kits[2].id_kit },
+  { codigo: 'MIC-003', nombre: 'Micrófono Shure MV88+', categoria: 'MICROFONO', valor_compra: 250000, id_kit: kits[2].id_kit },
+];
+
+  for (const eq of equiposBase) {
+    let existente = await prisma.equipo.findUnique({ where: { codigo: eq.codigo } });
+    if (!existente) {
+      await prisma.equipo.create({
+        data: {
+          codigo: eq.codigo,
+          nombre: eq.nombre,
+          categoria: eq.categoria,
+          valor_compra: eq.valor_compra,
+          id_kit: eq.id_kit,
+          id_jefe: jefe.id_jefe,
+          estado: 'OPERATIVO',
+          fecha_compra: new Date(),
+        },
+      });
+    } else {
+      await prisma.equipo.update({
+        where: { codigo: eq.codigo },
+        data: { id_kit: eq.id_kit, estado: 'OPERATIVO' },
+      });
+    }
+  }
+
   // 7. Tres Eventos y sus reservas de kits
   const ahora = new Date();
   const eventosData = [

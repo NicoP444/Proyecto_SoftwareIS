@@ -7,6 +7,7 @@ import desempenaRoutes from './desempena.routes.js';
 import acuerdoRoutes from './acuerdo.routes.js';
 import disponibilidadRoutes from './disponibilidad.routes.js';
 import salidaKitRoutes from './salidaKit.routes.js';
+import retornoKitRoutes from './retornoKit.routes.js';
 
 const router = Router();
 
@@ -19,6 +20,6 @@ router.use('/trabajadores',trabajadorRoutes);
 router.use('/', desempenaRoutes);
 router.use('/acuerdos', acuerdoRoutes);
 router.use('/salidas-kits', salidaKitRoutes);
-
+router.use('/retornos-kits', retornoKitRoutes);
 
 export default router;
