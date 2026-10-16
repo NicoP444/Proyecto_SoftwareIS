@@ -1,10 +1,16 @@
-import { useNavigate, useLocation } from 'react-router-dom';
-import '../styles/Home.css';
+import { useNavigate, useLocation } from "react-router-dom";
+import "../styles/Home.css";
 
 // Íconos (trazo simple, heredan el color del texto)
 const Icono = ({ children }) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"
-    strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.7"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     {children}
   </svg>
 );
@@ -70,25 +76,43 @@ const ICONOS = {
 
 // Cada compañero agrega aquí el acceso a su módulo
 const MODULOS = [
-  { ruta: '/calendario', titulo: 'Calendario', icono: 'calendario' },
-  { ruta: '/inventario', titulo: 'Inventario', icono: 'inventario' },
-  { ruta: '/trabajadores', titulo: 'Personal', icono: 'personal' },
-  { ruta: '/auspiciadores', titulo: 'Auspiciadores', icono: 'auspiciadores' },
-  { ruta: '/finanzas', titulo: 'Finanzas', icono: 'finanzas' },
+  { ruta: "/calendario", titulo: "Calendario", icono: "calendario" },
+  { ruta: "/inventario", titulo: "Inventario", icono: "inventario" },
+  { ruta: "/trabajadores", titulo: "Personal", icono: "personal" },
+  { ruta: "/auspiciadores", titulo: "Auspiciadores", icono: "auspiciadores" },
+  { ruta: "/finanzas", titulo: "Finanzas", icono: "finanzas" },
 ];
 
 // Indicadores del resumen mensual (se llenarán cuando exista el back)
 const KPIS = [
-  { titulo: 'Utilidad Neta', color: 'verde', vacio: 'Sin datos este mes' },
-  { titulo: 'Ingresos por Transmisión', color: 'azul', vacio: 'Sin transmisiones registradas' },
-  { titulo: 'Remuneraciones Pagadas', color: 'naranja', vacio: 'Sin pagos registrados' },
-  { titulo: 'Pérdidas de Inventario', color: 'rojo', vacio: 'Sin incidentes este mes' },
+  { titulo: "Utilidad Neta", color: "verde", vacio: "Sin datos este mes" },
+  {
+    titulo: "Ingresos por Transmisión",
+    color: "azul",
+    vacio: "Sin transmisiones registradas",
+  },
+  {
+    titulo: "Remuneraciones Pagadas",
+    color: "naranja",
+    vacio: "Sin pagos registrados",
+  },
+  {
+    titulo: "Pérdidas de Inventario",
+    color: "rojo",
+    vacio: "Sin incidentes este mes",
+  },
 ];
 
 const EstadoVacio = ({ texto }) => (
   <div className="empty">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"
-      strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <circle cx="12" cy="12" r="9" />
       <path d="M12 8v4M12 16h.01" />
     </svg>
@@ -97,19 +121,19 @@ const EstadoVacio = ({ texto }) => (
 );
 
 export default function Home() {
-  const mesActual = new Date().toLocaleString('es-CL', { month: 'long' });
+  const mesActual = new Date().toLocaleString("es-CL", { month: "long" });
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
+  const usuario = JSON.parse(localStorage.getItem("usuario") || "{}");
 
   // Evita mostrar "undefined undefined" si falta algún campo
   const nombre =
-    [usuario.nombre, usuario.apellido].filter(Boolean).join(' ') || 'Usuario';
+    [usuario.nombre, usuario.apellido].filter(Boolean).join(" ") || "Usuario";
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('usuario');
-    navigate('/login');
+    localStorage.removeItem("token");
+    localStorage.removeItem("usuario");
+    navigate("/");
   };
 
   return (
@@ -135,8 +159,8 @@ export default function Home() {
       <aside className="sidebar">
         <nav className="sidebar-nav">
           <button
-            className={`nav-item ${pathname === '/' || pathname === '/home' ? 'active' : ''}`}
-            onClick={() => navigate('/')}
+            className={`nav-item ${pathname === "/" || pathname === "/home" ? "active" : ""}`}
+            onClick={() => navigate("/")}
           >
             <Icono>{ICONOS.inicio}</Icono>
             Panel Principal
@@ -145,7 +169,7 @@ export default function Home() {
           {MODULOS.map((m) => (
             <button
               key={m.ruta}
-              className={`nav-item ${pathname.startsWith(m.ruta) ? 'active' : ''}`}
+              className={`nav-item ${pathname.startsWith(m.ruta) ? "active" : ""}`}
               onClick={() => navigate(m.ruta)}
             >
               <Icono>{ICONOS[m.icono]}</Icono>
@@ -165,7 +189,9 @@ export default function Home() {
       {/* ---------- Contenido ---------- */}
       <main className="content">
         <h1 className="page-title">Panel Principal</h1>
-        <p className="page-subtitle">Hola, {nombre}. Este es el resumen general de Six Seven</p>
+        <p className="page-subtitle">
+          Hola, {nombre}. Este es el resumen general de Six Seven
+        </p>
 
         {/* ---------- Resumen del mes ---------- */}
         <div className="section-heading">
@@ -190,7 +216,10 @@ export default function Home() {
               <Icono>{ICONOS.incidentes}</Icono>
               Alertas recientes
             </h3>
-            <button className="panel-link" onClick={() => navigate('/inventario')}>
+            <button
+              className="panel-link"
+              onClick={() => navigate("/inventario")}
+            >
               Ver inventario →
             </button>
           </div>
@@ -205,7 +234,10 @@ export default function Home() {
                 <Icono>{ICONOS.calendario}</Icono>
                 Próximas transmisiones
               </h3>
-              <button className="panel-link" onClick={() => navigate('/calendario')}>
+              <button
+                className="panel-link"
+                onClick={() => navigate("/calendario")}
+              >
                 Ver calendario →
               </button>
             </div>
@@ -218,7 +250,10 @@ export default function Home() {
                 <Icono>{ICONOS.auspiciadores}</Icono>
                 Auspiciadores por cobrar
               </h3>
-              <button className="panel-link" onClick={() => navigate('/auspiciadores')}>
+              <button
+                className="panel-link"
+                onClick={() => navigate("/auspiciadores")}
+              >
                 Ver todos →
               </button>
             </div>

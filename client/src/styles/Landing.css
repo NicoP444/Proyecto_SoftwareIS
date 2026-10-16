@@ -31,16 +31,37 @@
 .landing .hero{padding:60px 0 0; position:relative; overflow:hidden;}
 .landing .hero-grid{display:grid; grid-template-columns:1fr 1fr; gap:40px; align-items:center;}
 @media (max-width:900px){.landing .hero-grid{grid-template-columns:1fr;}}
+@media (min-width:901px){.landing .hero-visual{order:-1;}.landing .login-card{margin-left:auto;}}
 .landing h1{font-size:clamp(32px,4vw,48px); line-height:1.1; font-weight:500; letter-spacing:-0.02em; margin:0 0 20px;}
 .landing .lead{color:var(--muted); font-size:18px; line-height:1.7; max-width:46ch; margin:0 0 30px;}
 .landing .hero-ctas{display:flex; gap:16px; align-items:center;}
+
+/* LOGIN (dentro del hero) */
+.landing .login-card{
+  background:#fff; border:1px solid var(--border); border-radius:16px;
+  padding:32px; max-width:420px; box-shadow:0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.04);
+}
+.landing .login-card h1{font-size:clamp(28px,3vw,36px); margin:0 0 8px;}
+.landing .login-card .lead{font-size:16px; margin:0 0 24px;}
+.landing .login-card label{display:block; font-size:14px; font-weight:500; margin:0 0 6px;}
+.landing .login-card input{
+  width:100%; padding:10px 12px; margin:0 0 16px; font-family:inherit; font-size:14px; color:var(--text);
+  background:#fff; border:1px solid var(--border); border-radius:var(--radius-btn); outline:none;
+}
+.landing .login-card input:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(56,189,248,.25);}
+.landing .login-submit{width:100%; justify-content:center; padding:12px 16px; margin-top:4px;  background:#333c87; border-color:#333c87; color:#fff;}
+.landing .login-submit:disabled{opacity:.6; cursor:not-allowed;}
+.landing .login-error{
+  background:#FEF2F2; color:#B91C1C; border:1px solid #FECACA; border-radius:var(--radius-btn);
+  padding:10px 12px; font-size:14px; margin-bottom:16px;
+}
 
 /* VISUAL + CÍRCULOS */
 .landing .hero-visual{position:relative; min-height:640px; display:flex; align-items:center; justify-content:center;}
 
 /* top = distancia desde arriba de la columna hasta el centro de los círculos (más alto = más abajo) */
 .landing .rings{
-  position:absolute; top:520px; left:70%; width:1100px; height:1100px;
+  position:absolute; top:520px; left:50%; width:1100px; height:1100px;
   transform:translate(-50%,-50%); pointer-events:none; z-index:0;
 }
 .landing .rings svg{position:absolute; inset:0; width:100%; height:100%; overflow:visible;}
@@ -49,9 +70,9 @@
 /* Imagen dentro de los círculos: anclada abajo y centrada, por encima de los anillos.
    Ajusta max-width / max-height para hacerla más grande o más chica. */
 .landing .hero-img{
-  position:absolute; bottom:0; left:80%; transform:translateX(-50%);
+  position:absolute; bottom:90px; left:55%; transform:translateX(-50%);
   z-index:1; display:block;
-  width:690px; height:auto; max-width:none; max-height:none;
+  width:600px; height:auto; max-width:none; max-height:none;
   object-fit:contain;
 }
 
