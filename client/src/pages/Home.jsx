@@ -141,9 +141,9 @@ export default function Home() {
       {/* ---------- Barra superior ---------- */}
       <header className="topbar">
         <div className="brand">
-          <span className="brand-logo">67</span>
+          <span className="brand-logo">E</span>
           <span className="brand-name">
-            Six<span>Seven</span>
+            <span>Empresa</span>
           </span>
         </div>
         <div className="topbar-user">
