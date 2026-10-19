@@ -1,129 +1,208 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { listarTrabajadores, crearTrabajador, actualizarTrabajador } from '../services/trabajador.service.js';
-import { obtenerUsuario } from '../services/http.js';
-import './Trabajadores.css';
+import { Plus, Search, Tags, Users, UserCheck, UserMinus, UserX } from 'lucide-react';
+import Modal from '../components/Modal';
+import TarjetaTrabajador from '../components/trabajadores/TarjetaTrabajador';
+import FichaTrabajador from '../components/trabajadores/FichaTrabajador';
+import FormularioTrabajador from '../components/trabajadores/FormularioTrabajador';
+import FormularioRol from '../components/trabajadores/FormularioRol';
+import { ESTADOS, nombreCompleto, rolesDe } from '../components/trabajadores/ayudas.js';
+import { actualizarRol, crearRol, crearTrabajador, listarRoles, listarTrabajadores } from '../services/personalServicio.js';
+import '../styles/Trabajadores.css';
 
-const formularioVacio = { nombre: '', telefono_whatsapp: '', observaciones: '' };
+// Cuadros de arriba. Al hacer clic filtran por ese estado.
+const RESUMEN = [
+  { estado: '', texto: 'Total personal', icono: Users, color: 'azul' },
+  { estado: 'activo', texto: 'Activos', icono: UserCheck, color: 'verde' },
+  { estado: 'licencia', texto: 'Con licencia', icono: UserMinus, color: 'naranjo' },
+  { estado: 'inactivo', texto: 'Inactivos', icono: UserX, color: 'rojo' },
+];
 
 export default function Trabajadores() {
-  const navigate = useNavigate();
-  const usuario = obtenerUsuario(); // el dueño que inició sesión
+  // Datos que vienen del back
   const [trabajadores, setTrabajadores] = useState([]);
-  const [form, setForm] = useState(formularioVacio);
-  const [editandoId, setEditandoId] = useState(null); // null = creando uno nuevo
+  const [roles, setRoles] = useState([]);
+  const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
-  const [mensaje, setMensaje] = useState('');
 
-  async function cargarTrabajadores() {
+  // Filtros
+  const [busqueda, setBusqueda] = useState('');
+  const [filtroRol, setFiltroRol] = useState('');
+  const [filtroEstado, setFiltroEstado] = useState('');
+
+  // Ventanas abiertas
+  const [idAbierto, setIdAbierto] = useState(null); // ficha del trabajador
+  const [creandoTrabajador, setCreandoTrabajador] = useState(false);
+  const [rolEditando, setRolEditando] = useState(undefined); // undefined = cerrado, null = crear, objeto = modificar
+
+  // Cambia cada vez que se guarda algo, para que las tarjetas se actualicen
+  const [version, setVersion] = useState(0);
+
+  async function cargarDatos() {
     try {
-      const datos = await listarTrabajadores(usuario.id);
-      setTrabajadores(datos);
+      setError('');
+      const [listaTrabajadores, listaRoles] = await Promise.all([listarTrabajadores(), listarRoles()]);
+      setTrabajadores(listaTrabajadores);
+      setRoles(listaRoles);
     } catch (err) {
       setError(err.message);
+    } finally {
+      setCargando(false);
     }
   }
 
   useEffect(() => {
-    cargarTrabajadores();
+    cargarDatos();
   }, []);
 
-  function cambiarCampo(e) {
-    setForm({ ...form, [e.target.name]: e.target.value });
+  function alCambiar() {
+    cargarDatos();
+    setVersion(version + 1);
   }
 
-  function empezarEdicion(trabajador) {
-    setEditandoId(trabajador.id_trabajador);
-    setForm({
-      nombre: trabajador.nombre,
-      telefono_whatsapp: trabajador.telefono_whatsapp || '',
-      observaciones: trabajador.observaciones || '',
-    });
-    setError('');
-    setMensaje('');
+  async function guardarTrabajadorNuevo(datos) {
+    const nuevo = await crearTrabajador(datos);
+    setCreandoTrabajador(false);
+    await cargarDatos();
+    setIdAbierto(nuevo.id_trabajador); // se abre su ficha para asignarle roles y disponibilidad
   }
 
-  function limpiarFormulario() {
-    setEditandoId(null);
-    setForm(formularioVacio);
-  }
-
-  async function guardar(e) {
-    e.preventDefault();
-    setError('');
-    setMensaje('');
-
-    try {
-      if (editandoId) {
-        await actualizarTrabajador(editandoId, form);
-        setMensaje('Trabajador actualizado');
-      } else {
-        await crearTrabajador({ ...form, id_dueno: usuario.id });
-        setMensaje('Trabajador creado');
-      }
-      limpiarFormulario();
-      cargarTrabajadores();
-    } catch (err) {
-      setError(err.message);
+  async function guardarRol(datos) {
+    if (rolEditando) {
+      await actualizarRol(rolEditando.id_rol, datos);
+    } else {
+      await crearRol(datos);
     }
+    setRolEditando(undefined);
+    cargarDatos();
+  }
+
+  // Aplicar filtros
+  const texto = busqueda.trim().toLowerCase();
+  const filtrados = trabajadores.filter((t) => {
+    const coincideTexto = nombreCompleto(t).toLowerCase().includes(texto);
+    const coincideRol = !filtroRol || rolesDe(t).some((r) => r.id_rol === Number(filtroRol));
+    const coincideEstado = !filtroEstado || t.estado === filtroEstado;
+    return coincideTexto && coincideRol && coincideEstado;
+  });
+
+  const trabajadorAbierto = trabajadores.find((t) => t.id_trabajador === idAbierto);
+
+  function contar(estado) {
+    return estado ? trabajadores.filter((t) => t.estado === estado).length : trabajadores.length;
   }
 
   return (
-    <div className="trabajadores">
-      <button className="boton boton-gris" onClick={() => navigate('/home')}> 
-        ← Volver al Home
-      </button>
-
-      <h1>Trabajadores</h1>
-
-      <form className="caja" onSubmit={guardar}>
-        <h2>{editandoId ? 'Editar trabajador' : 'Nuevo trabajador'}</h2>
-
-        <label>Nombre</label>
-        <input name="nombre" value={form.nombre} onChange={cambiarCampo} />
-
-        <label>Teléfono WhatsApp (obligatorio)</label>
-        <input
-          name="telefono_whatsapp"
-          value={form.telefono_whatsapp}
-          onChange={cambiarCampo}
-          placeholder="+56 9 1234 5678"
-        />
-
-        <label>Observaciones (opcional)</label>
-        <textarea name="observaciones" value={form.observaciones} onChange={cambiarCampo} />
-
-        {error && <p className="error">{error}</p>}
-        {mensaje && <p className="exito">{mensaje}</p>}
-
-        <div className="botones">
-          <button type="submit" className="boton">
-            {editandoId ? 'Guardar cambios' : 'Crear trabajador'}
-          </button>
-          {editandoId && (
-            <button type="button" className="boton boton-gris" onClick={limpiarFormulario}>
-              Cancelar
-            </button>
-          )}
+    <div>
+      {/* Título y botones */}
+      <div className="encabezado">
+        <div>
+          <h1>Personal</h1>
+          <p>Roles, comisión y disponibilidad del equipo</p>
         </div>
-      </form>
+        <div className="encabezado-botones">
+          <button type="button" className="boton boton-secundario" onClick={() => setRolEditando(null)}>
+            <Tags size={18} /> Nuevo rol
+          </button>
+          <button type="button" className="boton boton-principal" onClick={() => setCreandoTrabajador(true)}>
+            <Plus size={18} /> Añadir trabajador
+          </button>
+        </div>
+      </div>
 
-      <h2>Lista de trabajadores</h2>
-
-      {trabajadores.length === 0 && <p>Todavía no hay trabajadores registrados.</p>}
-
-      <div className="lista">
-        {trabajadores.map((trabajador) => (
-          <div key={trabajador.id_trabajador} className="caja">
-            <h3>{trabajador.nombre}</h3>
-            <p>WhatsApp: {trabajador.telefono_whatsapp || 'No registrado'}</p>
-            <p>Observaciones: {trabajador.observaciones || 'Sin observaciones'}</p>
-            <button className="boton" onClick={() => empezarEdicion(trabajador)}>
-              Editar
-            </button>
-          </div>
+      {/* Resumen por estado (también sirve de filtro) */}
+      <div className="indicadores">
+        {RESUMEN.map(({ estado, texto, icono: Icono, color }) => (
+          <button
+            key={texto}
+            type="button"
+            className={`indicador ${color} clickeable ${filtroEstado === estado ? 'seleccionado' : ''}`}
+            onClick={() => setFiltroEstado(estado)}
+          >
+            <span className="indicador-titulo">
+              <Icono size={16} /> {texto}
+            </span>
+            <strong className="indicador-valor">{contar(estado)}</strong>
+          </button>
         ))}
       </div>
+
+      {/* Filtros */}
+      <div className="filtros">
+        <div className="buscador">
+          <Search size={18} />
+          <input
+            className="input"
+            type="search"
+            placeholder="Buscar por nombre"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            aria-label="Buscar trabajador"
+          />
+        </div>
+        <div className="campo">
+          <label htmlFor="filtro-rol">Filtrar por rol</label>
+          <select id="filtro-rol" value={filtroRol} onChange={(e) => setFiltroRol(e.target.value)}>
+            <option value="">Todos los roles</option>
+            {roles.map((rol) => (
+              <option key={rol.id_rol} value={rol.id_rol}>
+                {rol.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="campo">
+          <label htmlFor="filtro-estado">Filtrar por estado</label>
+          <select id="filtro-estado" value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)}>
+            <option value="">Todos los estados</option>
+            {ESTADOS.map((estado) => (
+              <option key={estado.valor} value={estado.valor}>
+                {estado.texto}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Lista de trabajadores */}
+      <section className="panel">
+        <div className="panel-cabecera">
+          <h2>Equipo</h2>
+          <span>
+            {filtrados.length} de {trabajadores.length}
+          </span>
+        </div>
+
+        {error && <div className="mensaje mensaje-error">{error}</div>}
+        {cargando && <p className="vacio">Cargando trabajadores…</p>}
+        {!cargando && filtrados.length === 0 && <p className="vacio">No hay trabajadores que coincidan.</p>}
+
+        <div className="grilla">
+          {filtrados.map((t) => (
+            <TarjetaTrabajador key={t.id_trabajador} trabajador={t} version={version} onAbrir={() => setIdAbierto(t.id_trabajador)} />
+          ))}
+        </div>
+      </section>
+
+      {/* Ventanas */}
+      <Modal abierto={Boolean(trabajadorAbierto)} onCerrar={() => setIdAbierto(null)} titulo="Ficha del trabajador" ancho="amplio">
+        {trabajadorAbierto && (
+          <FichaTrabajador
+            trabajador={trabajadorAbierto}
+            roles={roles}
+            onCambio={alCambiar}
+            onCrearRol={() => setRolEditando(null)}
+            onEditarRol={setRolEditando}
+          />
+        )}
+      </Modal>
+
+      <Modal abierto={creandoTrabajador} onCerrar={() => setCreandoTrabajador(false)} titulo="Añadir trabajador">
+        <FormularioTrabajador textoBoton="Crear trabajador" onGuardar={guardarTrabajadorNuevo} onCancelar={() => setCreandoTrabajador(false)} />
+      </Modal>
+
+      <Modal abierto={rolEditando !== undefined} onCerrar={() => setRolEditando(undefined)} titulo={rolEditando ? 'Modificar rol' : 'Crear rol'}>
+        <FormularioRol key={rolEditando?.id_rol ?? 'nuevo'} rol={rolEditando} onGuardar={guardarRol} onCancelar={() => setRolEditando(undefined)} />
+      </Modal>
     </div>
   );
 }

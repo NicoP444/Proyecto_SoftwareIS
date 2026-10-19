@@ -1,0 +1,685 @@
+/* =========================================================
+   Página de Personal (mismas medidas que el Home)
+   ========================================================= */
+
+/* ---------- Encabezado (igual que .page-title / .page-subtitle) ---------- */
+.encabezado {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.encabezado h1 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.encabezado p {
+  margin: 4px 0 18px;
+  font-size: 0.8rem;
+  color: var(--texto-suave);
+}
+
+.encabezado-botones {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ---------- Indicadores (igual que .kpis / .kpi) ---------- */
+.indicadores {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.indicador {
+  --color: var(--primario);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  text-align: left;
+  color: var(--texto);
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-top: 4px solid var(--color);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04);
+}
+
+.indicador.azul { --color: var(--primario); }
+.indicador.verde { --color: var(--verde); }
+.indicador.naranjo { --color: var(--naranjo); }
+.indicador.rojo { --color: var(--rojo); }
+.indicador.morado { --color: var(--morado); }
+
+.indicador-titulo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.indicador-titulo svg {
+  width: 16px;
+  height: 16px;
+  color: var(--color);
+}
+
+.indicador-valor {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.indicador-detalle {
+  font-size: 0.72rem;
+  color: var(--texto-suave);
+}
+
+.indicador.clickeable {
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.indicador.clickeable:hover {
+  box-shadow: 0 4px 12px rgba(1, 16, 122, 0.1);
+}
+
+.indicador.seleccionado {
+  box-shadow: inset 0 0 0 2px var(--color);
+}
+
+/* ---------- Filtros ---------- */
+.filtros {
+  display: grid;
+  grid-template-columns: 1fr 200px 200px;
+  align-items: end;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.buscador {
+  position: relative;
+}
+
+.buscador svg {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  transform: translateY(-50%);
+  color: var(--texto-tenue);
+}
+
+.buscador .input {
+  padding-left: 34px;
+}
+
+/* ---------- Panel con la lista (igual que .panel) ---------- */
+.panel {
+  padding: 14px 18px 18px;
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04);
+}
+
+.panel-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 10px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--borde);
+  font-size: 0.75rem;
+  color: var(--texto-suave);
+}
+
+.panel-cabecera h2 {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--texto);
+}
+
+.vacio {
+  margin: 32px 0;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--texto-suave);
+}
+
+.grilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+/* ---------- Tarjeta de trabajador ---------- */
+.tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  padding: 14px;
+  text-align: left;
+  color: var(--texto);
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-top: 4px solid var(--primario);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.tarjeta:hover {
+  box-shadow: 0 4px 12px rgba(1, 16, 122, 0.1);
+}
+
+.tarjeta.estado-licencia { border-top-color: var(--naranjo); }
+.tarjeta.estado-inactivo { border-top-color: #d1d5db; }
+
+.tarjeta-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tarjeta-identidad {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tarjeta-nombre {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 0.92rem;
+}
+
+.tarjeta-nombre h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.tarjeta-disponibilidad {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--borde);
+}
+
+.tarjeta-periodo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* ---------- Piezas pequeñas ---------- */
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--primario-suave);
+  color: var(--primario);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.avatar-grande {
+  width: 56px;
+  height: 56px;
+  font-size: 1.1rem;
+  background: var(--primario);
+  color: var(--blanco);
+  box-shadow: 0 0 0 3px var(--blanco);
+}
+
+.etiqueta {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--texto-tenue);
+}
+
+.texto-tenue {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--texto-tenue);
+}
+
+.texto-pequeno {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  color: var(--texto-suave);
+}
+
+.texto-pequeno svg {
+  width: 13px;
+  height: 13px;
+}
+
+.lista-roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.chip-rol {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  background: var(--fondo);
+  color: var(--texto-suave);
+  font-size: 0.72rem;
+}
+
+.chip-quitar {
+  display: inline-grid;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.chip-quitar svg {
+  width: 12px;
+  height: 12px;
+}
+
+.chip-quitar:hover {
+  color: var(--rojo);
+}
+
+.chip-estado {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+.chip-estado::before {
+  content: '● ';
+}
+
+.chip-estado.activo { background: rgba(76, 175, 125, 0.12); color: #2f8a5c; }
+.chip-estado.licencia { background: rgba(240, 138, 60, 0.12); color: #c96a1f; }
+.chip-estado.inactivo { background: #f1f2f5; color: var(--texto-suave); }
+
+.chip-periodo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--primario-suave);
+  color: var(--primario);
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+.chip-periodo svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Semana L M M J V S D */
+.semana {
+  display: flex;
+  gap: 5px;
+}
+
+.semana-dia {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--texto-tenue);
+}
+
+.semana-caja {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--borde);
+  border-radius: 5px;
+  background: var(--fondo);
+  color: var(--blanco);
+}
+
+.semana-caja svg {
+  width: 12px;
+  height: 12px;
+}
+
+.semana-caja.marcada {
+  background: var(--primario);
+  border-color: var(--primario);
+}
+
+/* ---------- Ficha del trabajador ---------- */
+.ficha {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ficha .indicadores {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 0;
+}
+
+.ficha .indicador-valor {
+  font-size: 1.2rem;
+}
+
+.ficha .indicador.morado .indicador-valor {
+  font-size: 0.92rem;
+}
+
+.ficha-encabezado {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 18px;
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  background: linear-gradient(120deg, var(--primario-suave), #f8f9fc 70%);
+}
+
+.ficha-encabezado.licencia { background: linear-gradient(120deg, rgba(240, 138, 60, 0.1), #fbfbfc 70%); }
+.ficha-encabezado.inactivo { background: linear-gradient(120deg, #f1f2f5, #fbfbfc 70%); }
+
+.ficha-identidad {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ficha-contacto {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  font-size: 0.78rem;
+  color: var(--texto-suave);
+}
+
+.ficha-contacto span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ficha-contacto svg {
+  width: 14px;
+  height: 14px;
+}
+
+.ficha-semana {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  background: var(--blanco);
+}
+
+.ficha-columnas {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.ficha-columna {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.seccion {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+}
+
+.seccion-cabecera {
+  display: flex;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--borde);
+}
+
+.seccion-cabecera svg {
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  color: var(--primario);
+}
+
+.seccion-cabecera h3 {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.seccion-cabecera p {
+  margin: 2px 0 0;
+  font-size: 0.72rem;
+  color: var(--texto-suave);
+}
+
+.subtitulo {
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+/* ---------- Formularios ---------- */
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fila-doble {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.fila-asignar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 8px;
+}
+
+.fila-titulo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.catalogo {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+}
+
+.catalogo li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+}
+
+.catalogo li + li {
+  border-top: 1px solid var(--borde);
+}
+
+.catalogo div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.catalogo span {
+  font-size: 0.72rem;
+  color: var(--texto-suave);
+}
+
+/* Lista de días con interruptor */
+.lista-dias {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+}
+
+.lista-dias li {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+}
+
+.lista-dias li + li {
+  border-top: 1px solid var(--borde);
+}
+
+.lista-dias li.apagado .horario {
+  opacity: 0.45;
+}
+
+.horario {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--texto-suave);
+}
+
+.horario .input {
+  width: 120px;
+  height: 32px;
+}
+
+.interruptor {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.interruptor input {
+  position: absolute;
+  opacity: 0;
+}
+
+.interruptor-pista {
+  position: relative;
+  width: 34px;
+  height: 19px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: #d1d5db;
+  transition: background 0.15s;
+}
+
+.interruptor-pista::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--blanco);
+  transition: transform 0.15s;
+}
+
+.interruptor input:checked + .interruptor-pista {
+  background: var(--primario);
+}
+
+.interruptor input:checked + .interruptor-pista::after {
+  transform: translateX(15px);
+}
+
+.interruptor input:focus-visible + .interruptor-pista {
+  outline: 3px solid var(--primario-suave);
+}
+
+/* ---------- Pantallas medianas y celular ---------- */
+@media (max-width: 1100px) {
+  .ficha-columnas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ficha-encabezado {
+    grid-template-columns: auto 1fr;
+  }
+
+  .ficha-semana {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 800px) {
+  .ficha .indicadores {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filtros,
+  .fila-doble,
+  .lista-dias li {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

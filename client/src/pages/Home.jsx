@@ -190,7 +190,7 @@ export default function Home() {
       <main className="content">
         <h1 className="page-title">Panel Principal</h1>
         <p className="page-subtitle">
-          Hola, {nombre}. Este es el resumen general de Six Seven
+          Hola, {nombre}. Este es el resumen general de la empresa.
         </p>
 
         {/* ---------- Resumen del mes ---------- */}

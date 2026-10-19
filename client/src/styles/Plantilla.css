@@ -1,0 +1,309 @@
+/* =========================================================
+   Estilos generales (mismas medidas y colores que el Home)
+   ========================================================= */
+:root {
+  --primario: #01107a;
+  --primario-oscuro: #000b57;
+  --primario-suave: rgba(1, 16, 122, 0.08);
+  --verde: #4caf7d;
+  --naranjo: #f08a3c;
+  --rojo: #e5484d;
+  --morado: #6b4fbb;
+
+  --fondo: #f6f7fb;
+  --blanco: #ffffff;
+  --borde: #e6e8ef;
+  --texto: #111827;
+  --texto-suave: #6b7280;
+  --texto-tenue: #9ca3af;
+
+  --radio: 12px;
+  --alto-barra: 56px;
+  --ancho-menu: 260px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: var(--texto);
+  background: var(--fondo);
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+/* ---------- Barra superior (igual que .topbar del Home) ---------- */
+.barra-superior {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 10;
+  height: var(--alto-barra);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  background: var(--blanco);
+  border-bottom: 1px solid var(--borde);
+}
+
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.marca-logo {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--primario);
+  color: var(--blanco);
+  font-weight: 800;
+  font-size: 0.8rem;
+}
+
+.marca-nombre {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--primario);
+}
+
+.usuario {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.usuario-texto {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 0.75rem;
+  color: var(--texto-suave);
+}
+
+.usuario-texto strong {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--texto);
+}
+
+.usuario-avatar {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--primario-suave);
+  color: var(--primario);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+/* ---------- Contenido (igual que .content del Home) ---------- */
+.contenido {
+  margin-left: var(--ancho-menu);
+  padding: calc(var(--alto-barra) + 32px) 32px 32px;
+}
+
+.barra-superior .boton-menu {
+  display: none;
+}
+
+/* ---------- Botones ---------- */
+.boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.boton svg {
+  width: 16px;
+  height: 16px;
+}
+
+.boton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.boton-principal {
+  background: var(--primario);
+  color: var(--blanco);
+}
+
+.boton-principal:hover:not(:disabled) {
+  background: var(--primario-oscuro);
+}
+
+.boton-secundario {
+  background: var(--blanco);
+  border-color: var(--borde);
+  color: var(--texto);
+}
+
+.boton-secundario:hover:not(:disabled) {
+  background: var(--fondo);
+}
+
+.boton-texto {
+  height: 30px;
+  padding: 0 8px;
+  background: none;
+  color: var(--primario);
+  font-size: 0.78rem;
+}
+
+.boton-texto:hover {
+  background: var(--primario-suave);
+}
+
+.boton-icono {
+  display: inline-grid;
+  place-items: center;
+  padding: 8px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--texto-suave);
+  cursor: pointer;
+}
+
+.boton-icono:hover {
+  background: var(--primario-suave);
+  color: var(--primario);
+}
+
+/* ---------- Campos de formulario ---------- */
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.campo label {
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.campo input,
+.campo select,
+.input {
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  background: var(--blanco);
+  color: var(--texto);
+  font-size: 0.85rem;
+}
+
+.campo input:focus,
+.campo select:focus,
+.input:focus {
+  outline: none;
+  border-color: var(--primario);
+  box-shadow: 0 0 0 3px var(--primario-suave);
+}
+
+.campo-error {
+  font-size: 0.72rem;
+  color: var(--rojo);
+}
+
+.mensaje {
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+}
+
+.mensaje-error {
+  background: rgba(229, 72, 77, 0.08);
+  color: var(--rojo);
+}
+
+.mensaje-exito {
+  background: rgba(76, 175, 125, 0.12);
+  color: #2f8a5c;
+}
+
+/* ---------- Modal ---------- */
+.modal-fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 24px 16px;
+  overflow-y: auto;
+  background: rgba(17, 24, 39, 0.45);
+}
+
+.modal {
+  width: 100%;
+  margin: auto 0;
+  background: var(--blanco);
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(17, 24, 39, 0.18);
+}
+
+.modal-normal {
+  max-width: 460px;
+}
+
+.modal-amplio {
+  max-width: 1000px;
+}
+
+.modal-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 8px;
+}
+
+.modal-cabecera h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.modal-contenido {
+  padding: 4px 20px 20px;
+}
+
+/* ---------- Celular (igual que el Home: el menú se oculta) ---------- */
+@media (max-width: 768px) {
+  .contenido {
+    margin-left: 0;
+    padding: calc(var(--alto-barra) + 24px) 16px 16px;
+  }
+
+  .barra-superior .boton-menu {
+    display: inline-grid;
+  }
+
+  .usuario-texto {
+    display: none;
+  }
+}
