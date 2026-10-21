@@ -44,7 +44,7 @@ export default function FichaTrabajador({ trabajador, roles, onCambio, onCrearRo
   const [disponibilidad, setDisponibilidad] = useState([]);
   const nombre = nombreCompleto(trabajador);
   const rolesAsignados = rolesDe(trabajador);
-  const comisionMaxima = Math.max(0, ...rolesAsignados.map((r) => r.comision ?? 0));
+    const comisionMaxima = Math.max(0, ...rolesAsignados.map((r) => Number(r.porcentaje_referencial ?? 0)));
 
   function cargarDisponibilidad() {
     listarDisponibilidad(trabajador.id_trabajador)
