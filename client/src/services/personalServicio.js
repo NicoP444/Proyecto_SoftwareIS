@@ -47,16 +47,17 @@ export function actualizarRol(id, datos) {
 
 // ---------- Roles de un trabajador (tabla desempeña) ----------
 export function asignarRol(idTrabajador, idRol) {
-  return pedir('/desempena', {
+  return pedir(`/trabajadores/${idTrabajador}/rol/${idRol}?id_dueno=${idDueno()}`, {
     method: 'POST',
-    body: { id_trabajador: idTrabajador, id_rol: idRol },
+    body: { id_dueno: idDueno() },
   });
 }
 
 export function quitarRol(idTrabajador, idRol) {
-  return pedir(`/desempena/${idTrabajador}/${idRol}`, { method: 'DELETE' });
+  return pedir(`/trabajadores/${idTrabajador}/rol/${idRol}?id_dueno=${idDueno()}`, {
+    method: 'DELETE',
+  });
 }
-
 // ---------- Disponibilidad ----------
 export async function listarDisponibilidad(idTrabajador) {
   return comoLista(await pedir(`/trabajadores/${idTrabajador}/disponibilidad`));
