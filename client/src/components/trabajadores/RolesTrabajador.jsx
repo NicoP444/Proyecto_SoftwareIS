@@ -90,7 +90,7 @@ export default function RolesTrabajador({ trabajador, roles, onCambio, onCrearRo
           <li key={rol.id_rol}>
             <div>
               <strong>{rol.nombre}</strong>
-              <span>{rol.comision != null ? `${rol.comision}% de comisión` : 'Sin comisión'}</span>
+              <span>{rol.porcentaje_referencial != null ? `${rol.porcentaje_referencial}% de comisión` : 'Sin comisión'}</span>
             </div>
             <button type="button" className="boton boton-texto" onClick={() => onEditarRol(rol)}>
               <Pencil size={15} /> Modificar

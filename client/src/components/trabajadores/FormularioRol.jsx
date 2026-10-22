@@ -7,7 +7,7 @@ import { useState } from 'react';
  */
 export default function FormularioRol({ rol, onGuardar, onCancelar }) {
   const [nombre, setNombre] = useState(rol?.nombre ?? '');
-  const [comision, setComision] = useState(rol?.comision ?? '');
+  const [comision, setComision] = useState(rol?.porcentaje_referencial ?? '');
   const [error, setError] = useState('');
   const [guardando, setGuardando] = useState(false);
 
@@ -20,7 +20,7 @@ export default function FormularioRol({ rol, onGuardar, onCancelar }) {
     try {
       await onGuardar({
         nombre: nombre.trim(),
-        comision: comision === '' ? null : Number(comision),
+        porcentaje_referencial: comision === '' ? null : Number(comision),
       });
     } catch (err) {
       setError(err.message);

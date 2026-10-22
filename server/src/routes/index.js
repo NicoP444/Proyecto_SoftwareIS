@@ -18,7 +18,7 @@ router.use('/incidentes', incidenteRoutes);
 router.use('/rol', rolRoutes); //nico
 router.use('/trabajadores/:id/disponibilidad', disponibilidadRoutes);//nico
 router.use('/trabajadores',trabajadorRoutes);//nico
-router.use('/desempena', desempenaRoutes);// nico
+router.use('/', desempenaRoutes);// nico
 router.use('/acuerdos', acuerdoRoutes);
 router.use('/salidas-kits', salidaKitRoutes);
 router.use('/retornos-kits', retornoKitRoutes);

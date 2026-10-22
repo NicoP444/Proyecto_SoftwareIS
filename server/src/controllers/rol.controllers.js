@@ -3,7 +3,7 @@ import { manejarError } from '../utils/errores.js';
 
 export const ListarRol = async (req, res) =>{
     try{
-        const lista = await RolServicio.ListarTrabajadores(req.query.id_dueno);
+        const lista = await RolServicio.ListarRoles(req.query.id_dueno);
         res.json(lista);
     }catch (error) {
     manejarError(res, error);
