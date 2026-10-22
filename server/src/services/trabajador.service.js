@@ -61,6 +61,17 @@ const VerificarExistencia = async (telefono, id_excluir) => {
   }
 };
 
+const VerificarCorreo = (correo) => {
+  if (correo === undefined) return undefined;          // no viene: no se toca
+  if (correo === null || correo === '') return null;   // viene vacío: se borra
+
+  const limpio = String(correo).trim().toLowerCase();
+  if (!/^\S+@\S+\.\S+$/.test(limpio)) {
+    throw new ValidationError('El correo no es válido', 'correo');
+  }
+  return limpio;
+};
+
 const ObtenerTrabajador = async (id_trabajador) => {
   const trabajador = await prisma.trabajador.findUnique({
     where: { id_trabajador: Number(id_trabajador) },
@@ -99,17 +110,19 @@ const VerificarEstado = (estado, obligatorio = true) => {
   return limpio;
 };
 
-export const CrearTrabajador = async ({ nombre, telefono_whatsapp, observaciones, id_dueno, estado }) => {
+export const CrearTrabajador = async ({ nombre, telefono_whatsapp, correo, observaciones, id_dueno, estado }) => {
   const nom = VerificarNombre(nombre);
   const tel = VerificarTelefono(telefono_whatsapp);
+  const cor = VerificarCorreo(correo);
   const obs = VerificarObservacion(observaciones);
-  const est = VerificarEstado(estado); // sin await: no es async
+  const est = VerificarEstado(estado);
   await VerificarExistencia(tel);
 
   return prisma.trabajador.create({
     data: {
       nombre: nom,
       telefono_whatsapp: tel ?? null,
+      correo: cor ?? null,
       observaciones: obs ?? null,
       estado: est,
       dueno: { connect: { id_dueno: Number(id_dueno) } },
@@ -118,11 +131,12 @@ export const CrearTrabajador = async ({ nombre, telefono_whatsapp, observaciones
 };
 
 
-export const ActualizarTrabajador = async (id_trabajador, { nombre, telefono_whatsapp, observaciones, estado }) => {
+export const ActualizarTrabajador = async (id_trabajador, { nombre, telefono_whatsapp, correo, observaciones, estado }) => {
   await ObtenerTrabajador(id_trabajador);
 
   const nom = VerificarNombre(nombre, false);
   const tel = VerificarTelefono(telefono_whatsapp);
+  const cor = VerificarCorreo(correo);
   const obs = VerificarObservacion(observaciones);
   const est = VerificarEstado(estado, false);
 
@@ -133,6 +147,7 @@ export const ActualizarTrabajador = async (id_trabajador, { nombre, telefono_wha
     data: {
       ...(nom !== undefined && { nombre: nom }),
       ...(tel !== undefined && { telefono_whatsapp: tel }),
+      ...(cor !== undefined && { correo: cor }),
       ...(obs !== undefined && { observaciones: obs }),
       ...(est !== undefined && { estado: est }),
     },

@@ -291,6 +291,7 @@ model Trabajador {
   id_trabajador     Int          @id @default(autoincrement())
   nombre            String       @db.VarChar(80)
   telefono_whatsapp String       @db.VarChar(20)
+  correo            String?      @db.VarChar(120)
   observaciones     String?      @db.VarChar(255)
   rol_fijo          Boolean      @default(false)
   estado            EstadoCuenta @default(ACTIVO)

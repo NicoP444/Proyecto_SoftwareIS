@@ -1,72 +1,46 @@
-import { useEffect, useState } from 'react';
-import { guardarDisponibilidad } from '../../services/personalServicio.js';
-import { DIAS, aFecha, aHora, periodoMesActual } from './ayudas.js';
+import { useState } from 'react';
+import { CalendarRange, Clock, Plus } from 'lucide-react';
+import { crearBloqueDisponibilidad } from '../../services/personalServicio.js';
+import { ordenarBloques, periodoMesActual, textoFechasBloque, textoHorarioBloque } from './ayudas.js';
 
-/** Pasa la lista del back a un objeto fácil de editar: { 1: {activo, inicio, termino}, 2: ... } */
-function armarSemana(disponibilidad) {
-  const semana = {};
-  DIAS.forEach((dia) => {
-    const registro = disponibilidad.find((d) => d.dia_semana === dia.numero);
-    semana[dia.numero] = registro
-      ? { activo: true, inicio: aHora(registro.hora_inicio), termino: aHora(registro.hora_termino) }
-      : { activo: false, inicio: '09:00', termino: '18:00' };
-  });
-  return semana;
+/** Datos vacíos del formulario: propone el mes actual y horario de oficina */
+function bloqueNuevo() {
+  const mes = periodoMesActual();
+  return { fecha_inicio: mes.inicio, fecha_termino: mes.termino, hora_inicio: '09:00', hora_termino: '18:00' };
 }
 
-/** Toma el período guardado o propone el mes actual. */
-function armarPeriodo(disponibilidad) {
-  const conFecha = disponibilidad.find((d) => d.fecha_inicio);
-  return conFecha
-    ? { inicio: aFecha(conFecha.fecha_inicio), termino: aFecha(conFecha.fecha_termino) }
-    : periodoMesActual();
+function validar(bloque) {
+  if (!bloque.fecha_inicio || !bloque.fecha_termino) return 'Indica la fecha de inicio y de término';
+  if (bloque.fecha_inicio > bloque.fecha_termino) return 'La fecha de término debe ser posterior a la de inicio';
+  if (!bloque.hora_inicio || !bloque.hora_termino) return 'Indica la hora de inicio y de término';
+  if (bloque.hora_inicio >= bloque.hora_termino) return 'La hora de término debe ser mayor a la de inicio';
+  return null;
 }
 
 /**
- * Editor de disponibilidad: período (desde / hasta) + días y horarios.
+ * Disponibilidad del trabajador: lista de bloques (desde - hasta, con horario)
+ * y un formulario para agregar un bloque nuevo.
  */
 export default function EditorDisponibilidad({ idTrabajador, disponibilidad, onGuardado }) {
-  const [semana, setSemana] = useState(armarSemana(disponibilidad));
-  const [periodo, setPeriodo] = useState(armarPeriodo(disponibilidad));
+  const [bloque, setBloque] = useState(bloqueNuevo);
   const [mensaje, setMensaje] = useState(null);
   const [guardando, setGuardando] = useState(false);
 
-  // Cuando llegan datos nuevos del back, se cargan en el editor
-  useEffect(() => {
-    setSemana(armarSemana(disponibilidad));
-    setPeriodo(armarPeriodo(disponibilidad));
-  }, [disponibilidad]);
-
-  function cambiarDia(numero, cambios) {
-    setSemana({ ...semana, [numero]: { ...semana[numero], ...cambios } });
+  function cambiar(e) {
+    setBloque({ ...bloque, [e.target.name]: e.target.value });
     setMensaje(null);
   }
 
-  function validar() {
-    if (!periodo.inicio || !periodo.termino) return 'Indica la fecha de inicio y de término';
-    if (periodo.inicio > periodo.termino) return 'La fecha de término debe ser posterior a la de inicio';
-    const diaMalo = DIAS.find((dia) => semana[dia.numero].activo && semana[dia.numero].inicio >= semana[dia.numero].termino);
-    if (diaMalo) return `${diaMalo.nombre}: la hora de término debe ser mayor a la de inicio`;
-    return null;
-  }
-
-  async function guardar() {
-    const error = validar();
+  async function agregar(e) {
+    e.preventDefault();
+    const error = validar(bloque);
     if (error) return setMensaje({ tipo: 'error', texto: error });
-
-    // Un registro por cada día marcado, con el mismo período
-    const nuevos = DIAS.filter((dia) => semana[dia.numero].activo).map((dia) => ({
-      dia_semana: dia.numero,
-      hora_inicio: semana[dia.numero].inicio,
-      hora_termino: semana[dia.numero].termino,
-      fecha_inicio: periodo.inicio,
-      fecha_termino: periodo.termino,
-    }));
 
     setGuardando(true);
     try {
-      await guardarDisponibilidad(idTrabajador, disponibilidad, nuevos);
-      setMensaje({ tipo: 'exito', texto: 'Disponibilidad guardada.' });
+      await crearBloqueDisponibilidad(idTrabajador, bloque);
+      setMensaje({ tipo: 'exito', texto: 'Bloque agregado.' });
+      setBloque(bloqueNuevo());
       onGuardado();
     } catch (err) {
       setMensaje({ tipo: 'error', texto: err.message });
@@ -77,76 +51,65 @@ export default function EditorDisponibilidad({ idTrabajador, disponibilidad, onG
 
   return (
     <div className="formulario">
-      {mensaje && <div className={`mensaje mensaje-${mensaje.tipo}`}>{mensaje.texto}</div>}
-
-      <div className="fila-doble">
-        <div className="campo">
-          <label htmlFor="fecha-inicio">Disponible desde</label>
-          <input id="fecha-inicio" type="date" value={periodo.inicio} onChange={(e) => setPeriodo({ ...periodo, inicio: e.target.value })} />
-        </div>
-        <div className="campo">
-          <label htmlFor="fecha-termino">Disponible hasta</label>
-          <input
-            id="fecha-termino"
-            type="date"
-            min={periodo.inicio}
-            value={periodo.termino}
-            onChange={(e) => setPeriodo({ ...periodo, termino: e.target.value })}
-          />
-        </div>
-      </div>
-
-      <ul className="lista-dias">
-        {DIAS.map((dia) => {
-          const datos = semana[dia.numero];
-          return (
-            <li key={dia.numero} className={datos.activo ? '' : 'apagado'}>
-              <label className="interruptor">
-                <input type="checkbox" checked={datos.activo} onChange={(e) => cambiarDia(dia.numero, { activo: e.target.checked })} />
-                <span className="interruptor-pista" />
-                {dia.nombre}
-              </label>
-              <div className="horario">
-                <input
-                  type="time"
-                  className="input"
-                  value={datos.inicio}
-                  disabled={!datos.activo}
-                  onChange={(e) => cambiarDia(dia.numero, { inicio: e.target.value })}
-                  aria-label={`Hora de inicio del ${dia.nombre}`}
-                />
-                <span>a</span>
-                <input
-                  type="time"
-                  className="input"
-                  value={datos.termino}
-                  disabled={!datos.activo}
-                  onChange={(e) => cambiarDia(dia.numero, { termino: e.target.value })}
-                  aria-label={`Hora de término del ${dia.nombre}`}
-                />
-              </div>
+      {/* Bloques ya registrados */}
+      <h4 className="subtitulo">Bloques registrados</h4>
+      {disponibilidad.length === 0 ? (
+        <p className="texto-tenue">Aún no tiene disponibilidad registrada.</p>
+      ) : (
+        <ul className="lista-bloques">
+          {ordenarBloques(disponibilidad).map((b) => (
+            <li key={b.nro_bloque ?? `${b.fecha_inicio}-${b.hora_inicio}`}>
+              <span className="bloque-fechas">
+                <CalendarRange size={15} /> {textoFechasBloque(b)}
+              </span>
+              <span className="bloque-horario">
+                <Clock size={15} /> {textoHorarioBloque(b)}
+              </span>
             </li>
-          );
-        })}
-      </ul>
+          ))}
+        </ul>
+      )}
 
-      <div className="acciones">
-        <button
-          type="button"
-          className="boton boton-secundario"
-          disabled={guardando}
-          onClick={() => {
-            setSemana(armarSemana(disponibilidad));
-            setPeriodo(armarPeriodo(disponibilidad));
-            setMensaje(null);
-          }}
-        >
-          Descartar
-        </button>
-        <button type="button" className="boton boton-principal" onClick={guardar} disabled={guardando}>
-          {guardando ? 'Guardando…' : 'Guardar disponibilidad'}
-        </button>
-      </div>
+      {/* Formulario para agregar un bloque */}
+      <form className="nuevo-bloque" onSubmit={agregar} noValidate>
+        <h4 className="subtitulo">Agregar bloque</h4>
+        {mensaje && <div className={`mensaje mensaje-${mensaje.tipo}`}>{mensaje.texto}</div>}
+
+        <div className="fila-doble">
+          <div className="campo">
+            <label htmlFor="bloque-fecha-inicio">Disponible desde</label>
+            <input id="bloque-fecha-inicio" type="date" name="fecha_inicio" value={bloque.fecha_inicio} onChange={cambiar} />
+          </div>
+          <div className="campo">
+            <label htmlFor="bloque-fecha-termino">Disponible hasta</label>
+            <input
+              id="bloque-fecha-termino"
+              type="date"
+              name="fecha_termino"
+              min={bloque.fecha_inicio}
+              value={bloque.fecha_termino}
+              onChange={cambiar}
+            />
+          </div>
+        </div>
+
+        <div className="fila-doble">
+          <div className="campo">
+            <label htmlFor="bloque-hora-inicio">Hora de inicio</label>
+            <input id="bloque-hora-inicio" type="time" name="hora_inicio" value={bloque.hora_inicio} onChange={cambiar} />
+          </div>
+          <div className="campo">
+            <label htmlFor="bloque-hora-termino">Hora de término</label>
+            <input id="bloque-hora-termino" type="time" name="hora_termino" value={bloque.hora_termino} onChange={cambiar} />
+          </div>
+        </div>
+
+        <div className="acciones">
+          <button type="submit" className="boton boton-principal" disabled={guardando}>
+            <Plus size={16} /> {guardando ? 'Guardando…' : 'Agregar bloque'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

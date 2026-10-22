@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { ESTADOS } from './ayudas.js';
 
-const VACIO = { nombre: '', apellido: '', telefono_whatsapp: '', correo: '', observaciones: '', estado: 'activo' };
+const VACIO = { nombre: '', telefono_whatsapp: '', correo: '', observaciones: '', estado: 'activo' };
 
 function validar(datos) {
   const errores = {};
   if (!datos.nombre.trim()) errores.nombre = 'Ingresa el nombre';
-  if (!datos.apellido.trim()) errores.apellido = 'Ingresa el apellido';
   if (!datos.telefono_whatsapp.trim()) errores.telefono_whatsapp = 'Ingresa el teléfono de WhatsApp';
   if (datos.correo && !/^\S+@\S+\.\S+$/.test(datos.correo)) errores.correo = 'Correo no válido';
   return errores;
@@ -60,10 +59,7 @@ export default function FormularioTrabajador({ inicial = VACIO, textoBoton, onGu
     <form className="formulario" onSubmit={enviar} noValidate>
       {mensaje && <div className={`mensaje mensaje-${mensaje.tipo}`}>{mensaje.texto}</div>}
 
-      <div className="fila-doble">
-        {campo('nombre', 'Nombre')}
-        {campo('apellido', 'Apellido')}
-      </div>
+      {campo('nombre', 'Nombre')}
 
       <div className="campo">
         <label htmlFor="trabajador-estado">Estado</label>
