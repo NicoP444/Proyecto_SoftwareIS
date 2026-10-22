@@ -19,6 +19,7 @@ datasource db {
 enum EstadoCuenta {
   ACTIVO
   INACTIVO
+  LICENCIA
 }
 
 enum EstadoEvento {
