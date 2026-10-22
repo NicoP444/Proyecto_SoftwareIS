@@ -4,7 +4,7 @@
  *
  * ⚠️ Si alguna ruta de tu back es distinta, cámbiala solo en este archivo.
  */
-import { pedir } from './http.js'; // ⚠️ cambia './api.js' por el nombre real del archivo donde está "pedir"
+import { pedir } from './http.js'; // tu archivo con la función pedir
 
 // El back (validarDueno) pide id_dueno. Es el id del usuario que inició sesión.
 function idDueno() {
@@ -46,6 +46,7 @@ export function actualizarRol(id, datos) {
 }
 
 // ---------- Roles de un trabajador (tabla desempeña) ----------
+// Rutas del back: POST y DELETE /trabajadores/:id/rol/:idRol
 export function asignarRol(idTrabajador, idRol) {
   return pedir(`/trabajadores/${idTrabajador}/rol/${idRol}?id_dueno=${idDueno()}`, {
     method: 'POST',
@@ -58,27 +59,18 @@ export function quitarRol(idTrabajador, idRol) {
     method: 'DELETE',
   });
 }
-// ---------- Disponibilidad ----------
+
+// ---------- Disponibilidad (bloques de fechas con horario) ----------
+// Rutas del back: GET y POST /trabajadores/:id/disponibilidad
 export async function listarDisponibilidad(idTrabajador) {
-  return comoLista(await pedir(`/trabajadores/${idTrabajador}/disponibilidad`));
+  // El back responde { disponibilidades: [...] }; comoLista saca el arreglo
+  return comoLista(await pedir(`/trabajadores/${idTrabajador}/disponibilidad?id_dueno=${idDueno()}`));
 }
 
-/**
- * Guarda la semana completa de forma simple:
- * 1) borra los registros que había
- * 2) crea uno por cada día marcado
- */
-export async function guardarDisponibilidad(idTrabajador, anteriores, nuevos) {
-  for (const registro of anteriores) {
-    await pedir(`/trabajadores/${idTrabajador}/disponibilidad/${registro.id_disponibilidad}`, {
-      method: 'DELETE',
-    });
-  }
-
-  for (const registro of nuevos) {
-    await pedir(`/trabajadores/${idTrabajador}/disponibilidad`, {
-      method: 'POST',
-      body: registro,
-    });
-  }
+/** bloque = { fecha_inicio, fecha_termino, hora_inicio, hora_termino } */
+export function crearBloqueDisponibilidad(idTrabajador, bloque) {
+  return pedir(`/trabajadores/${idTrabajador}/disponibilidad`, {
+    method: 'POST',
+    body: { ...bloque, id_dueno: idDueno() },
+  });
 }

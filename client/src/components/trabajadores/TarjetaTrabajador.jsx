@@ -1,26 +1,7 @@
 import { useEffect, useState } from 'react';
-import { CalendarRange, Check, Clock } from 'lucide-react';
+import { CalendarRange, Clock } from 'lucide-react';
 import { listarDisponibilidad } from '../../services/personalServicio.js';
-import { DIAS, iniciales, nombreCompleto, rolesDe, textoEstado, textoPeriodo, resumenFinDeSemana } from './ayudas.js';
-
-/** Fila L M M J V S D con los días disponibles marcados. */
-export function SemanaMarcada({ disponibilidad }) {
-  const diasMarcados = disponibilidad.map((d) => d.dia_semana);
-
-  return (
-    <div className="semana">
-      {DIAS.map((dia) => {
-        const marcado = diasMarcados.includes(dia.numero);
-        return (
-          <div key={dia.numero} className="semana-dia" title={dia.nombre}>
-            <span>{dia.corto}</span>
-            <span className={`semana-caja ${marcado ? 'marcada' : ''}`}>{marcado && <Check size={14} strokeWidth={3} />}</span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
+import { iniciales, nombreCompleto, rolesDe, textoEstado, textoHorario, textoPeriodo } from './ayudas.js';
 
 /**
  * Tarjeta de un trabajador en la lista. Al hacer clic abre su ficha.
@@ -63,15 +44,17 @@ export default function TarjetaTrabajador({ trabajador, version, onAbrir }) {
       <div className="tarjeta-disponibilidad">
         <div className="tarjeta-periodo">
           <span className="etiqueta">Disponibilidad</span>
-          <span className="chip-periodo">
-            <CalendarRange size={13} />
-            {textoPeriodo(disponibilidad)}
+          <span className="texto-tenue">
+            {disponibilidad.length} {disponibilidad.length === 1 ? 'bloque' : 'bloques'}
           </span>
         </div>
-        <SemanaMarcada disponibilidad={disponibilidad} />
+        <span className="chip-periodo">
+          <CalendarRange size={13} />
+          {textoPeriodo(disponibilidad)}
+        </span>
         <span className="texto-pequeno">
           <Clock size={14} />
-          {resumenFinDeSemana(disponibilidad)}
+          {textoHorario(disponibilidad)}
         </span>
       </div>
     </button>

@@ -1,17 +1,7 @@
 /**
  * Funciones pequeñas y constantes que usan varios componentes de Personal.
- * Los nombres de campos (id_trabajador, dia_semana, etc.) son los de Prisma.
+ * Los nombres de campos (id_trabajador, fecha_inicio, etc.) son los de Prisma.
  */
-
-export const DIAS = [
-  { numero: 1, corto: 'L', nombre: 'Lunes' },
-  { numero: 2, corto: 'M', nombre: 'Martes' },
-  { numero: 3, corto: 'M', nombre: 'Miércoles' },
-  { numero: 4, corto: 'J', nombre: 'Jueves' },
-  { numero: 5, corto: 'V', nombre: 'Viernes' },
-  { numero: 6, corto: 'S', nombre: 'Sábado' },
-  { numero: 7, corto: 'D', nombre: 'Domingo' },
-];
 
 export const ESTADOS = [
   { valor: 'activo', texto: 'Activo' },
@@ -25,7 +15,7 @@ export function textoEstado(valor) {
 }
 
 export function nombreCompleto(trabajador) {
-  return `${trabajador.nombre ?? ''} ${trabajador.apellido ?? ''}`.trim();
+  return (trabajador.nombre ?? '').trim();
 }
 
 /** "Marcos Soto" -> "MS" */
@@ -37,9 +27,9 @@ export function iniciales(nombre) {
     .join('');
 }
 
-/** Los roles vienen dentro de desempena (include en Prisma). */
+/** Los roles vienen en trabajador.roles (include en Prisma). */
 export function rolesDe(trabajador) {
-  return (trabajador.desempena ?? []).map((d) => d.rol).filter(Boolean);
+  return (trabajador.roles ?? trabajador.desempena ?? []).map((d) => d.rol).filter(Boolean);
 }
 
 /** "1970-01-01T09:00:00.000Z" o "09:00:00" -> "09:00" */
@@ -65,38 +55,63 @@ export function formatearFecha(fecha) {
   });
 }
 
-/** Texto del período de la disponibilidad, ej: "1 oct 2026 al 31 oct 2026". */
-export function textoPeriodo(disponibilidad) {
-  const conFecha = disponibilidad.find((d) => d.fecha_inicio);
-  if (!conFecha) return 'Sin período';
-  return `${formatearFecha(conFecha.fecha_inicio)} al ${formatearFecha(conFecha.fecha_termino)}`;
+// ---------- Disponibilidad (bloques de fechas con horario) ----------
+
+/** "2026-10-22" de hoy, para comparar con las fechas de los bloques */
+function hoyComoTexto() {
+  const hoy = new Date();
+  const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+  const dia = String(hoy.getDate()).padStart(2, '0');
+  return `${hoy.getFullYear()}-${mes}-${dia}`;
 }
 
-/** Primer y último día del mes actual (para proponer un período por defecto). */
+/** Ordena los bloques por fecha de inicio (del más antiguo al más nuevo) */
+export function ordenarBloques(disponibilidad) {
+  return [...disponibilidad].sort((a, b) => aFecha(a.fecha_inicio).localeCompare(aFecha(b.fecha_inicio)));
+}
+
+/**
+ * Bloque que se muestra en la tarjeta:
+ * el que está vigente hoy, o si no hay, el próximo, o si no, el último.
+ */
+export function bloqueVigente(disponibilidad) {
+  if (disponibilidad.length === 0) return null;
+  const hoy = hoyComoTexto();
+  const ordenados = ordenarBloques(disponibilidad);
+  return (
+    ordenados.find((b) => aFecha(b.fecha_inicio) <= hoy && aFecha(b.fecha_termino) >= hoy) ??
+    ordenados.find((b) => aFecha(b.fecha_inicio) > hoy) ??
+    ordenados[ordenados.length - 1]
+  );
+}
+
+/** "1 oct 2026 al 31 oct 2026" */
+export function textoFechasBloque(bloque) {
+  return `${formatearFecha(bloque.fecha_inicio)} al ${formatearFecha(bloque.fecha_termino)}`;
+}
+
+/** "09:00 a 18:00" */
+export function textoHorarioBloque(bloque) {
+  return `${aHora(bloque.hora_inicio)} a ${aHora(bloque.hora_termino)}`;
+}
+
+/** Período del bloque vigente, o "Sin período" */
+export function textoPeriodo(disponibilidad) {
+  const bloque = bloqueVigente(disponibilidad);
+  return bloque ? textoFechasBloque(bloque) : 'Sin período';
+}
+
+/** Horario del bloque vigente, o un aviso si no hay bloques */
+export function textoHorario(disponibilidad) {
+  const bloque = bloqueVigente(disponibilidad);
+  return bloque ? `Disponible de ${textoHorarioBloque(bloque)}` : 'Sin disponibilidad registrada';
+}
+
+/** Primer y último día del mes actual (para proponer fechas en el formulario) */
 export function periodoMesActual() {
   const hoy = new Date();
   const anio = hoy.getFullYear();
   const mes = String(hoy.getMonth() + 1).padStart(2, '0');
   const ultimoDia = new Date(anio, hoy.getMonth() + 1, 0).getDate();
   return { inicio: `${anio}-${mes}-01`, termino: `${anio}-${mes}-${ultimoDia}` };
-}
-
-/** Suma las horas de todos los días disponibles. */
-export function horasSemanales(disponibilidad) {
-  const minutos = disponibilidad.reduce((total, d) => {
-    const [h1, m1] = aHora(d.hora_inicio).split(':').map(Number);
-    const [h2, m2] = aHora(d.hora_termino).split(':').map(Number);
-    return total + (h2 * 60 + m2) - (h1 * 60 + m1);
-  }, 0);
-  return Math.round(minutos / 60);
-}
-
-/** Frase corta para la tarjeta: muestra los fines de semana. */
-export function resumenFinDeSemana(disponibilidad) {
-  if (disponibilidad.length === 0) return 'Sin disponibilidad registrada';
-  const findes = disponibilidad.filter((d) => d.dia_semana >= 6);
-  if (findes.length === 0) return 'Sin fines de semana';
-  return findes
-    .map((d) => `${DIAS[d.dia_semana - 1].nombre} de ${aHora(d.hora_inicio)} a ${aHora(d.hora_termino)}`)
-    .join(' · ');
 }

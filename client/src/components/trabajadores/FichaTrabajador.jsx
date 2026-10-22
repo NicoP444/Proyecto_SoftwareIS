@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
 import { CalendarDays, CalendarRange, Clock, Mail, Phone, Tags, UserRound } from 'lucide-react';
 import { actualizarTrabajador, listarDisponibilidad } from '../../services/personalServicio.js';
-import { SemanaMarcada } from './TarjetaTrabajador';
 import EditorDisponibilidad from './EditorDisponibilidad';
 import RolesTrabajador from './RolesTrabajador';
 import FormularioTrabajador from './FormularioTrabajador';
-import { horasSemanales, iniciales, nombreCompleto, rolesDe, textoEstado, textoPeriodo } from './ayudas.js';
+import { bloqueVigente, iniciales, nombreCompleto, rolesDe, textoEstado, textoFechasBloque, textoHorarioBloque } from './ayudas.js';
 
 /** Cuadro con un número destacado (mismo estilo que el Panel Principal). */
 function Indicador({ icono: Icono, titulo, valor, detalle, color }) {
@@ -44,7 +43,8 @@ export default function FichaTrabajador({ trabajador, roles, onCambio, onCrearRo
   const [disponibilidad, setDisponibilidad] = useState([]);
   const nombre = nombreCompleto(trabajador);
   const rolesAsignados = rolesDe(trabajador);
-    const comisionMaxima = Math.max(0, ...rolesAsignados.map((r) => Number(r.porcentaje_referencial ?? 0)));
+  const comisionMaxima = Math.max(0, ...rolesAsignados.map((r) => Number(r.porcentaje_referencial ?? 0)));
+  const vigente = bloqueVigente(disponibilidad);
 
   function cargarDisponibilidad() {
     listarDisponibilidad(trabajador.id_trabajador)
@@ -84,8 +84,17 @@ export default function FichaTrabajador({ trabajador, roles, onCambio, onCrearRo
           </div>
         </div>
         <div className="ficha-semana">
-          <span className="etiqueta">Semana disponible</span>
-          <SemanaMarcada disponibilidad={disponibilidad} />
+          <span className="etiqueta">Disponibilidad vigente</span>
+          {vigente ? (
+            <>
+              <strong>{textoFechasBloque(vigente)}</strong>
+              <span className="texto-pequeno">
+                <Clock size={14} /> {textoHorarioBloque(vigente)}
+              </span>
+            </>
+          ) : (
+            <span className="texto-tenue">Sin disponibilidad</span>
+          )}
         </div>
       </div>
 
@@ -93,14 +102,14 @@ export default function FichaTrabajador({ trabajador, roles, onCambio, onCrearRo
       <div className="indicadores">
         <Indicador icono={Tags} color="azul" titulo="Roles asignados" valor={rolesAsignados.length}
           detalle={comisionMaxima ? `Comisión hasta ${comisionMaxima}%` : 'Sin comisión'} />
-        <Indicador icono={CalendarDays} color="verde" titulo="Días disponibles" valor={`${disponibilidad.length} / 7`} detalle="Por semana" />
-        <Indicador icono={Clock} color="naranjo" titulo="Horas semanales" valor={`${horasSemanales(disponibilidad)} h`} detalle="Según horario" />
-        <Indicador icono={CalendarRange} color="morado" titulo="Período" valor={textoPeriodo(disponibilidad)} detalle="Vigencia de la disponibilidad" />
+        <Indicador icono={CalendarDays} color="verde" titulo="Bloques" valor={disponibilidad.length} detalle="Períodos registrados" />
+        <Indicador icono={Clock} color="naranjo" titulo="Horario" valor={vigente ? textoHorarioBloque(vigente) : '—'} detalle="Del bloque vigente" />
+        <Indicador icono={CalendarRange} color="morado" titulo="Período" valor={vigente ? textoFechasBloque(vigente) : 'Sin período'} detalle="Bloque vigente o próximo" />
       </div>
 
       {/* Edición: disponibilidad a la izquierda, roles y datos a la derecha */}
       <div className="ficha-columnas">
-        <Seccion icono={CalendarDays} titulo="Disponibilidad" descripcion="Período, días y horarios en que puede trabajar">
+        <Seccion icono={CalendarDays} titulo="Disponibilidad" descripcion="Bloques de fechas y horario en que puede trabajar">
           <EditorDisponibilidad
             idTrabajador={trabajador.id_trabajador}
             disponibilidad={disponibilidad}
@@ -121,7 +130,6 @@ export default function FichaTrabajador({ trabajador, roles, onCambio, onCrearRo
               key={trabajador.id_trabajador}
               inicial={{
                 nombre: trabajador.nombre ?? '',
-                apellido: trabajador.apellido ?? '',
                 telefono_whatsapp: trabajador.telefono_whatsapp ?? '',
                 correo: trabajador.correo ?? '',
                 observaciones: trabajador.observaciones ?? '',
