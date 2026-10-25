@@ -15,4 +15,5 @@ export const ValidarListaRoles = (roles) => {
  
   return [...new Set(ids)]; // elimina repetidos
 };
- 
+
+// validamos que no haya choque de disponibilidad

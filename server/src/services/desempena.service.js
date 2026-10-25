@@ -1,20 +1,16 @@
 import prisma from '../config/prisma.js';
 import { ValidationError, NotFoundError } from '../utils/errores.js';
 
-const rolSelect = {
+const rolSelect = { // creamos el objeto.
   id_rol: true,
   nombre: true,
   porcentaje_referencial: true,
   estado: true,
 };
 
-// ---------- helpers ----------
-
-// Busca el trabajador SOLO dentro de los del dueño.
-// Si existe pero es de otro dueño, responde igual "no encontrado"
-// (así un dueño no puede saber qué trabajadores tienen los demás)
-const obtenerTrabajador = async (idTrabajador, idDueno, tx = prisma) => {
-  const trabajador = await tx.trabajador.findFirst({
+//obtenemos los trabajadores del dueño
+const obtenerTrabajador = async (idTrabajador, idDueno) => {
+  const trabajador = await prisma.trabajador.findFirst({
     where: { id_trabajador: idTrabajador, id_dueno: idDueno },
     select: { id_trabajador: true, nombre: true, estado: true },
   });
@@ -23,8 +19,8 @@ const obtenerTrabajador = async (idTrabajador, idDueno, tx = prisma) => {
 };
 
 // Igual que arriba, pero para un rol
-const obtenerRol = async (idRol, idDueno, tx = prisma) => {
-  const rol = await tx.rolTrabajo.findFirst({
+const obtenerRol = async (idRol, idDueno) => {
+  const rol = await prisma.rolTrabajo.findFirst({
     where: { id_rol: idRol, id_dueno: idDueno },
     select: { id_rol: true, nombre: true },
   });
@@ -33,34 +29,36 @@ const obtenerRol = async (idRol, idDueno, tx = prisma) => {
 };
 
 // Verifica que todos los roles existan, sean del dueño y estén activos
-const validarRoles = async (idsRoles, idDueno, tx = prisma) => {
+const validarRoles = async (idsRoles, idDueno) => {
   if (idsRoles.length === 0) return;
 
-  const roles = await tx.rolTrabajo.findMany({
+  const roles = await prisma.rolTrabajo.findMany({
     where: { id_rol: { in: idsRoles }, id_dueno: idDueno },
     select: { id_rol: true, estado: true },
   });
 
-  const encontrados = new Set(roles.map((r) => r.id_rol));
-  const faltantes = idsRoles.filter((id) => !encontrados.has(id));
+  //set, estructura de datos que no permite duplicados, para comparar los roles encontrados con los enviados
+  const encontrados = new Set(roles.map((r) => r.id_rol)); //creamos un arreglo de IDS
+  const faltantes = idsRoles.filter((id) => !encontrados.has(id)); // verificamos que si falten roles, si faltan los agregamos a un arreglo
   if (faltantes.length) {
     throw new NotFoundError(`Roles no encontrados: ${faltantes.join(', ')}`);
   }
 
-  const inactivos = roles.filter((r) => r.estado !== 'ACTIVO').map((r) => r.id_rol);
+  const inactivos = roles.filter((r) => r.estado !== 'ACTIVO').map((r) => r.id_rol); // solo nos quedamos con los roles que no están activos y los agregamos a un arreglo
   if (inactivos.length) {
     throw new ValidationError(`Roles inactivos: ${inactivos.join(', ')}`, 'roles');
   }
 };
 
+//verificamos que si este activo, si no lo está no se le pueden asignar roles
 const validarTrabajadorActivo = (trabajador) => {
   if (trabajador.estado !== 'ACTIVO') {
     throw new ValidationError('No se pueden asignar roles a un trabajador inactivo', 'id_trabajador');
   }
 };
 
-const rolesDeTrabajador = (idTrabajador, tx = prisma) =>
-  tx.desempena
+const rolesDeTrabajador = (idTrabajador) =>
+  prisma.desempena
     .findMany({
       where: { id_trabajador: idTrabajador },
       select: { rol: { select: rolSelect } },
@@ -68,16 +66,14 @@ const rolesDeTrabajador = (idTrabajador, tx = prisma) =>
     })
     .then((filas) => filas.map((f) => f.rol));
 
-// ---------- casos de uso ----------
 
 export const listarRolesDeTrabajador = async (idTrabajador, idDueno) => {
   const trabajador = await obtenerTrabajador(idTrabajador, idDueno);
   const roles = await rolesDeTrabajador(idTrabajador);
-  return { trabajador: { id_trabajador: trabajador.id_trabajador, nombre: trabajador.nombre }, roles };
+  return { trabajador: { id_trabajador: trabajador.id_trabajador, nombre: trabajador.nombre }, roles }; // objeto
 };
 
-// Deja al trabajador EXACTAMENTE con los roles enviados.
-// Quita los que no vienen y agrega los nuevos, todo en una transacción.
+
 export const asignarRoles = (idTrabajador, idsRoles, idDueno) =>
   prisma.$transaction(async (tx) => {
     const trabajador = await obtenerTrabajador(idTrabajador, idDueno, tx);

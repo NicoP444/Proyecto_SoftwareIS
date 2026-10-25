@@ -3,7 +3,8 @@ import {
   VerificarNombre, 
   VerificarCorreo, 
   VerificarTelefono, 
-  VerificarObservacion 
+  VerificarObservacion,
+  VerificarEstado,
 } from '../schemas/trabajador.shemas.js';
 import { ValidationError } from '../utils/errores.js';
 
@@ -15,6 +16,7 @@ const limpiarYValidarCrear = (req, res, next) => {
     req.body.telefono_whatsapp = VerificarTelefono(req.body.telefono_whatsapp);
     req.body.correo = VerificarCorreo(req.body.correo);
     req.body.observaciones = VerificarObservacion(req.body.observaciones);
+    req.body.estado = VerificarEstado(req.body.estado, false);
     
     next();// todo bien 
   } catch (error) { //error
@@ -33,7 +35,7 @@ const limpiarYValidarActualizar = (req, res, next) => {
     req.body.telefono_whatsapp = VerificarTelefono(req.body.telefono_whatsapp);
     req.body.correo = VerificarCorreo(req.body.correo);
     req.body.observaciones = VerificarObservacion(req.body.observaciones);
-    
+    req.body.estado = VerificarEstado(req.body.estado, false);
     next();// todo bien
   } catch (error) { //error
     if (error instanceof ValidationError) {

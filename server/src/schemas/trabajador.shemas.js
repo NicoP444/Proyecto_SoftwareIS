@@ -1,6 +1,7 @@
 import { ValidationError } from '../utils/errores.js';
 import prisma from '../config/prisma.js'; // Necesario para VerificarDuplicado
 
+
 // validamos el nombre, lo limpiamos y verificamos que no supere 25 caracteres
 export const VerificarNombre = (nombre, obligatorio = true) => {
     if(nombre === undefined && !obligatorio) return undefined;
@@ -97,6 +98,19 @@ export const VerificarExistenciaCorreo = async (correo, id_excluir) => {
   });
   if (existe) {
     throw new ValidationError('El correo ya está registrado', 'correo');
+  }
+  return limpio;
+};
+
+//verificamos los estados validos de los trabajadores, si no es valido lanza un error
+const ESTADOS_VALIDOS = ['ACTIVO', 'LICENCIA', 'INACTIVO'];
+export const VerificarEstado = (estado, obligatorio = true) => {
+  if (estado === undefined && !obligatorio) return undefined;
+  if (estado === undefined || estado === null || estado === '') return 'ACTIVO';
+
+  const limpio = String(estado).trim().toUpperCase(); // 'licencia' -> 'LICENCIA'
+  if (!ESTADOS_VALIDOS.includes(limpio)) {
+    throw new ValidationError('El estado debe ser activo, licencia o inactivo', 'estado');
   }
   return limpio;
 };

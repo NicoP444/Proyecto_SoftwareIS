@@ -1,4 +1,4 @@
-import { validarId, validarBody, camposObligatorios, validarDueno } from './validate.middleware.js';
+import { validarBody, camposObligatorios, validarDueno } from './validate.middleware.js';
 import { ValidarNombreRol, VerificarDuplicado, ValidarPorcentaje } from '../schemas/rol.schemas.js';
 import { manejarError } from '../utils/errores.js';
 

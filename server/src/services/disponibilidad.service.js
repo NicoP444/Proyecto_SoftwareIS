@@ -7,6 +7,25 @@ export const crearDisponibilidadService = async (id_trabajador, id_dueno, datos)
   if (!trabajador) throw new ValidationError('El trabajador no existe', 'id_trabajador');
   if (trabajador.estado !== 'ACTIVO') throw new ValidationError('El trabajador está inactivo', 'id_trabajador');
 
+  const choque = await prisma.disponibilidad.findFirst({
+    where: {
+      id_trabajador: Number(id_trabajador),
+      // Comparamos que las fechas se solapen
+      fecha_inicio: { lte: datos.fecha_termino },
+      fecha_termino: { gte: datos.fecha_inicio },
+      
+      // Comparamos que las horas se solapen
+      hora_inicio: { lt: datos.hora_termino },
+      hora_termino: { gt: datos.hora_inicio }
+    }
+  });
+
+  if (choque) {
+    throw new ValidationError(
+      'El trabajador ya tiene una disponibilidad que choca con este rango de fechas y horas', 
+      'choque_horario'
+    );
+  }
   // nro_bloque = último bloque del trabajador + 1
   const ultimo = await prisma.disponibilidad.findFirst({
     where: { id_trabajador },
