@@ -61,7 +61,7 @@ export function quitarRol(idTrabajador, idRol) {
 }
 
 // ---------- Disponibilidad (bloques de fechas con horario) ----------
-// Rutas del back: GET y POST /trabajadores/:id/disponibilidad
+// Rutas del back: GET, POST y PUT /trabajadores/:id/disponibilidad
 export async function listarDisponibilidad(idTrabajador) {
   // El back responde { disponibilidades: [...] }; comoLista saca el arreglo
   return comoLista(await pedir(`/trabajadores/${idTrabajador}/disponibilidad?id_dueno=${idDueno()}`));
@@ -71,6 +71,13 @@ export async function listarDisponibilidad(idTrabajador) {
 export function crearBloqueDisponibilidad(idTrabajador, bloque) {
   return pedir(`/trabajadores/${idTrabajador}/disponibilidad`, {
     method: 'POST',
+    body: { ...bloque, id_dueno: idDueno() },
+  });
+}
+
+export function actualizarBloqueDisponibilidad(idTrabajador, nroBloque, bloque) {
+  return pedir(`/trabajadores/${idTrabajador}/disponibilidad/${nroBloque}`, {
+    method: 'PUT',
     body: { ...bloque, id_dueno: idDueno() },
   });
 }

@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { CalendarRange, Clock, Plus } from 'lucide-react';
-import { crearBloqueDisponibilidad } from '../../services/personalServicio.js';
-import { ordenarBloques, periodoMesActual, textoFechasBloque, textoHorarioBloque } from './ayudas.js';
+import { CalendarRange, Clock, Plus, Pencil } from 'lucide-react';
+import { 
+  crearBloqueDisponibilidad, 
+  actualizarBloqueDisponibilidad 
+} from '../../services/personalServicio.js';
+import { periodoMesActual, textoFechasBloque, textoHorarioBloque } from './ayudas.js';
 
-/** Datos vacíos del formulario: propone el mes actual y horario de oficina */
 function bloqueNuevo() {
   const mes = periodoMesActual();
   return { fecha_inicio: mes.inicio, fecha_termino: mes.termino, hora_inicio: '09:00', hora_termino: '18:00' };
@@ -17,10 +19,6 @@ function validar(bloque) {
   return null;
 }
 
-/**
- * Disponibilidad del trabajador: lista de bloques (desde - hasta, con horario)
- * y un formulario para agregar un bloque nuevo.
- */
 export default function EditorDisponibilidad({ idTrabajador, disponibilidad, onGuardado }) {
   const [bloque, setBloque] = useState(bloqueNuevo);
   const [mensaje, setMensaje] = useState(null);
@@ -31,15 +29,20 @@ export default function EditorDisponibilidad({ idTrabajador, disponibilidad, onG
     setMensaje(null);
   }
 
-  async function agregar(e) {
+  async function guardar(e) {
     e.preventDefault();
     const error = validar(bloque);
     if (error) return setMensaje({ tipo: 'error', texto: error });
 
     setGuardando(true);
     try {
-      await crearBloqueDisponibilidad(idTrabajador, bloque);
-      setMensaje({ tipo: 'exito', texto: 'Bloque agregado.' });
+      if (bloque.nro_bloque) {
+        await actualizarBloqueDisponibilidad(idTrabajador, bloque.nro_bloque, bloque);
+        setMensaje({ tipo: 'exito', texto: 'Bloque actualizado correctamente.' });
+      } else {
+        await crearBloqueDisponibilidad(idTrabajador, bloque);
+        setMensaje({ tipo: 'exito', texto: 'Bloque agregado correctamente.' });
+      }
       setBloque(bloqueNuevo());
       onGuardado();
     } catch (err) {
@@ -49,36 +52,67 @@ export default function EditorDisponibilidad({ idTrabajador, disponibilidad, onG
     }
   }
 
+  function editarBloque(b) {
+    setBloque({ ...b });
+    setMensaje(null);
+  }
+
+  function cancelarEdicion() {
+    setBloque(bloqueNuevo());
+    setMensaje(null);
+  }
+
   return (
     <div className="formulario">
-      {/* Bloques ya registrados */}
       <h4 className="subtitulo">Bloques registrados</h4>
+      
       {disponibilidad.length === 0 ? (
         <p className="texto-tenue">Aún no tiene disponibilidad registrada.</p>
       ) : (
         <ul className="lista-bloques">
-          {ordenarBloques(disponibilidad).map((b) => (
-            <li key={b.nro_bloque ?? `${b.fecha_inicio}-${b.hora_inicio}`}>
-              <span className="bloque-fechas">
-                <CalendarRange size={15} /> {textoFechasBloque(b)}
-              </span>
-              <span className="bloque-horario">
-                <Clock size={15} /> {textoHorarioBloque(b)}
-              </span>
+          {disponibilidad.map((b) => (
+            <li 
+              key={b.nro_bloque ? b.nro_bloque : b.fecha_inicio + '-' + b.hora_inicio} 
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}
+            >
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                <span className="bloque-fechas">
+                  <CalendarRange size={15} /> {textoFechasBloque(b)}
+                </span>
+                <span className="bloque-horario">
+                  <Clock size={15} /> {textoHorarioBloque(b)}
+                </span>
+              </div>
+              
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button 
+                  type="button" 
+                  className="chip-quitar" 
+                  onClick={() => editarBloque(b)} 
+                  title="Editar bloque"
+                >
+                  <Pencil size={15} style={{ color: 'var(--primario)' }} />
+                </button>
+              </div>
             </li>
           ))}
         </ul>
       )}
 
-      {/* Formulario para agregar un bloque */}
-      <form className="nuevo-bloque" onSubmit={agregar} noValidate>
-        <h4 className="subtitulo">Agregar bloque</h4>
+      <form className="nuevo-bloque" onSubmit={guardar} noValidate>
+        <h4 className="subtitulo">{bloque.nro_bloque ? 'Editar bloque' : 'Agregar bloque'}</h4>
         {mensaje && <div className={`mensaje mensaje-${mensaje.tipo}`}>{mensaje.texto}</div>}
 
         <div className="fila-doble">
           <div className="campo">
             <label htmlFor="bloque-fecha-inicio">Disponible desde</label>
-            <input id="bloque-fecha-inicio" type="date" name="fecha_inicio" value={bloque.fecha_inicio} onChange={cambiar} />
+            <input 
+              id="bloque-fecha-inicio" 
+              type="date" 
+              name="fecha_inicio" 
+              value={bloque.fecha_inicio} 
+              onChange={cambiar} 
+            />
           </div>
           <div className="campo">
             <label htmlFor="bloque-fecha-termino">Disponible hasta</label>
@@ -96,17 +130,35 @@ export default function EditorDisponibilidad({ idTrabajador, disponibilidad, onG
         <div className="fila-doble">
           <div className="campo">
             <label htmlFor="bloque-hora-inicio">Hora de inicio</label>
-            <input id="bloque-hora-inicio" type="time" name="hora_inicio" value={bloque.hora_inicio} onChange={cambiar} />
+            <input 
+              id="bloque-hora-inicio" 
+              type="time" 
+              name="hora_inicio" 
+              value={bloque.hora_inicio} 
+              onChange={cambiar} 
+            />
           </div>
           <div className="campo">
             <label htmlFor="bloque-hora-termino">Hora de término</label>
-            <input id="bloque-hora-termino" type="time" name="hora_termino" value={bloque.hora_termino} onChange={cambiar} />
+            <input 
+              id="bloque-hora-termino" 
+              type="time" 
+              name="hora_termino" 
+              value={bloque.hora_termino} 
+              onChange={cambiar} 
+            />
           </div>
         </div>
 
         <div className="acciones">
+          {bloque.nro_bloque && (
+            <button type="button" className="boton" onClick={cancelarEdicion} disabled={guardando}>
+              Cancelar
+            </button>
+          )}
           <button type="submit" className="boton boton-principal" disabled={guardando}>
-            <Plus size={16} /> {guardando ? 'Guardando…' : 'Agregar bloque'}
+            {bloque.nro_bloque ? <Pencil size={16} /> : <Plus size={16} />} 
+            {guardando ? 'Guardando…' : (bloque.nro_bloque ? 'Actualizar bloque' : 'Agregar bloque')}
           </button>
         </div>
       </form>

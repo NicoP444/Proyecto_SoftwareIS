@@ -1,6 +1,5 @@
 import prisma from '../config/prisma.js';
-import { ValidationError } from '../utils/errores.js';
-
+import { ValidationError, NotFoundError } from '../utils/errores.js';
 
 export const crearDisponibilidadService = async (id_trabajador, id_dueno, datos) => {
   const trabajador = await prisma.trabajador.findUnique({ where: { id_trabajador } });
@@ -38,8 +37,43 @@ export const crearDisponibilidadService = async (id_trabajador, id_dueno, datos)
   });
 };
 
+export const actualizarDisponibilidadService = async (id_trabajador, nro_bloque, datos) => {
+  const trabajador = await prisma.trabajador.findUnique({ where: { id_trabajador } });
+  if (!trabajador) throw new ValidationError('El trabajador no existe', 'id_trabajador');
+  if (trabajador.estado !== 'ACTIVO') throw new ValidationError('El trabajador está inactivo', 'id_trabajador');
 
+  const bloqueExistente = await prisma.disponibilidad.findFirst({
+    where: { id_trabajador, nro_bloque }
+  });
+  if (!bloqueExistente) throw new NotFoundError('El bloque de disponibilidad no existe');
 
+  const choque = await prisma.disponibilidad.findFirst({
+    where: {
+      id_trabajador: Number(id_trabajador),
+      nro_bloque: { not: Number(nro_bloque) }, // Excluimos el bloque actual para que no choque consigo mismo
+      fecha_inicio: { lte: datos.fecha_termino },
+      fecha_termino: { gte: datos.fecha_inicio },
+      hora_inicio: { lt: datos.hora_termino },
+      hora_termino: { gt: datos.hora_inicio }
+    }
+  });
+
+  if (choque) {
+    throw new ValidationError(
+      'El trabajador ya tiene una disponibilidad que choca con este rango de fechas y horas', 
+      'choque_horario'
+    );
+  }
+
+  await prisma.disponibilidad.updateMany({
+    where: { id_trabajador, nro_bloque },
+    data: datos,
+  });
+
+  return prisma.disponibilidad.findFirst({
+    where: { id_trabajador, nro_bloque }
+  });
+};
 
 // Convierte las fechas y horas de Prisma a texto simple para el front
 const formatear = (d) => ({
@@ -61,63 +95,4 @@ export const listarDisponibilidadService = async (id_trabajador) => {
   });
 
   return bloques.map(formatear);
-};
-
-
-export const eliminarDisponibilidadService = async (id_trabajador, nro_bloque) => {
-  const trabajador = await prisma.trabajador.findUnique({ where: { id_trabajador } });
-  if (!trabajador) throw new ValidationError('El trabajador no existe', 'id_trabajador');
-
-  const bloqueExistente = await prisma.disponibilidad.findFirst({
-    where: { id_trabajador, nro_bloque }
-  });
-  if (!bloqueExistente) throw new NotFoundError('El bloque de disponibilidad no existe');
-
-  await prisma.disponibilidad.deleteMany({
-    where: { id_trabajador, nro_bloque }
-  });
-
-  return true;
-};
-
-
-
-
-export const actualizarDisponibilidadService = async (id_trabajador, nro_bloque, datos) => {
-  const trabajador = await prisma.trabajador.findUnique({ where: { id_trabajador } });
-  if (!trabajador) throw new ValidationError('El trabajador no existe', 'id_trabajador');
-  if (trabajador.estado !== 'ACTIVO') throw new ValidationError('El trabajador está inactivo', 'id_trabajador');
-
-  const bloqueExistente = await prisma.disponibilidad.findFirst({
-    where: { id_trabajador, nro_bloque }
-  });
-  if (!bloqueExistente) throw new NotFoundError('El bloque de disponibilidad no existe');
-
-  const choque = await prisma.disponibilidad.findFirst({
-    where: {
-      id_trabajador: Number(id_trabajador),
-      nro_bloque: { not: Number(nro_bloque) }, // Excluimos el bloque que estamos editando
-      fecha_inicio: { lte: datos.fecha_termino },
-      fecha_termino: { gte: datos.fecha_inicio },
-      hora_inicio: { lt: datos.hora_termino },
-      hora_termino: { gt: datos.hora_inicio }
-    }
-  });
-
-  if (choque) {
-    throw new ValidationError(
-      'El trabajador ya tiene una disponibilidad que choca con este rango de fechas y horas', 
-      'choque_horario'
-    );
-  }
-
-  // Utilizamos updateMany por si tu modelo en Prisma no tiene un @id compuesto explícito
-  await prisma.disponibilidad.updateMany({
-    where: { id_trabajador, nro_bloque },
-    data: datos,
-  });
-
-  return prisma.disponibilidad.findFirst({
-    where: { id_trabajador, nro_bloque }
-  });
 };
