@@ -34,3 +34,42 @@ export const listarDisponibilidad = async (req, res) => {
     return manejarError(res, error);
   }
 };
+
+
+export const actualizarDisponibilidad = async (req, res) => {
+  try {
+    const id_trabajador = Number(req.params.id);
+    const nro_bloque = Number(req.params.nro_bloque);
+
+    if (!Number.isInteger(nro_bloque) || nro_bloque <= 0) {
+      return res.status(400).json({ mensaje: 'El número de bloque no es válido', campo: 'nro_bloque' });
+    }
+
+    const datos = validarDisponibilidad(req.body);
+    const disponibilidad = await actualizarDisponibilidadService(id_trabajador, nro_bloque, datos);
+
+    return res.status(200).json({
+      mensaje: 'Disponibilidad actualizada correctamente',
+      disponibilidad,
+    });
+  } catch (error) {
+    return manejarError(res, error);
+  }
+};
+
+export const eliminarDisponibilidad = async (req, res) => {
+  try {
+    const id_trabajador = Number(req.params.id);
+    const nro_bloque = Number(req.params.nro_bloque);
+
+    if (!Number.isInteger(nro_bloque) || nro_bloque <= 0) {
+      return res.status(400).json({ mensaje: 'El número de bloque no es válido', campo: 'nro_bloque' });
+    }
+
+    await eliminarDisponibilidadService(id_trabajador, nro_bloque);
+
+    return res.status(200).json({ mensaje: 'Disponibilidad eliminada correctamente' });
+  } catch (error) {
+    return manejarError(res, error);
+  }
+};
