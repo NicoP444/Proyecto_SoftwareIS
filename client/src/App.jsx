@@ -9,6 +9,7 @@ import Clientes from "./pages/Clientes";
 import RegistrarAcuerdoPage from "./pages/RegistrarAcuerdo";
 import SalidaKits from "./pages/SalidaKits";
 import Plantilla from "./components/Plantilla"; 
+import HistorialEquipo from './pages/HistorialEquipo.jsx';
 
 // Componente para proteger rutas privadas (solo si hay token)
 function RutaProtegida({ children }) {
@@ -87,6 +88,16 @@ export default function App() {
             </RutaProtegida>
           }
         />
+
+        <Route
+          path="/equipos/historial"
+          element={
+            <RutaProtegida>
+              <HistorialEquipo />
+            </RutaProtegida>
+          }
+        />
+        
         {/* Cada compañero agregará aquí su ruta, por ejemplo:
         <Route path="/productos" element={<RutaProtegida><Productos /></RutaProtegida>} />
         <Route path="/categorias" element={<RutaProtegida><Categorias /></RutaProtegida>} />
