@@ -8,11 +8,17 @@ import {
   ChevronRight,
   Clock,
   MapPin,
+  Plus,
   Video,
   Wallet,
 } from "lucide-react";
 import Modal from "../components/Modal";
-import { listarCoberturas } from "../services/coberturas.service.js";
+import {
+  listarCoberturas,
+  crearCobertura,
+} from "../services/coberturas.service.js";
+import { listarClientes, crearCliente } from "../services/cliente.service.js";
+import FormularioEvento from "../components/calendario/FormularioEvento";
 import { obtenerUsuario } from "../services/http.js";
 import "../styles/Calendario.css";
 
@@ -68,6 +74,8 @@ const RESUMEN = [
   },
 ];
 
+// ---------- Funciones de ayuda ----------
+
 // Date -> "2026-11-05" (sin toISOString, para que no se corra el día por zona horaria)
 function clave(fecha) {
   const mes = String(fecha.getMonth() + 1).padStart(2, "0");
@@ -111,18 +119,55 @@ export default function Calendario() {
   const [eventoAbierto, setEventoAbierto] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
+  const [clientes, setClientes] = useState([]);
+  const [creando, setCreando] = useState(false); // ventana "Nuevo evento"
+  const [fechaNueva, setFechaNueva] = useState(""); // fecha que se precarga al crear
 
   // RF-P1-12 y RF-P1-13: el Jefe técnico no ve datos financieros
   const rol = obtenerUsuario()?.rol;
   const verFinanzas = rol === "DUENO" || rol === "CONTADOR";
+  const puedeCrear = rol === "DUENO"; // RF-P1-05: solo el Dueño agenda eventos
 
-  // Al abrir la página, pedimos las coberturas al back
+  // Pedimos las coberturas y los clientes al back
+  async function cargarDatos() {
+    try {
+      const [listaCoberturas, listaClientes] = await Promise.all([
+        listarCoberturas(),
+        listarClientes(),
+      ]);
+      setCoberturas(listaCoberturas);
+      setClientes(listaClientes);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setCargando(false);
+    }
+  }
+
+  // Al abrir la página, cargamos los datos
   useEffect(() => {
-    listarCoberturas()
-      .then(setCoberturas)
-      .catch((err) => setError(err.message))
-      .finally(() => setCargando(false));
+    cargarDatos();
   }, []);
+
+  function abrirCrear(fecha = "") {
+    setFechaNueva(fecha);
+    setCreando(true);
+  }
+
+  async function guardarEvento(datos) {
+    await crearCobertura(datos);
+    setCreando(false);
+    await cargarDatos();
+    // Llevamos el calendario a la fecha del evento recién creado
+    const [a, m, d] = datos.fecha.split("-").map(Number);
+    setFechaBase(new Date(a, m - 1, d));
+  }
+
+  async function guardarCliente(datos) {
+    const nuevo = await crearCliente(datos);
+    await cargarDatos();
+    return nuevo; // el formulario lo deja seleccionado
+  }
 
   const anio = fechaBase.getFullYear();
   const mes = fechaBase.getMonth();
@@ -179,13 +224,22 @@ export default function Calendario() {
   const e = eventoAbierto; // atajo para el detalle
 
   return (
-    <div className="cal-pagina"> {/* ← CAMBIO 1: antes era <div> */}
+    <div className="cal-pagina">
       <div className="encabezado">
         <div>
           <h1>Calendario</h1>
           <p>Vista general de las transmisiones agendadas</p>
         </div>
         <div className="encabezado-botones">
+          {puedeCrear && (
+            <button
+              type="button"
+              className="boton boton-principal"
+              onClick={() => abrirCrear()}
+            >
+              <Plus size={18} /> Nuevo evento
+            </button>
+          )}
           <div className="cal-selector">
             <button
               type="button"
@@ -264,7 +318,7 @@ export default function Calendario() {
         )}
 
         <div className="cal-scroll">
-          <div className={`cal-grilla ${vista}`}> {/* ← CAMBIO 2: antes era className="cal-grilla" */}
+          <div className={`cal-grilla ${vista}`}>
             {DIAS.map((d) => (
               <div key={d} className="cal-dia-nombre">
                 {d}
@@ -321,6 +375,7 @@ export default function Calendario() {
         </div>
       </section>
 
+      {/* Detalle del evento */}
       <Modal
         abierto={Boolean(e)}
         onCerrar={() => setEventoAbierto(null)}
@@ -412,6 +467,21 @@ export default function Calendario() {
             )}
           </div>
         )}
+      </Modal>
+
+      {/* Nuevo evento (hermano del detalle, no va dentro de él) */}
+      <Modal
+        abierto={creando}
+        onCerrar={() => setCreando(false)}
+        titulo="Nuevo evento"
+      >
+        <FormularioEvento
+          clientes={clientes}
+          fechaInicial={fechaNueva}
+          onGuardar={guardarEvento}
+          onCancelar={() => setCreando(false)}
+          onCrearCliente={guardarCliente}
+        />
       </Modal>
     </div>
   );

@@ -1,5 +1,23 @@
 /* Página de Calendario. Reutiliza .encabezado, .indicadores, .panel y .vacio */
 
+/* ---------- Página: ocupa justo el alto de la pantalla ---------- */
+.cal-pagina {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--alto-barra) - 64px); /* barra superior + padding de arriba y abajo */
+  min-height: 520px;                               /* en pantallas muy bajas vuelve el scroll */
+}
+.cal-pagina .encabezado p { margin-bottom: 10px; }
+
+/* Tarjetas de resumen en una sola línea */
+.cal-pagina .indicadores { gap: 10px; margin-bottom: 12px; }
+.cal-pagina .indicador { flex-direction: row; align-items: center; justify-content: space-between; padding: 8px 14px; }
+.cal-pagina .indicador-valor { font-size: 1.15rem; }
+
+/* El panel se estira y le reparte el espacio sobrante a la grilla */
+.cal-pagina .panel { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 10px 14px 12px; }
+.cal-pagina .panel-cabecera { margin-bottom: 10px; padding-bottom: 8px; }
+
 /* ---------- Navegación ---------- */
 .cal-navegador { display: flex; align-items: center; gap: 4px; padding: 0 4px; height: 36px; background: var(--blanco); border: 1px solid var(--borde); border-radius: 8px; }
 .cal-navegador strong { min-width: 130px; text-align: center; font-size: 0.85rem; }
@@ -10,24 +28,36 @@
 .cal-selector button.activo { background: var(--primario); color: var(--blanco); }
 
 /* ---------- Grilla ---------- */
-.cal-scroll { overflow-x: auto; }
-.cal-grilla { display: grid; grid-template-columns: repeat(7, minmax(110px, 1fr)); border-top: 1px solid var(--borde); border-left: 1px solid var(--borde); }
+.cal-scroll { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow-x: auto; }
+.cal-grilla {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(110px, 1fr));
+  grid-template-rows: auto;                 /* fila de nombres de días */
+  grid-auto-rows: minmax(0, 1fr);           /* las filas de semanas se reparten el resto */
+  border-top: 1px solid var(--borde);
+  border-left: 1px solid var(--borde);
+}
 
-.cal-dia-nombre { padding: 8px; text-align: center; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--texto-suave); background: var(--fondo); border-right: 1px solid var(--borde); border-bottom: 1px solid var(--borde); }
+.cal-dia-nombre { padding: 6px; text-align: center; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--texto-suave); background: var(--fondo); border-right: 1px solid var(--borde); border-bottom: 1px solid var(--borde); }
 
-.cal-celda { display: flex; flex-direction: column; gap: 4px; min-height: 104px; padding: 6px; background: var(--blanco); border-right: 1px solid var(--borde); border-bottom: 1px solid var(--borde); }
-.cal-celda.alta { min-height: 260px; }          /* vista semana */
+/* Celda: si hay muchos eventos, hace scroll interno en vez de agrandar la página */
+.cal-celda { display: flex; flex-direction: column; gap: 2px; min-height: 0; padding: 4px; overflow-y: auto; background: var(--blanco); border-right: 1px solid var(--borde); border-bottom: 1px solid var(--borde); }
 .cal-celda.fuera { background: var(--fondo); }  /* días de otro mes */
 
-.cal-numero { align-self: flex-end; display: grid; place-items: center; min-width: 24px; height: 24px; border-radius: 50%; font-size: 0.75rem; font-weight: 600; }
+.cal-numero { align-self: flex-end; flex-shrink: 0; display: grid; place-items: center; min-width: 20px; height: 20px; border-radius: 50%; font-size: 0.7rem; font-weight: 600; }
 .cal-celda.hoy .cal-numero { background: var(--primario); color: var(--blanco); }
 
 /* ---------- Evento dentro de la celda ---------- */
-.cal-evento { --color: var(--primario); width: 100%; padding: 2px 6px; overflow: hidden; text-align: left; text-overflow: ellipsis; white-space: nowrap; font-size: 0.68rem; color: var(--texto); background: color-mix(in srgb, var(--color) 12%, white); border: 0; border-left: 3px solid var(--color); border-radius: 4px; cursor: pointer; }
+.cal-evento { --color: var(--primario); flex-shrink: 0; width: 100%; padding: 2px 6px; overflow: hidden; text-align: left; text-overflow: ellipsis; white-space: nowrap; font-size: 0.68rem; color: var(--texto); background: color-mix(in srgb, var(--color) 12%, white); border: 0; border-left: 3px solid var(--color); border-radius: 4px; cursor: pointer; }
 .cal-evento:hover { background: color-mix(in srgb, var(--color) 22%, white); }
 .cal-evento small { display: block; overflow: hidden; text-overflow: ellipsis; color: var(--texto-suave); }
 
-button.cal-mas { padding: 0; border: 0; background: none; text-align: left; font-size: 0.65rem; color: var(--primario); cursor: pointer; }
+/* En la vista mes el chip es de una sola línea (el cliente se ve en Semana y en el detalle) */
+.cal-grilla.mes .cal-evento small { display: none; }
+
+button.cal-mas { flex-shrink: 0; padding: 0; border: 0; background: none; text-align: left; font-size: 0.65rem; color: var(--primario); cursor: pointer; }
 
 /* Un color por estado (RF-P1-12) */
 .confirmado { --color: var(--verde); }
@@ -36,7 +66,7 @@ button.cal-mas { padding: 0; border: 0; background: none; text-align: left; font
 .cerrado { --color: #9ca3af; }
 
 /* ---------- Leyenda ---------- */
-.cal-leyenda { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 14px; font-size: 0.72rem; color: var(--texto-suave); }
+.cal-leyenda { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 8px; font-size: 0.72rem; color: var(--texto-suave); }
 .cal-punto { display: inline-block; width: 9px; height: 9px; margin-right: 4px; border-radius: 50%; background: var(--color); }
 
 /* ---------- Detalle (ventana) ---------- */
@@ -45,4 +75,12 @@ button.cal-mas { padding: 0; border: 0; background: none; text-align: left; font
 .cal-tarjeta-cabecera h3 { margin: 0; font-size: 0.95rem; }
 .chip-cal { padding: 2px 8px; border-radius: 999px; font-size: 0.68rem; font-weight: 600; color: var(--color); background: color-mix(in srgb, var(--color) 14%, white); }
 
-@media (max-width: 720px) { .cal-celda { min-height: 84px; } }
+/* ---------- Celular: aquí sí conviene que la página haga scroll ---------- */
+@media (max-width: 720px) {
+  .cal-pagina { height: auto; }
+  .cal-celda { min-height: 84px; }
+}
+
+/* ---------- Formulario de nuevo evento ---------- */
+.cal-cliente { display: flex; gap: 8px; }
+.cal-cliente select { flex: 1; min-width: 0; }
