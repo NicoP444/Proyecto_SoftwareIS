@@ -6,8 +6,11 @@ const HORAS_LIMITE_ADELANTO = 5;
 export async function listarEventos() {
   return prisma.evento.findMany({
     where: { id_dueno: ID_DUENO_DEMO },
-    include: { cliente: true },
-    orderBy: [{ fecha: 'asc' }, { hora_inicio: 'asc' }]
+    cliente: true,
+      asignaciones: { include: { trabajador: true, rol: true } },
+      reservas_kit: { include: { kit: true } },
+      acuerdos: { include: { auspiciador: true } },
+      incidentes: true
   });
 }
 
