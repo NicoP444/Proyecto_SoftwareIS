@@ -179,7 +179,7 @@ export default function Calendario() {
   const e = eventoAbierto; // atajo para el detalle
 
   return (
-    <div>
+    <div className="cal-pagina"> {/* ← CAMBIO 1: antes era <div> */}
       <div className="encabezado">
         <div>
           <h1>Calendario</h1>
@@ -264,7 +264,7 @@ export default function Calendario() {
         )}
 
         <div className="cal-scroll">
-          <div className="cal-grilla">
+          <div className={`cal-grilla ${vista}`}> {/* ← CAMBIO 2: antes era className="cal-grilla" */}
             {DIAS.map((d) => (
               <div key={d} className="cal-dia-nombre">
                 {d}
