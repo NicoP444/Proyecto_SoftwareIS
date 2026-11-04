@@ -10,6 +10,7 @@ import Clientes from "./pages/Clientes";
 import RegistrarAcuerdoPage from "./pages/RegistrarAcuerdo";
 import SalidaKits from "./pages/SalidaKits";
 import Plantilla from "./components/Plantilla"; 
+import Calendario from "./pages/Calendario";
 
 // Componente para proteger rutas privadas (solo si hay token)
 function RutaProtegida({ children }) {
@@ -37,28 +38,15 @@ export default function App() {
          <Route element={<Plantilla />}>
             <Route path="/trabajadores" element={<Trabajadores />} /> /// nico
             <Route path="/finanzas" element={<Finanzas />} /> // nico
+            <Route path="/calendario" element={<Calendario />} /> ///Jorge
+            <Route path="/auspiciadores" element={<Auspiciadores />} /> ///gene
+            <Route path="/auspiciadores/registrar-acuerdo" element={<RegistrarAcuerdoPage />} /> ///gene
           </Route>
         <Route
           path="/clientes"
           element={
             <RutaProtegida>
               <Clientes />
-            </RutaProtegida>
-          }
-        />
-        <Route
-          path="/auspiciadores"
-          element={
-            <RutaProtegida>
-              <Auspiciadores />
-            </RutaProtegida>
-          }
-        />
-        <Route
-          path="/auspiciadores/registrar-acuerdo"
-          element={
-            <RutaProtegida>
-              <RegistrarAcuerdoPage />
             </RutaProtegida>
           }
         />

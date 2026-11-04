@@ -1,12 +1,31 @@
 import prisma from '../config/prisma.js';
 
 export const acuerdoService = {
-  // 1. Obtener todos los acuerdos con datos de auspiciador y evento
+  // 1. Obtener todos los acuerdos y actualizar vencidos automáticamente (RF-P4-05)
   async obtenerTodos() {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+
+    // Regla RF-P4-05: Todo acuerdo con fecha comprometida menor a hoy que siga PENDIENTE o PARCIAL pasa a VENCIDO
+    await prisma.acuerdoAuspicio.updateMany({
+      where: {
+        fecha_comprometida: {
+          lt: hoy,
+        },
+        estado: {
+          in: ['PENDIENTE', 'PARCIAL'],
+        },
+      },
+      data: {
+        estado: 'VENCIDO',
+      },
+    });
+
     return await prisma.acuerdoAuspicio.findMany({
       include: {
         auspiciador: true,
         evento: true,
+        cumplimientos: true,
       },
       orderBy: {
         id_acuerdo: 'desc',
@@ -41,6 +60,93 @@ export const acuerdoService = {
         id_evento: Number(id_evento),
         id_dueno: Number(id_dueno || 1),
       },
+    });
+  },
+
+  // 3. Registrar o corregir cumplimiento del aporte (RF-P4-04)
+  async registrarCumplimiento(id_acuerdo, datos) {
+    const { monto_recibido, fecha_recibida, id_contador } = datos;
+    const acuerdoId = Number(id_acuerdo);
+
+    const acuerdo = await prisma.acuerdoAuspicio.findUnique({
+      where: { id_acuerdo: acuerdoId },
+      include: { cumplimientos: true },
+    });
+
+    if (!acuerdo) {
+      throw new Error('El acuerdo de auspicio no existe.');
+    }
+
+    const valorRecibido = Number(monto_recibido);
+
+    // Caso de anulación / corrección (monto 0 o menor)
+    if (valorRecibido <= 0) {
+      await prisma.cumplimientoAporte.deleteMany({
+        where: { id_acuerdo: acuerdoId },
+      });
+
+      const hoy = new Date();
+      hoy.setHours(0, 0, 0, 0);
+      const fechaLimite = new Date(acuerdo.fecha_comprometida);
+      fechaLimite.setHours(0, 0, 0, 0);
+
+      const estadoRestablecido = hoy > fechaLimite ? 'VENCIDO' : 'PENDIENTE';
+
+      return await prisma.acuerdoAuspicio.update({
+        where: { id_acuerdo: acuerdoId },
+        data: { estado: estadoRestablecido },
+        include: { cumplimientos: true, auspiciador: true },
+      });
+    }
+
+    // Resolver usuario contador para la llave foránea
+    let contadorId = Number(id_contador);
+    if (!contadorId) {
+      let contadorExistente = await prisma.contador.findFirst();
+      if (!contadorExistente) {
+        contadorExistente = await prisma.contador.create({
+          data: {
+            nombre: 'Contador General',
+            correo: 'contador@empresa.cl',
+            contrasena: '123456',
+          },
+        });
+      }
+      contadorId = contadorExistente.id_contador;
+    }
+
+    // Calcular siguiente nro_cumplimiento (clave primaria compuesta)
+    const ultimoNumero = acuerdo.cumplimientos.reduce(
+      (max, c) => (c.nro_cumplimiento > max ? c.nro_cumplimiento : max),
+      0
+    );
+    const nuevoNumero = ultimoNumero + 1;
+
+    // Crear registro en tabla CumplimientoAporte
+    await prisma.cumplimientoAporte.create({
+      data: {
+        id_acuerdo: acuerdoId,
+        nro_cumplimiento: nuevoNumero,
+        fecha: fecha_recibida ? new Date(fecha_recibida) : new Date(),
+        monto_recibido: valorRecibido,
+        id_contador: contadorId,
+      },
+    });
+
+    // Calcular acumulado
+    const totalRecibidoPrevio = acuerdo.cumplimientos.reduce(
+      (acc, c) => acc + Number(c.monto_recibido || 0),
+      0
+    );
+    const totalAcumulado = totalRecibidoPrevio + valorRecibido;
+
+    // Actualizar estado del acuerdo
+    const nuevoEstado = totalAcumulado >= Number(acuerdo.monto_comprometido) ? 'CUMPLIDO' : 'PARCIAL';
+
+    return await prisma.acuerdoAuspicio.update({
+      where: { id_acuerdo: acuerdoId },
+      data: { estado: nuevoEstado },
+      include: { cumplimientos: true, auspiciador: true },
     });
   },
 };
