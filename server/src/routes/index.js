@@ -10,6 +10,7 @@ import salidaKitRoutes from './salidaKit.routes.js';
 import retornoKitRoutes from './retornoKit.routes.js';
 import historialCambioRoutes from './historialCambio.routes.js'; // nico
 import historialEquipoRoutes from './historialEquipo.routes.js';
+import alertaKitsRoutes from './alertaKits.routes.js';
 
 const router = Router();
 
@@ -25,6 +26,7 @@ router.use('/salidas-kits', salidaKitRoutes);
 router.use('/retornos-kits', retornoKitRoutes);
 router.use('/historial-cambios', historialCambioRoutes)//nico
 router.use('/equipos-historial', historialEquipoRoutes);
+router.use('/alertas', alertaKitsRoutes);
 
 
 export default router;
