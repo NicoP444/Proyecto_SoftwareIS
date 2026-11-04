@@ -52,3 +52,24 @@ export const validarDueno = async (req, res, next) => {
     next(error);
   }
 };
+
+// verificamos que el contrador exista 
+export const validarContador = async (req, res, next) => {
+  try{
+    const id_contador = Number(req.body?.id_contador ?? req.query.id_contador);
+
+    if(!Number.isInteger(id_contador) || id_contador <= 0){
+      return res.status(400).json({ mensaje: 'El id del contador no es válido', campo: 'id_contador' });
+    }
+
+    const contador = await prisma.contador.findUnique({ where: { id_contador } });
+
+    if(!contador){
+      return res.status(404).json({ mensaje: 'El contador no existe', campo: 'id_contador' });
+    }
+
+    next();
+  }catch (error){
+    next(error);
+  }
+};  

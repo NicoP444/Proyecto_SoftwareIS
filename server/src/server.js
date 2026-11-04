@@ -25,8 +25,10 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 
 // Trabajadores y roles
-app.use('/api', routes);//gene
-app.use('/api', routes); // nico
+app.use(express.json({ limit: '20mb' }));// en caso de que se suban archivos grandes, como evidencia de gastos
+app.use('/api', routes);//gene y nico
+
+app.use('/uploads', express.static('uploads')); // Para servir archivos subidos (evidencias de gastos, etc.)
 
 //JORGE
 app.use('/api/clientes', clienteRoutes);
@@ -53,6 +55,9 @@ app.get(/^(?!\/api).*/, (req, res) => {
 app.use((err, req, res, next) => {
   if (err.type === 'entity.parse.failed') {
     return res.status(400).json({ mensaje: 'El JSON enviado no es válido' });
+  }
+  if (err.type === 'entity.too.large') { // error de tamaño de archivo demasiado grande
+  return res.status(413).json({ mensaje: 'El archivo enviado es demasiado grande' });
   }
   console.error(err);
   res.status(500).json({ mensaje: 'Error interno del servidor' });

@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Landing from "./pages/Landing";
 import Home from "./pages/Home";
-import Trabajadores from "./pages/Trabajadores";
+import Trabajadores from "./pages/Trabajadores";//nico
+import Finanzas from "./pages/Finanzas";//nico
 import Auspiciadores from "./pages/Auspiciadores";
 import Coberturas from "./pages/Coberturas";
 import Incidentes from "./pages/Incidentes";
@@ -36,6 +37,7 @@ export default function App() {
         />
          <Route element={<Plantilla />}>
             <Route path="/trabajadores" element={<Trabajadores />} /> /// nico
+            <Route path="/finanzas" element={<Finanzas />} /> // nico
             <Route path="/calendario" element={<Calendario />} /> ///Jorge
             <Route path="/auspiciadores" element={<Auspiciadores />} /> ///gene
             <Route path="/auspiciadores/registrar-acuerdo" element={<RegistrarAcuerdoPage />} /> ///gene
