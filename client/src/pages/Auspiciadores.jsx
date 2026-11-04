@@ -173,27 +173,10 @@ export default function Auspiciadores() {
   };
 
   return (
-    <div style={{ padding: '30px 20px', maxWidth: '1000px', margin: '0 auto', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+    <div style={{ padding: '10px 0', width: '100%', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       
-      {/* Botones de navegación superiores */}
+      {/* Botones de acción superiores */}
       <div style={{ display: 'flex', gap: '10px', marginBottom: '24px', flexWrap: 'wrap' }}>
-        <button
-          type="button"
-          onClick={() => navigate('/home')}
-          style={{
-            backgroundColor: '#6c757d',
-            color: 'white',
-            padding: '9px 16px',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: '500'
-          }}
-        >
-          ← Volver al Home
-        </button>
-
         <button
           type="button"
           onClick={() => navigate('/auspiciadores/registrar-acuerdo')}

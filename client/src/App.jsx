@@ -37,28 +37,14 @@ export default function App() {
          <Route element={<Plantilla />}>
             <Route path="/trabajadores" element={<Trabajadores />} /> /// nico
             <Route path="/calendario" element={<Calendario />} /> ///Jorge
+            <Route path="/auspiciadores" element={<Auspiciadores />} /> ///gene
+            <Route path="/auspiciadores/registrar-acuerdo" element={<RegistrarAcuerdoPage />} /> ///gene
           </Route>
         <Route
           path="/clientes"
           element={
             <RutaProtegida>
               <Clientes />
-            </RutaProtegida>
-          }
-        />
-        <Route
-          path="/auspiciadores"
-          element={
-            <RutaProtegida>
-              <Auspiciadores />
-            </RutaProtegida>
-          }
-        />
-        <Route
-          path="/auspiciadores/registrar-acuerdo"
-          element={
-            <RutaProtegida>
-              <RegistrarAcuerdoPage />
             </RutaProtegida>
           }
         />
