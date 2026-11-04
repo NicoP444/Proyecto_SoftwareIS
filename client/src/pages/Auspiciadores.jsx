@@ -6,6 +6,7 @@ import {
   modificarAuspiciador,
   eliminarAuspiciador
 } from '../services/auspiciadorService';
+import { obtenerAcuerdos, registrarCumplimiento } from '../services/acuerdoService';
 
 export default function Auspiciadores() {
   const navigate = useNavigate();
@@ -36,13 +37,19 @@ export default function Auspiciadores() {
     motivo: ''
   });
 
+  // Estado para el modal de registrar cumplimiento del aporte (RF-P4-04)
+  const [modalCumplimiento, setModalCumplimiento] = useState({
+    abierto: false,
+    acuerdo: null,
+    monto_recibido: '',
+    fecha_recibida: new Date().toISOString().split('T')[0]
+  });
+
   // 1. Cargar acuerdos registrados
   const cargarAcuerdos = async () => {
     try {
       setCargandoAcuerdos(true);
-      const res = await fetch('http://localhost:3000/api/acuerdos');
-      if (!res.ok) throw new Error('Error al obtener acuerdos');
-      const data = await res.json();
+      const data = await obtenerAcuerdos();
       setListaAcuerdos(Array.isArray(data) ? data : []);
     } catch (error) {
       console.warn('Aviso al cargar acuerdos:', error.message);
@@ -134,7 +141,7 @@ export default function Auspiciadores() {
     }
   };
 
-  // Abre el modal al hacer clic en el badge
+  // Abre el modal de clasificación
   const abrirModalCambio = (item) => {
     const esNoConfiable = item.clasificacion === 'NO_CONFIABLE';
     setModalClasificacion({
@@ -145,7 +152,7 @@ export default function Auspiciadores() {
     });
   };
 
-  // Guarda la nueva clasificación con el motivo en el backend
+  // Guarda la clasificación
   const confirmarCambioClasificacion = async (e) => {
     e.preventDefault();
     const { auspiciador, nuevoEstado, motivo } = modalClasificacion;
@@ -169,6 +176,35 @@ export default function Auspiciadores() {
       cargarAuspiciadores();
     } catch (error) {
       alert('Error al actualizar: ' + error.message);
+    }
+  };
+
+  // Abre el modal para registrar el cumplimiento del aporte (RF-P4-04)
+  const abrirModalCumplimiento = (acuerdo) => {
+    setModalCumplimiento({
+      abierto: true,
+      acuerdo,
+      monto_recibido: acuerdo.monto_recibido || acuerdo.monto_comprometido || '',
+      fecha_recibida: new Date().toISOString().split('T')[0]
+    });
+  };
+
+  // Envía el cumplimiento al backend (RF-P4-04)
+  const confirmarCumplimiento = async (e) => {
+    e.preventDefault();
+    const { acuerdo, monto_recibido, fecha_recibida } = modalCumplimiento;
+    const id = acuerdo.id_acuerdo || acuerdo.id;
+
+    try {
+      await registrarCumplimiento(id, {
+        monto_recibido: Number(monto_recibido),
+        fecha_recibida
+      });
+
+      setModalCumplimiento({ abierto: false, acuerdo: null, monto_recibido: '', fecha_recibida: '' });
+      cargarAcuerdos();
+    } catch (error) {
+      alert('Error al registrar cumplimiento: ' + error.message);
     }
   };
 
@@ -358,7 +394,6 @@ export default function Auspiciadores() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                         <h4 style={{ margin: 0, fontSize: '16px', color: '#0f172a' }}>{item.nombre}</h4>
                         
-                        {/* BOTÓN/BADGE INTERACTIVO */}
                         <button
                           type="button"
                           onClick={() => abrirModalCambio(item)}
@@ -435,7 +470,7 @@ export default function Auspiciadores() {
           </div>
         </div>
       ) : (
-        /* VISTA 2: PORTADA PRINCIPAL */
+        /* VISTA 2: TABLA PRINCIPAL DE ACUERDOS */
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '16px',
@@ -446,7 +481,7 @@ export default function Auspiciadores() {
           <div style={{ marginBottom: '18px' }}>
             <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>Acuerdos de Auspicio</h2>
             <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '13px' }}>
-              Acuerdos por evento, glosa y estado de pago
+              Acuerdos por evento, glosa, cumplimiento de aporte y acciones
             </p>
           </div>
 
@@ -467,6 +502,7 @@ export default function Auspiciadores() {
                     <th style={{ padding: '12px 14px' }}>Glosa</th>
                     <th style={{ padding: '12px 14px' }}>Plazo</th>
                     <th style={{ padding: '12px 14px' }}>Estado</th>
+                    <th style={{ padding: '12px 14px', textAlign: 'center' }}>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -482,6 +518,10 @@ export default function Auspiciadores() {
                       ? new Date(item.fecha_comprometida || item.fecha_limite).toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit' })
                       : '--';
 
+                    const estado = item.estado || 'PENDIENTE';
+                    const esCumplido = estado === 'CUMPLIDO';
+                    const esParcial = estado === 'PARCIAL';
+
                     return (
                       <tr key={id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '14px', fontWeight: '600', color: '#1e293b' }}>
@@ -492,8 +532,13 @@ export default function Auspiciadores() {
                         </td>
                         <td style={{ padding: '14px', color: '#334155' }}>
                           {tipoPago}{detalleMonto}
+                          {item.monto_recibido > 0 && (
+                            <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                              Recibido: ${Number(item.monto_recibido).toLocaleString('es-CL')}
+                            </div>
+                          )}
                         </td>
-                        <td style={{ padding: '14px', color: '#64748b', maxWidth: '240px' }}>
+                        <td style={{ padding: '14px', color: '#64748b', maxWidth: '220px' }}>
                           {item.glosa || 'Sin glosa'}
                         </td>
                         <td style={{ padding: '14px', color: '#334155', whiteSpace: 'nowrap' }}>
@@ -501,16 +546,35 @@ export default function Auspiciadores() {
                         </td>
                         <td style={{ padding: '14px' }}>
                           <span style={{
-                            backgroundColor: '#e6f4ea',
-                            color: '#137333',
+                            backgroundColor: esCumplido ? '#dcfce7' : esParcial ? '#fef3c7' : '#e2e8f0',
+                            color: esCumplido ? '#15803d' : esParcial ? '#b45309' : '#475569',
                             padding: '4px 10px',
                             borderRadius: '20px',
                             fontSize: '12px',
                             fontWeight: '600',
                             display: 'inline-block'
                           }}>
-                            {item.estado || 'PENDIENTE'}
+                            {estado}
                           </span>
+                        </td>
+                        <td style={{ padding: '14px', textAlign: 'center' }}>
+                          <button
+                            type="button"
+                            onClick={() => abrirModalCumplimiento(item)}
+                            style={{
+                              backgroundColor: esCumplido ? '#f1f5f9' : '#0d6efd',
+                              color: esCumplido ? '#475569' : '#ffffff',
+                              border: 'none',
+                              padding: '6px 12px',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            {esCumplido ? 'Ver / Modificar Pago' : 'Registrar Pago / Entrega'}
+                          </button>
                         </td>
                       </tr>
                     );
@@ -522,7 +586,118 @@ export default function Auspiciadores() {
         </div>
       )}
 
-      {/* MODAL LIMPIO INTEGRADO PARA CAMBIAR CLASIFICACIÓN (RF-P4-07) */}
+      {/* MODAL 1: REGISTRAR CUMPLIMIENTO DEL APORTE (RF-P4-04) */}
+      {modalCumplimiento.abierto && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
+            padding: '24px',
+            maxWidth: '460px',
+            width: '100%',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+          }}>
+            <h3 style={{ marginTop: 0, marginBottom: '6px', fontSize: '18px', color: '#0f172a' }}>
+              Registrar Cumplimiento del Aporte
+            </h3>
+            
+            <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748b' }}>
+              Auspiciador: <strong>{modalCumplimiento.acuerdo?.auspiciador?.nombre || 'Acuerdo'}</strong> <br/>
+              Monto Comprometido: <strong>${Number(modalCumplimiento.acuerdo?.monto_comprometido || 0).toLocaleString('es-CL')}</strong> ({modalCumplimiento.acuerdo?.tipo_aporte})
+            </p>
+
+            <form onSubmit={confirmarCumplimiento}>
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#334155' }}>
+                  {modalCumplimiento.acuerdo?.tipo_aporte === 'DINERO' ? 'Monto Recibido ($):' : 'Valorización del Canje Recibido ($):'}
+                </label>
+                <input
+                  type="number"
+                  value={modalCumplimiento.monto_recibido}
+                  onChange={(e) => setModalCumplimiento({ ...modalCumplimiento, monto_recibido: e.target.value })}
+                  placeholder="Ej: 100000"
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
+                />
+                <span style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                  Si el monto recibido es igual o mayor a lo comprometido quedará como <strong>CUMPLIDO</strong>, si es menor quedará <strong>PARCIAL</strong>.
+                </span>
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#334155' }}>
+                  Fecha de Recepción:
+                </label>
+                <input
+                  type="date"
+                  value={modalCumplimiento.fecha_recibida}
+                  onChange={(e) => setModalCumplimiento({ ...modalCumplimiento, fecha_recibida: e.target.value })}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setModalCumplimiento({ abierto: false, acuerdo: null, monto_recibido: '', fecha_recibida: '' })}
+                  style={{
+                    backgroundColor: '#e2e8f0',
+                    color: '#334155',
+                    border: 'none',
+                    padding: '8px 14px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    backgroundColor: '#0d6efd',
+                    color: 'white',
+                    border: 'none',
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600'
+                  }}
+                >
+                  Guardar Cumplimiento
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2: CAMBIAR CLASIFICACIÓN (RF-P4-07) */}
       {modalClasificacion.abierto && (
         <div style={{
           position: 'fixed',
@@ -549,20 +724,6 @@ export default function Auspiciadores() {
             <p style={{ margin: '0 0 14px 0', fontSize: '14px', color: '#64748b' }}>
               Auspiciador: <strong>{modalClasificacion.auspiciador?.nombre}</strong>
             </p>
-
-            {modalClasificacion.nuevoEstado === 'NO_CONFIABLE' && (
-              <div style={{
-                backgroundColor: '#fef2f2',
-                border: '1px solid #fee2e2',
-                borderRadius: '6px',
-                padding: '10px 12px',
-                marginBottom: '14px',
-                fontSize: '13px',
-                color: '#991b1b'
-              }}>
-                Al marcarlo como <strong>No Confiable</strong>, el sistema advertirá en rojo al agendar futuros acuerdos de auspicio con él[cite: 22, 30].
-              </div>
-            )}
 
             <form onSubmit={confirmarCambioClasificacion}>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '6px', color: '#334155' }}>

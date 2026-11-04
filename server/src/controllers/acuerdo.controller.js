@@ -19,3 +19,16 @@ export const crearAcuerdo = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// Registrar cumplimiento del aporte (RF-P4-04)
+export const registrarCumplimiento = async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('Datos recibidos para cumplimiento:', { id, body: req.body });
+    const acuerdoActualizado = await acuerdoService.registrarCumplimiento(id, req.body);
+    res.json(acuerdoActualizado);
+  } catch (error) {
+    console.error('Error exacto en registrarCumplimiento:', error);
+    res.status(500).json({ error: error.message || 'Error interno del servidor' });
+  }
+};

@@ -12,3 +12,11 @@ export async function registrarAcuerdo(datosAcuerdo) {
     body: datosAcuerdo,
   });
 }
+
+// Registrar el cumplimiento o pago del aporte (RF-P4-04)
+export async function registrarCumplimiento(idAcuerdo, datosCumplimiento) {
+  return pedir(`/acuerdos/${idAcuerdo}/cumplimiento`, {
+    method: 'PUT',
+    body: datosCumplimiento,
+  });
+}
