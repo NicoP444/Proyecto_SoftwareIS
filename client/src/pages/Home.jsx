@@ -1,4 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { getAlertasKitsSinRetorno } from "../services/alertaKits.service";
 import "../styles/Home.css";
 
 // Íconos (trazo simple, heredan el color del texto)
@@ -125,6 +127,16 @@ export default function Home() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const usuario = JSON.parse(localStorage.getItem("usuario") || "{}");
+  // --- Estados y carga de alertas ---
+  const [alertasKits, setAlertasKits] = useState([]);
+  const [cargandoAlertas, setCargandoAlertas] = useState(true);
+
+  useEffect(() => {
+    getAlertasKitsSinRetorno()
+      .then(datos => setAlertasKits(datos))
+      .catch(err => console.error("Error al cargar alertas:", err))
+      .finally(() => setCargandoAlertas(false));
+  }, []);
 
   // Evita mostrar "undefined undefined" si falta algún campo
   const nombre =
@@ -214,16 +226,56 @@ export default function Home() {
           <div className="panel-head">
             <h3>
               <Icono>{ICONOS.incidentes}</Icono>
-              Alertas recientes
+              Alertas de kits sin retorno (+24h)
             </h3>
             <button
               className="panel-link"
-              onClick={() => navigate("/inventario")}
+              onClick={() => navigate("/salida-kits?tab=revision")}
             >
-              Ver inventario →
+              Registrar Retornos →
             </button>
           </div>
-          <EstadoVacio texto="No hay alertas registradas" />
+
+          {cargandoAlertas ? (
+            <div style={{ padding: "1rem", color: "#6b7280" }}>Buscando alertas...</div>
+          ) : alertasKits.length === 0 ? (
+            <EstadoVacio texto="No hay alertas registradas" />
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.8rem", marginTop: "0.5rem" }}>
+              {alertasKits.map((alerta) => (
+                <div
+                  key={alerta.id_kit}
+                  style={{
+                    padding: "0.9rem 1.1rem",
+                    backgroundColor: "#fef2f2",
+                    border: "1px solid #f87171",
+                    borderRadius: "8px"
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                    <strong style={{ color: "#991b1b", fontSize: "1rem" }}>{alerta.nombre_kit}</strong>
+                    <span
+                      style={{
+                        backgroundColor: "#dc2626",
+                        color: "#fff",
+                        fontSize: "0.75rem",
+                        fontWeight: "bold",
+                        padding: "0.15rem 0.5rem",
+                        borderRadius: "4px"
+                      }}
+                    >
+                      +{alerta.horas_retraso}h sin retornar
+                    </span>
+                  </div>
+                  <p style={{ margin: "0.3rem 0 0", fontSize: "0.88rem", color: "#4b5563" }}>
+                    <strong>Evento:</strong> {alerta.tipo_evento} ({alerta.direccion}) |{" "}
+                    <strong>Responsable:</strong> {alerta.responsable}
+                    {alerta.telefono_responsable && ` (WhatsApp: ${alerta.telefono_responsable})`}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* ---------- Transmisiones y auspiciadores ---------- */}
