@@ -184,4 +184,93 @@ export const acuerdoService = {
       },
     });
   },
+
+  // 5. Modificar acuerdo existente
+  async modificar(id_acuerdo, datos) {
+    const acuerdoId = Number(id_acuerdo);
+    const {
+      glosa,
+      tipo_aporte,
+      monto_comprometido,
+      descripcion_canje,
+      cant_menciones,
+      fecha_comprometida,
+      id_evento,
+    } = datos;
+
+    const acuerdoExistente = await prisma.acuerdoAuspicio.findUnique({
+      where: { id_acuerdo: acuerdoId },
+      include: { cumplimientos: true },
+    });
+
+    if (!acuerdoExistente) {
+      throw new Error('El acuerdo de auspicio no existe.');
+    }
+
+    // Recalcular estado si se cambia la fecha o el monto
+    let nuevoEstado = acuerdoExistente.estado;
+    const nuevoMonto = monto_comprometido !== undefined ? Number(monto_comprometido) : Number(acuerdoExistente.monto_comprometido);
+    const nuevaFecha = fecha_comprometida ? new Date(fecha_comprometida) : new Date(acuerdoExistente.fecha_comprometida);
+
+    const totalPagado = (acuerdoExistente.cumplimientos || []).reduce(
+      (acc, c) => acc + Number(c.monto_recibido || 0),
+      0
+    );
+
+    if (acuerdoExistente.estado !== 'INCOBRABLE') {
+      if (totalPagado >= nuevoMonto && nuevoMonto > 0) {
+        nuevoEstado = 'CUMPLIDO';
+      } else if (totalPagado > 0) {
+        nuevoEstado = 'PARCIAL';
+      } else {
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+        const fechaLimite = new Date(nuevaFecha);
+        fechaLimite.setHours(0, 0, 0, 0);
+
+        nuevoEstado = hoy > fechaLimite ? 'VENCIDO' : 'PENDIENTE';
+      }
+    }
+
+    return await prisma.acuerdoAuspicio.update({
+      where: { id_acuerdo: acuerdoId },
+      data: {
+        glosa: glosa !== undefined ? glosa : acuerdoExistente.glosa,
+        tipo_aporte: tipo_aporte || acuerdoExistente.tipo_aporte,
+        monto_comprometido: nuevoMonto,
+        descripcion_canje: descripcion_canje !== undefined ? descripcion_canje : acuerdoExistente.descripcion_canje,
+        cant_menciones: cant_menciones !== undefined ? (cant_menciones ? Number(cant_menciones) : null) : acuerdoExistente.cant_menciones,
+        fecha_comprometida: nuevaFecha,
+        id_evento: id_evento ? Number(id_evento) : acuerdoExistente.id_evento,
+        estado: nuevoEstado,
+      },
+      include: {
+        auspiciador: true,
+        evento: true,
+        cumplimientos: true,
+      },
+    });
+  },
+
+  // 6. Eliminar acuerdo (borra cumplimientos asociados primero)
+  async eliminar(id_acuerdo) {
+    const acuerdoId = Number(id_acuerdo);
+
+    const acuerdoExistente = await prisma.acuerdoAuspicio.findUnique({
+      where: { id_acuerdo: acuerdoId },
+    });
+
+    if (!acuerdoExistente) {
+      throw new Error('El acuerdo de auspicio no existe.');
+    }
+
+    // Borrar aportes asociados primero para respetar clave foránea
+    await prisma.cumplimientoAporte.deleteMany({
+      where: { id_acuerdo: acuerdoId },
+    });
+
+    return await prisma.acuerdoAuspicio.delete({
+      where: { id_acuerdo: acuerdoId },
+    });
+  },
 };

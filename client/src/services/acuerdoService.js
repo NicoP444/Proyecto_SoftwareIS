@@ -28,3 +28,18 @@ export async function declararIncobrable(idAcuerdo, motivo_incobrable) {
     body: { motivo_incobrable },
   });
 }
+
+// Modificar datos de un acuerdo
+export async function modificarAcuerdo(idAcuerdo, datosAcuerdo) {
+  return pedir(`/acuerdos/${idAcuerdo}`, {
+    method: 'PUT',
+    body: datosAcuerdo,
+  });
+}
+
+// Eliminar un acuerdo
+export async function eliminarAcuerdo(idAcuerdo) {
+  return pedir(`/acuerdos/${idAcuerdo}`, {
+    method: 'DELETE',
+  });
+}

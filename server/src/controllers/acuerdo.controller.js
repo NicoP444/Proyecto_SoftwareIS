@@ -47,3 +47,27 @@ export const declararIncobrable = async (req, res) => {
     res.status(400).json({ error: error.message || 'Error al declarar el acuerdo como incobrable' });
   }
 };
+
+// Modificar acuerdo (glosa, monto, fecha, tipo de aporte, etc.)
+export const modificarAcuerdo = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const acuerdoActualizado = await acuerdoService.modificar(id, req.body);
+    res.json(acuerdoActualizado);
+  } catch (error) {
+    console.error('Error al modificar acuerdo:', error);
+    res.status(400).json({ error: error.message || 'Error al modificar el acuerdo' });
+  }
+};
+
+// Eliminar acuerdo y sus cumplimientos asociados
+export const eliminarAcuerdo = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await acuerdoService.eliminar(id);
+    res.json({ mensaje: 'Acuerdo eliminado exitosamente' });
+  } catch (error) {
+    console.error('Error al eliminar acuerdo:', error);
+    res.status(400).json({ error: error.message || 'Error al eliminar el acuerdo' });
+  }
+};
