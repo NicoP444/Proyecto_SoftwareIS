@@ -7,5 +7,6 @@ const router = Router();
 router.get('/', acuerdoController.obtenerAcuerdos);
 router.post('/', acuerdoController.crearAcuerdo);
 router.put('/:id/cumplimiento', acuerdoController.registrarCumplimiento);
+router.patch('/:id/incobrable', acuerdoController.declararIncobrable);
 
 export default router;

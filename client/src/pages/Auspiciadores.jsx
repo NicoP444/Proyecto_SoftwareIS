@@ -6,7 +6,11 @@ import {
   modificarAuspiciador,
   eliminarAuspiciador
 } from '../services/auspiciadorService';
-import { obtenerAcuerdos, registrarCumplimiento } from '../services/acuerdoService';
+import {
+  obtenerAcuerdos,
+  registrarCumplimiento,
+  declararIncobrable
+} from '../services/acuerdoService';
 
 export default function Auspiciadores() {
   const navigate = useNavigate();
@@ -27,6 +31,9 @@ export default function Auspiciadores() {
   const [cargandoAcuerdos, setCargandoAcuerdos] = useState(true);
   const [listaAuspiciadores, setListaAuspiciadores] = useState([]);
 
+  // Estado para el menú desplegable de acciones
+  const [menuAccionesAbierto, setMenuAccionesAbierto] = useState(null);
+
   const [modalClasificacion, setModalClasificacion] = useState({
     abierto: false,
     auspiciador: null,
@@ -39,6 +46,20 @@ export default function Auspiciadores() {
     acuerdo: null,
     monto_recibido: '',
     fecha_recibida: new Date().toISOString().split('T')[0]
+  });
+
+  // Estado para el modal de Declarar Incobrable (RF-P4-06)
+  const [modalIncobrable, setModalIncobrable] = useState({
+    abierto: false,
+    acuerdo: null,
+    motivo: ''
+  });
+
+  // Estado para la burbuja/modal de ver motivo
+  const [modalVerMotivo, setModalVerMotivo] = useState({
+    abierto: false,
+    auspiciador: '',
+    motivo: ''
   });
 
   const cargarAcuerdos = async () => {
@@ -200,6 +221,29 @@ export default function Auspiciadores() {
       cargarAcuerdos();
     } catch (error) {
       alert('Error al registrar cumplimiento: ' + error.message);
+    }
+  };
+
+  // Funciones para RF-P4-06 (Declarar Incobrable)
+  const abrirModalIncobrable = (acuerdo) => {
+    setModalIncobrable({
+      abierto: true,
+      acuerdo,
+      motivo: ''
+    });
+  };
+
+  const confirmarIncobrable = async (e) => {
+    e.preventDefault();
+    const { acuerdo, motivo } = modalIncobrable;
+    const id = acuerdo.id_acuerdo || acuerdo.id;
+
+    try {
+      await declararIncobrable(id, motivo);
+      setModalIncobrable({ abierto: false, acuerdo: null, motivo: '' });
+      cargarAcuerdos();
+    } catch (error) {
+      alert('Error al declarar incobrable: ' + error.message);
     }
   };
 
@@ -541,6 +585,7 @@ export default function Auspiciadores() {
                     const esCumplido = estado === 'CUMPLIDO';
                     const esParcial = estado === 'PARCIAL';
                     const esVencido = estado === 'VENCIDO';
+                    const esIncobrable = estado === 'INCOBRABLE';
 
                     const estiloBadge = esCumplido
                       ? { bg: '#dcfce7', color: '#15803d' }
@@ -548,6 +593,8 @@ export default function Auspiciadores() {
                       ? { bg: '#fef3c7', color: '#b45309' }
                       : esVencido
                       ? { bg: '#fee2e2', color: '#b91c1c' }
+                      : esIncobrable
+                      ? { bg: '#f1f5f9', color: '#64748b' }
                       : { bg: '#e2e8f0', color: '#475569' };
 
                     return (
@@ -585,23 +632,160 @@ export default function Auspiciadores() {
                             {estado}
                           </span>
                         </td>
-                        <td style={{ padding: '14px', textAlign: 'center' }}>
-                          <button
-                            type="button"
-                            onClick={() => abrirModalCumplimiento(item)}
-                            style={{
-                              backgroundColor: esCumplido ? '#f1f5f9' : '#0d6efd',
-                              color: esCumplido ? '#475569' : '#ffffff',
-                              border: 'none',
-                              padding: '6px 12px',
-                              borderRadius: '6px',
-                              fontSize: '12px',
-                              fontWeight: '600',
-                              cursor: 'pointer',
-                            }}
-                          >
-                            {esCumplido ? 'Ver / Modificar Pago' : 'Registrar Pago / Entrega'}
-                          </button>
+                        <td style={{ padding: '14px', textAlign: 'center', position: 'relative' }}>
+                          {/* Caso 1: Vencido -> Botón "Gestionar" con menú desplegable */}
+                          {esVencido && (
+                            <div style={{ position: 'relative', display: 'inline-block' }}>
+                              <button
+                                type="button"
+                                onClick={() => setMenuAccionesAbierto(menuAccionesAbierto === id ? null : id)}
+                                style={{
+                                  backgroundColor: '#0d6efd',
+                                  color: '#ffffff',
+                                  border: 'none',
+                                  padding: '6px 14px',
+                                  borderRadius: '6px',
+                                  fontSize: '12px',
+                                  fontWeight: '600',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '6px'
+                                }}
+                              >
+                                Gestionar ▾
+                              </button>
+
+                              {menuAccionesAbierto === id && (
+                                <div
+                                  style={{
+                                    position: 'absolute',
+                                    right: 0,
+                                    top: '110%',
+                                    backgroundColor: '#ffffff',
+                                    borderRadius: '8px',
+                                    boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1)',
+                                    border: '1px solid #e2e8f0',
+                                    zIndex: 50,
+                                    minWidth: '180px',
+                                    overflow: 'hidden',
+                                    display: 'flex',
+                                    flexDirection: 'column'
+                                  }}
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setMenuAccionesAbierto(null);
+                                      abrirModalCumplimiento(item);
+                                    }}
+                                    style={{
+                                      padding: '10px 14px',
+                                      textAlign: 'left',
+                                      background: 'none',
+                                      border: 'none',
+                                      fontSize: '13px',
+                                      color: '#1e293b',
+                                      cursor: 'pointer',
+                                      borderBottom: '1px solid #f1f5f9'
+                                    }}
+                                    onMouseEnter={(e) => (e.target.style.backgroundColor = '#f8fafc')}
+                                    onMouseLeave={(e) => (e.target.style.backgroundColor = 'transparent')}
+                                  >
+                                    💵 Registrar Pago / Entrega
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setMenuAccionesAbierto(null);
+                                      abrirModalIncobrable(item);
+                                    }}
+                                    style={{
+                                      padding: '10px 14px',
+                                      textAlign: 'left',
+                                      background: 'none',
+                                      border: 'none',
+                                      fontSize: '13px',
+                                      color: '#dc2626',
+                                      fontWeight: '500',
+                                      cursor: 'pointer'
+                                    }}
+                                    onMouseEnter={(e) => (e.target.style.backgroundColor = '#fef2f2')}
+                                    onMouseLeave={(e) => (e.target.style.backgroundColor = 'transparent')}
+                                  >
+                                    🚫 Declarar Incobrable
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Caso 2: Pendiente o Parcial -> Botón estándar Registrar Pago */}
+                          {(estado === 'PENDIENTE' || estado === 'PARCIAL') && (
+                            <button
+                              type="button"
+                              onClick={() => abrirModalCumplimiento(item)}
+                              style={{
+                                backgroundColor: '#0d6efd',
+                                color: '#ffffff',
+                                border: 'none',
+                                padding: '6px 14px',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Registrar Pago / Entrega
+                            </button>
+                          )}
+
+                          {/* Caso 3: Cumplido -> Botón Ver / Modificar */}
+                          {esCumplido && (
+                            <button
+                              type="button"
+                              onClick={() => abrirModalCumplimiento(item)}
+                              style={{
+                                backgroundColor: '#f8fafc',
+                                color: '#475569',
+                                border: '1px solid #cbd5e1',
+                                padding: '6px 14px',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Ver / Modificar Pago
+                            </button>
+                          )}
+
+                          {/* Caso 4: Incobrable -> Botón Ver motivo con modal */}
+                          {esIncobrable && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setModalVerMotivo({
+                                  abierto: true,
+                                  auspiciador: nombreAuspiciador,
+                                  motivo: item.motivo_incobrable || 'Sin motivo especificado.'
+                                })
+                              }
+                              style={{
+                                backgroundColor: '#f8fafc',
+                                color: '#475569',
+                                border: '1px solid #cbd5e1',
+                                padding: '6px 14px',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              📄 Ver motivo
+                            </button>
+                          )}
                         </td>
                       </tr>
                     );
@@ -613,7 +797,7 @@ export default function Auspiciadores() {
         </div>
       )}
 
-      {/* MODAL CUMPLIMIENTO */}
+      {/* MODAL 1: CUMPLIMIENTO */}
       {modalCumplimiento.abierto && (
         <div style={{
           position: 'fixed',
@@ -724,7 +908,7 @@ export default function Auspiciadores() {
         </div>
       )}
 
-      {/* MODAL CLASIFICACIÓN */}
+      {/* MODAL 2: CLASIFICACIÓN */}
       {modalClasificacion.abierto && (
         <div style={{
           position: 'fixed',
@@ -806,6 +990,182 @@ export default function Auspiciadores() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3: DECLARAR INCOBRABLE (RF-P4-06) */}
+      {modalIncobrable.abierto && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
+            padding: '24px',
+            maxWidth: '460px',
+            width: '100%',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+          }}>
+            <h3 style={{ marginTop: 0, marginBottom: '8px', fontSize: '18px', color: '#b91c1c' }}>
+              Declarar Aporte Incobrable
+            </h3>
+            
+            <p style={{ margin: '0 0 14px 0', fontSize: '13px', color: '#64748b' }}>
+              Auspiciador: <strong>{modalIncobrable.acuerdo?.auspiciador?.nombre || 'Acuerdo'}</strong> <br/>
+              Monto Comprometido no recuperado: <strong>${Number(modalIncobrable.acuerdo?.monto_comprometido || 0).toLocaleString('es-CL')}</strong>
+            </p>
+
+            <form onSubmit={confirmarIncobrable}>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '6px', color: '#334155' }}>
+                  Motivo por el cual se da por perdido el cobro (requerido):
+                </label>
+                <textarea
+                  value={modalIncobrable.motivo}
+                  onChange={(e) => setModalIncobrable({ ...modalIncobrable, motivo: e.target.value })}
+                  placeholder="Ej: Auspiciador no contesta correos ni llamadas tras reiteradas insistencias..."
+                  required
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    boxSizing: 'border-box',
+                    fontSize: '14px'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setModalIncobrable({ abierto: false, acuerdo: null, motivo: '' })}
+                  style={{
+                    backgroundColor: '#e2e8f0',
+                    color: '#334155',
+                    border: 'none',
+                    padding: '8px 14px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    backgroundColor: '#dc2626',
+                    color: 'white',
+                    border: 'none',
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600'
+                  }}
+                >
+                  Confirmar Incobrable
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 4: VER MOTIVO DE INCOBRABLE (BURBUJA MODAL) */}
+      {modalVerMotivo.abierto && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.45)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '20px'
+          }}
+          onClick={() => setModalVerMotivo({ abierto: false, auspiciador: '', motivo: '' })}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '16px',
+              padding: '24px',
+              maxWidth: '420px',
+              width: '100%',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05)'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', color: '#0f172a' }}>
+                Motivo de Incobrable
+              </h3>
+              <button
+                type="button"
+                onClick={() => setModalVerMotivo({ abierto: false, auspiciador: '', motivo: '' })}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '18px',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
+                  padding: '2px 6px'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: '#64748b' }}>
+              Auspiciador: <strong style={{ color: '#1e293b' }}>{modalVerMotivo.auspiciador}</strong>
+            </p>
+
+            <div
+              style={{
+                backgroundColor: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '10px',
+                padding: '14px 16px',
+                fontSize: '14px',
+                color: '#334155',
+                lineHeight: '1.5',
+                whiteSpace: 'pre-wrap',
+                marginBottom: '20px'
+              }}
+            >
+              "{modalVerMotivo.motivo}"
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setModalVerMotivo({ abierto: false, auspiciador: '', motivo: '' })}
+                style={{
+                  backgroundColor: '#0d6efd',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '9px 20px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}
+              >
+                Entendido
+              </button>
+            </div>
           </div>
         </div>
       )}

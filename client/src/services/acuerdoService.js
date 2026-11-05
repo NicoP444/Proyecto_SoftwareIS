@@ -20,3 +20,11 @@ export async function registrarCumplimiento(idAcuerdo, datosCumplimiento) {
     body: datosCumplimiento,
   });
 }
+
+// Declarar aporte incobrable (RF-P4-06)
+export async function declararIncobrable(idAcuerdo, motivo_incobrable) {
+  return pedir(`/acuerdos/${idAcuerdo}/incobrable`, {
+    method: 'PATCH',
+    body: { motivo_incobrable },
+  });
+}

@@ -149,4 +149,39 @@ export const acuerdoService = {
       include: { cumplimientos: true, auspiciador: true },
     });
   },
+
+  // 4. Declarar acuerdo como incobrable (RF-P4-06)
+  async declararIncobrable(id_acuerdo, motivo_incobrable) {
+    const acuerdoId = Number(id_acuerdo);
+
+    const acuerdo = await prisma.acuerdoAuspicio.findUnique({
+      where: { id_acuerdo: acuerdoId },
+    });
+
+    if (!acuerdo) {
+      throw new Error('El acuerdo no existe.');
+    }
+
+    // Validación según RF-P4-06: solo acuerdos vencidos pueden pasar a incobrables
+    if (acuerdo.estado !== 'VENCIDO') {
+      throw new Error('Solo los acuerdos con estado VENCIDO pueden declararse como incobrables.');
+    }
+
+    if (!motivo_incobrable || !motivo_incobrable.trim()) {
+      throw new Error('Debe indicar un motivo para declarar el aporte como incobrable.');
+    }
+
+    return await prisma.acuerdoAuspicio.update({
+      where: { id_acuerdo: acuerdoId },
+      data: {
+        estado: 'INCOBRABLE',
+        motivo_incobrable: motivo_incobrable.trim(),
+      },
+      include: {
+        auspiciador: true,
+        evento: true,
+        cumplimientos: true,
+      },
+    });
+  },
 };

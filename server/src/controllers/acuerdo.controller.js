@@ -32,3 +32,18 @@ export const registrarCumplimiento = async (req, res) => {
     res.status(500).json({ error: error.message || 'Error interno del servidor' });
   }
 };
+
+// Declarar aporte incobrable (RF-P4-06)
+export const declararIncobrable = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { motivo_incobrable } = req.body;
+    console.log('Declarando incobrable:', { id, motivo_incobrable });
+
+    const acuerdoActualizado = await acuerdoService.declararIncobrable(id, motivo_incobrable);
+    res.json(acuerdoActualizado);
+  } catch (error) {
+    console.error('Error en declararIncobrable:', error);
+    res.status(400).json({ error: error.message || 'Error al declarar el acuerdo como incobrable' });
+  }
+};
