@@ -1,7 +1,6 @@
 import prisma from '../config/prisma.js';
 
 export const equipoService = {
-  // 1. Obtener todos los equipos registrados en inventario
   async obtenerTodos() {
     return await prisma.equipo.findMany({
       include: {
@@ -14,7 +13,6 @@ export const equipoService = {
     });
   },
 
-  // 2. Registrar equipo generando código único por unidad (RF-P5-01)
   async crear(datos) {
     const {
       nombre,
@@ -26,15 +24,22 @@ export const equipoService = {
       id_jefe,
     } = datos;
 
-    // Validación básica
     if (!nombre || !categoria || !fecha_compra || valor_compra === undefined) {
       throw new Error('Faltan campos obligatorios: nombre, categoría, fecha de compra o valor.');
     }
 
-    // Resolver ID de Jefe de Área Técnica si no viene provisto
+    // 1. Obtener un id_jefe válido existente en la base de datos
     let jefeId = Number(id_jefe);
-    if (!jefeId) {
-      let jefeExistente = await prisma.jefeAreaTecnica.findFirst();
+    let jefeExistente = null;
+
+    if (jefeId) {
+      jefeExistente = await prisma.jefeAreaTecnica.findUnique({
+        where: { id_jefe: jefeId },
+      });
+    }
+
+    if (!jefeExistente) {
+      jefeExistente = await prisma.jefeAreaTecnica.findFirst();
       if (!jefeExistente) {
         jefeExistente = await prisma.jefeAreaTecnica.create({
           data: {
@@ -47,7 +52,7 @@ export const equipoService = {
       jefeId = jefeExistente.id_jefe;
     }
 
-    // Prefijo de 3 letras según categoría para el código único
+    // 2. Prefijo según categoría
     const prefijos = {
       CAMARA: 'CAM',
       TRIPODE: 'TRI',
@@ -57,21 +62,23 @@ export const equipoService = {
     };
     const prefijo = prefijos[categoria] || 'EQP';
 
-    // Generar código único correlativo (ej: CAM-001, CAM-002, etc.)
+    // 3. Generar correlativo único
     const totalExistentes = await prisma.equipo.count({
       where: { categoria },
     });
-    const correlativo = String(totalExistentes + 1).padStart(3, '0');
-    let codigoGenerado = `${prefijo}-${correlativo}`;
+    
+    let correlativoNum = totalExistentes + 1;
+    let codigoGenerado = `${prefijo}-${String(correlativoNum).padStart(3, '0')}`;
 
-    // Asegurar unicidad en caso de saltos de ID o eliminaciones previas
-    let intento = 1;
     while (await prisma.equipo.findUnique({ where: { codigo: codigoGenerado } })) {
-      codigoGenerado = `${prefijo}-${String(totalExistentes + intento + 1).padStart(3, '0')}`;
-      intento++;
+      correlativoNum++;
+      codigoGenerado = `${prefijo}-${String(correlativoNum).padStart(3, '0')}`;
     }
 
-    // Crear registro: estado OPERATIVO por defecto, id_kit null (repuesto disponible)
+    // 4. Formatear fecha segura para @db.Date
+    const fechaObj = new Date(fecha_compra);
+
+    // 5. Inserción
     return await prisma.equipo.create({
       data: {
         codigo: codigoGenerado,
@@ -79,8 +86,8 @@ export const equipoService = {
         categoria,
         marca: marca ? marca.trim() : null,
         modelo: modelo ? modelo.trim() : null,
-        fecha_compra: new Date(fecha_compra),
-        valor_compra: Number(valor_compra),
+        fecha_compra: fechaObj,
+        valor_compra: Math.round(Number(valor_compra)),
         estado: 'OPERATIVO',
         id_kit: null,
         id_evento_repuesto: null,

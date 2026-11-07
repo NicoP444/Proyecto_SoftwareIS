@@ -44,6 +44,7 @@ export default function App() {
             <Route path="/calendario" element={<Calendario />} /> ///Jorge
             <Route path="/auspiciadores" element={<Auspiciadores />} /> ///gene
             <Route path="/auspiciadores/registrar-acuerdo" element={<RegistrarAcuerdoPage />} /> ///gene
+            <Route path="/equipos" element={<Equipos />} />
           </Route>
         <Route
           path="/clientes"
@@ -89,7 +90,6 @@ export default function App() {
             </RutaProtegida>
           }
         />
-        
         <Route
           path="/equipos"
           element={

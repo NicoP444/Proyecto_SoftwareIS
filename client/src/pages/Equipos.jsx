@@ -103,7 +103,7 @@ export default function Equipos() {
           boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
         }}>
           <h2 style={{ marginTop: 0, marginBottom: '8px', fontSize: '18px', color: '#1e293b' }}>
-            Registrar Equipo en Inventario (RF-P5-01)
+            Registrar Equipo en Inventario 
           </h2>
           <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748b' }}>
             El sistema generará automáticamente el código único según la categoría y asignará el estado Operativo.
