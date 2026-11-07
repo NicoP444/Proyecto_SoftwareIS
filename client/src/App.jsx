@@ -13,6 +13,7 @@ import Plantilla from "./components/Plantilla";
 import HistorialEquipo from './pages/HistorialEquipo.jsx';
 import Calendario from "./pages/Calendario";
 import ResumenIncidentesEventoPage from './pages/ResumenIncidentesEventoPage.jsx';
+import Equipos from "./pages/Equipos";
 
 // Componente para proteger rutas privadas (solo si hay token)
 function RutaProtegida({ children }) {
@@ -85,6 +86,15 @@ export default function App() {
           element={
             <RutaProtegida>
               <HistorialEquipo />
+            </RutaProtegida>
+          }
+        />
+        
+        <Route
+          path="/equipos"
+          element={
+            <RutaProtegida>
+              <Equipos />
             </RutaProtegida>
           }
         />
