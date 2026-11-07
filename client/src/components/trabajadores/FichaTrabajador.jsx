@@ -143,4 +143,4 @@ export default function FichaTrabajador({ trabajador, roles, onCambio, onCrearRo
       </div>
     </div>
   );
-}
+}   

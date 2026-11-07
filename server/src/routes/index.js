@@ -12,6 +12,9 @@ import historialCambioRoutes from './historialCambio.routes.js'; // nico
 import historialEquipoRoutes from './historialEquipo.routes.js';
 import alertaKitsRoutes from './alertaKits.routes.js';
 
+import gastosEventosRoutes from './gastosEvento.routes.js'; // nico
+import eventoRoutes from './evento.routes.js';
+import rendicionRoutes from './rendicion.routes.js';// nico
 const router = Router();
 
 // Aquí le decimos al servidor que use tus rutas
@@ -20,7 +23,7 @@ router.use('/incidentes', incidenteRoutes);
 router.use('/rol', rolRoutes); //nico
 router.use('/trabajadores/:id/disponibilidad', disponibilidadRoutes);//nico
 router.use('/trabajadores',trabajadorRoutes);//nico
-router.use('/', desempenaRoutes);// nico
+router.use('/gastosEvento', gastosEventosRoutes); // nico
 router.use('/acuerdos', acuerdoRoutes);
 router.use('/salidas-kits', salidaKitRoutes);
 router.use('/retornos-kits', retornoKitRoutes);
@@ -28,5 +31,8 @@ router.use('/historial-cambios', historialCambioRoutes)//nico
 router.use('/equipos-historial', historialEquipoRoutes);
 router.use('/alertas', alertaKitsRoutes);
 
+router.use('/', desempenaRoutes);// nico
+router.use('/eventos', eventoRoutes);
+router.use('/rendiciones', rendicionRoutes);// nico
 
 export default router;

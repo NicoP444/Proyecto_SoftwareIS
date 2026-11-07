@@ -19,3 +19,7 @@ export function obtenerEventos() {
 export function obtenerTrabajadores() {
   return pedir('/trabajadores');
 }
+
+export function obtenerIncidentesPorEvento(idEvento) {
+  return pedir(`/incidentes/evento/${idEvento}`);
+}

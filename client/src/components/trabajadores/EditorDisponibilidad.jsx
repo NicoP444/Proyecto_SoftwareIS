@@ -6,11 +6,13 @@ import {
 } from '../../services/personalServicio.js';
 import { periodoMesActual, textoFechasBloque, textoHorarioBloque } from './ayudas.js';
 
+// este permite crear un nuevo bloque de disponibilidad con valores por defecto
 function bloqueNuevo() {
-  const mes = periodoMesActual();
-  return { fecha_inicio: mes.inicio, fecha_termino: mes.termino, hora_inicio: '09:00', hora_termino: '18:00' };
+  const mes = periodoMesActual();// llamamos a la funcion en ayuda...
+  return { fecha_inicio: mes.inicio, fecha_termino: mes.termino, hora_inicio: '09:00', hora_termino: '18:00' }; // valores por defecto
 }
 
+// valida que el bloque tenga fechas y horas correctas, recibe un objeto, del usuario
 function validar(bloque) {
   if (!bloque.fecha_inicio || !bloque.fecha_termino) return 'Indica la fecha de inicio y de término';
   if (bloque.fecha_inicio > bloque.fecha_termino) return 'La fecha de término debe ser posterior a la de inicio';
@@ -19,30 +21,39 @@ function validar(bloque) {
   return null;
 }
 
+// declaramos el componente EditorDisponibilidad, que recibe idTrabajador, disponibilidad y onGuardado como props
 export default function EditorDisponibilidad({ idTrabajador, disponibilidad, onGuardado }) {
+  // definimos los objetos de estado bloque, mensaje y guardando, usando useState(propio estado interno)
+  // bloque es el objeto que representa el bloque de disponibilidad, utiliza la funcion bloqueNuevo() para inicializarlo con valores por defecto
   const [bloque, setBloque] = useState(bloqueNuevo);
-  const [mensaje, setMensaje] = useState(null);
+  // utilizamos este objeto para mostrar mensajes de error o éxito al usuario, inicialmente es null
+  const [mensaje, setMensaje] = useState(null); 
+  // guardando es un booleano que indica si se está guardando el bloque, inicialmente es false, se conecta con el server
   const [guardando, setGuardando] = useState(false);
 
+  // declaramos esta funciona cada vez que el usuario cambia un valor o actualiza
   function cambiar(e) {
-    setBloque({ ...bloque, [e.target.name]: e.target.value });
-    setMensaje(null);
+    //actualizamos el estado bloque con los nuevos valores.
+    setBloque({ ...bloque, [e.target.name]: e.target.value }); 
+    setMensaje(null);// limpiamos el mensaje de error o éxito al cambiar un valor
   }
 
+  //declaramos la funcion asincornica, permite esperar la respuesta del servidor, recibe un evento e, cuando el usuario hace click en guardar
   async function guardar(e) {
-    e.preventDefault();
-    const error = validar(bloque);
-    if (error) return setMensaje({ tipo: 'error', texto: error });
+    e.preventDefault(); // prevenimos el comportamiento por defecto del formulario, que es recargar la pagina
+    const error = validar(bloque); // verificamos que el bloque sea valido.
+    if (error) return setMensaje({ tipo: 'error', texto: error });// si es error, mostramos el mensaje
 
-    setGuardando(true);
+    setGuardando(true); // animacion 
     try {
-      if (bloque.nro_bloque) {
+      if (bloque.nro_bloque) {// llamamos a las demas funciones de service 
         await actualizarBloqueDisponibilidad(idTrabajador, bloque.nro_bloque, bloque);
         setMensaje({ tipo: 'exito', texto: 'Bloque actualizado correctamente.' });
       } else {
         await crearBloqueDisponibilidad(idTrabajador, bloque);
         setMensaje({ tipo: 'exito', texto: 'Bloque agregado correctamente.' });
       }
+      // limpiamos todo y devolvemos el por defecto 
       setBloque(bloqueNuevo());
       onGuardado();
     } catch (err) {
@@ -52,28 +63,31 @@ export default function EditorDisponibilidad({ idTrabajador, disponibilidad, onG
     }
   }
 
+  // funcion para editar un bloque, recibe un objeto b, que representa el bloque a editar, actualiza el estado bloque con los valores del bloque seleccionado y limpia el mensaje de error o éxito
   function editarBloque(b) {
     setBloque({ ...b });
     setMensaje(null);
   }
-
+  // funcion para cancelar la edicion, restablece el estado bloque a un nuevo bloque con valores por defecto y limpia el mensaje de error o éxito
   function cancelarEdicion() {
     setBloque(bloqueNuevo());
     setMensaje(null);
   }
 
   return (
-    <div className="formulario">
+    // todo el fomulario
+    <div className="formulario"> 
       <h4 className="subtitulo">Bloques registrados</h4>
       
-      {disponibilidad.length === 0 ? (
+      {disponibilidad.length === 0 ? ( // si no hay disponibilidad, mostramos un mensaje
         <p className="texto-tenue">Aún no tiene disponibilidad registrada.</p>
-      ) : (
-        <ul className="lista-bloques">
+      ) : ( // creamos el fomrulario con la lista de bloques de disponibilidad, cada bloque tiene un boton para editarlo
+        <ul className="lista-bloques"> 
           {disponibilidad.map((b) => (
             <li 
-              key={b.nro_bloque ? b.nro_bloque : b.fecha_inicio + '-' + b.hora_inicio} 
-              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}
+              key={b.nro_bloque ? b.nro_bloque : b.fecha_inicio + '-' + b.hora_inicio}
+              //definimos el kwy, para que react sepa cual es quien 
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }} //gap separacion
             >
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                 <span className="bloque-fechas">

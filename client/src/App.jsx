@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Landing from "./pages/Landing";
 import Home from "./pages/Home";
-import Trabajadores from "./pages/Trabajadores";
+import Trabajadores from "./pages/Trabajadores";//nico
+import Finanzas from "./pages/Finanzas";//nico
 import Auspiciadores from "./pages/Auspiciadores";
 import Coberturas from "./pages/Coberturas";
 import Incidentes from "./pages/Incidentes";
@@ -10,6 +11,8 @@ import RegistrarAcuerdoPage from "./pages/RegistrarAcuerdo";
 import SalidaKits from "./pages/SalidaKits";
 import Plantilla from "./components/Plantilla"; 
 import HistorialEquipo from './pages/HistorialEquipo.jsx';
+import Calendario from "./pages/Calendario";
+import ResumenIncidentesEventoPage from './pages/ResumenIncidentesEventoPage.jsx';
 
 // Componente para proteger rutas privadas (solo si hay token)
 function RutaProtegida({ children }) {
@@ -36,28 +39,16 @@ export default function App() {
         />
          <Route element={<Plantilla />}>
             <Route path="/trabajadores" element={<Trabajadores />} /> /// nico
+            <Route path="/finanzas" element={<Finanzas />} /> // nico
+            <Route path="/calendario" element={<Calendario />} /> ///Jorge
+            <Route path="/auspiciadores" element={<Auspiciadores />} /> ///gene
+            <Route path="/auspiciadores/registrar-acuerdo" element={<RegistrarAcuerdoPage />} /> ///gene
           </Route>
         <Route
           path="/clientes"
           element={
             <RutaProtegida>
               <Clientes />
-            </RutaProtegida>
-          }
-        />
-        <Route
-          path="/auspiciadores"
-          element={
-            <RutaProtegida>
-              <Auspiciadores />
-            </RutaProtegida>
-          }
-        />
-        <Route
-          path="/auspiciadores/registrar-acuerdo"
-          element={
-            <RutaProtegida>
-              <RegistrarAcuerdoPage />
             </RutaProtegida>
           }
         />
@@ -98,6 +89,14 @@ export default function App() {
           }
         />
         
+     <Route
+        path="/resumen-incidentes"
+        element={
+          <RutaProtegida>
+            <ResumenIncidentesEventoPage />
+          </RutaProtegida>
+        }
+      />
         {/* Cada compañero agregará aquí su ruta, por ejemplo:
         <Route path="/productos" element={<RutaProtegida><Productos /></RutaProtegida>} />
         <Route path="/categorias" element={<RutaProtegida><Categorias /></RutaProtegida>} />
