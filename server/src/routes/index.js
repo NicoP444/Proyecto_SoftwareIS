@@ -10,6 +10,7 @@ import salidaKitRoutes from './salidaKit.routes.js';
 import retornoKitRoutes from './retornoKit.routes.js';
 import historialCambioRoutes from './historialCambio.routes.js'; // nico
 import gastosEventosRoutes from './gastosEvento.routes.js'; // nico
+import eventoRoutes from './evento.routes.js';
 const router = Router();
 
 // Aquí le decimos al servidor que use tus rutas
@@ -24,5 +25,6 @@ router.use('/salidas-kits', salidaKitRoutes);
 router.use('/retornos-kits', retornoKitRoutes);
 router.use('/historial-cambios', historialCambioRoutes)//nico
 router.use('/', desempenaRoutes);// nico
+router.use('/eventos', eventoRoutes);
 
 export default router;
