@@ -35,9 +35,9 @@ export const eliminarGasto = (idGasto, body) =>
   pedir(`/gastosEvento/${idGasto}`, { method: 'DELETE', body });
 
 // RENDICIONES (pendiente): descomentar cuando el back tenga /rendiciones
-// export const listarRendiciones = (idEvento) => pedir(`/rendiciones/evento/${idEvento}`);
-// export const marcarRendicion = (idAsignacion, body) =>
-//   pedir(`/rendiciones/${idAsignacion}`, { method: 'PATCH', body });
+ export const listarRendiciones = (idEvento) => pedir(`/rendiciones/evento/${idEvento}`);
+ export const marcarRendicion = (idAsignacion, body) =>
+ pedir(`/rendiciones/${idAsignacion}`, { method: 'PATCH', body });
 
 // Las evidencias las sirve el back en /uploads (fuera de /api)
 export const urlEvidencia = (ruta) => `${API_URL.replace(/\/api\/?$/, '')}/${ruta}`;

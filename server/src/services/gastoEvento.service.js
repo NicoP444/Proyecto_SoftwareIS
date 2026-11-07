@@ -34,18 +34,11 @@ export const crearGasto = async (datos) => {
     const { id_evento, id_trabajador, ...resto } = datos;
 
     return await prisma.$transaction(async (tx) => {
-      const gasto = await tx.gastoEvento.create({
-        data: { ...resto, id_asignacion: asignacion.id_asignacion },
-      });
+      const { id_evento, id_trabajador, ...resto } = datos;
 
-      // Si tenía rendición pendiente, pasa a rendida
-      if(asignacion.estado_rendicion !== 'RENDIDA'){
-        await tx.asignacionPersonal.update({
-          where: { id_asignacion: asignacion.id_asignacion },
-          data: { estado_rendicion: 'RENDIDA' },
-        });
-      }
-      return gasto;
+      return await prisma.gastoEvento.create({
+      data: { ...resto, id_asignacion: asignacion.id_asignacion },
+    });
     });
   }catch (error){
     await borrarArchivo(datos.evidencia); // no dejar archivos huérfanos si falla

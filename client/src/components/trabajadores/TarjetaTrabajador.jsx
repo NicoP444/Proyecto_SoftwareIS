@@ -8,13 +8,13 @@ import { iniciales, nombreCompleto, rolesDe, textoEstado, textoHorario, textoPer
  * "version" cambia cuando algo se guarda, para volver a pedir la disponibilidad.
  */
 export default function TarjetaTrabajador({ trabajador, version, onAbrir }) {
-  const [disponibilidad, setDisponibilidad] = useState([]);
-  const nombre = nombreCompleto(trabajador);
-  const roles = rolesDe(trabajador);
+  const [disponibilidad, setDisponibilidad] = useState([]); // estado para almacenar la disponibilidad del trabajador, inicialmente es un array vacío
+  const nombre = nombreCompleto(trabajador);// obtenemos el nombre completo del trabajador
+  const roles = rolesDe(trabajador);// obtenemos los roles del trabajador
 
   useEffect(() => {
-    listarDisponibilidad(trabajador.id_trabajador)
-      .then(setDisponibilidad)
+    listarDisponibilidad(trabajador.id_trabajador) // llamamos a la funcion listarDisponibilidad, que nos devuelve una promesa con la disponibilidad del trabajador
+      .then(setDisponibilidad)//catch(() => setDisponibilidad([])); // si hay un error, establecemos la disponibilidad como un array vacío
       .catch(() => setDisponibilidad([]));
   }, [trabajador.id_trabajador, version]);
 

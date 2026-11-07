@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { ESTADOS } from './ayudas.js';
 
+// lo que vamos a recibir del usuario
 const VACIO = { nombre: '', telefono_whatsapp: '', correo: '', observaciones: '', estado: 'activo' };
 
-function validar(datos) {
+function validar(datos) { // validamos que todo este bien...
   const errores = {};
   if (!datos.nombre.trim()) errores.nombre = 'Ingresa el nombre';
   if (!datos.telefono_whatsapp.trim()) errores.telefono_whatsapp = 'Ingresa el teléfono de WhatsApp';
@@ -13,13 +14,15 @@ function validar(datos) {
 
 /**
  * Formulario de trabajador. Sirve para CREAR y para EDITAR.
- * onGuardar recibe los datos y debe devolver una promesa (la llamada al back).
+ * 
  */
 export default function FormularioTrabajador({ inicial = VACIO, textoBoton, onGuardar, onCancelar }) {
-  const [datos, setDatos] = useState(inicial);
-  const [errores, setErrores] = useState({});
-  const [mensaje, setMensaje] = useState(null);
-  const [guardando, setGuardando] = useState(false);
+  const [datos, setDatos] = useState(inicial);// objeto de datos, para almacenar los valores del formulario
+  const [errores, setErrores] = useState({});// objeto de errores, para mostrar mensajes de error al usuario
+  const [mensaje, setMensaje] = useState(null);// objeto de mensaje, para mostrar mensajes de éxito o error al usuario
+  const [guardando, setGuardando] = useState(false);// booleano que indica si se está guardando el formulario, para deshabilitar el botón de guardar mientras se guarda
+
+
 
   function cambiar(e) {
     setDatos({ ...datos, [e.target.name]: e.target.value });
@@ -28,10 +31,10 @@ export default function FormularioTrabajador({ inicial = VACIO, textoBoton, onGu
   }
 
   async function enviar(e) {
-    e.preventDefault();
-    const encontrados = validar(datos);
-    setErrores(encontrados);
-    if (Object.keys(encontrados).length > 0) return;
+    e.preventDefault(); // prevenimos el comportamiento por defecto del formulario, que es recargar la pagina
+    const encontrados = validar(datos); // validamos los datos del formulario
+    setErrores(encontrados);// si hay errores, los mostramos al usuario
+    if (Object.keys(encontrados).length > 0) return; // encontramos si hay elemntos guardados y los trasforma en []
 
     setGuardando(true);
     try {
