@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Plus, Search, Pencil, Trash2, Paperclip, Receipt, Clock, ArrowRight, Wallet, Users } from 'lucide-react';
-// RENDICIONES (pendiente): al activarlas, importar también Check y Ban de lucide-react
+import {
+  Plus, Search, Pencil, Trash2, Paperclip, Receipt, Clock, ArrowRight, Wallet, Check, Ban,
+} from 'lucide-react';
 import Modal from '../components/Modal';
 import FormularioGasto from '../components/FormularioGasto';
 import { obtenerUsuario } from '../services/http.js';
 import {
-  listarEventos, listarTrabajadores, listarGastos, crearGasto, modificarGasto, eliminarGasto, urlEvidencia,
-  // RENDICIONES (pendiente): listarRendiciones, marcarRendicion,
+  listarEventos, listarTrabajadores, listarGastos, crearGasto, modificarGasto, eliminarGasto,
+  listarRendiciones, marcarRendicion, urlEvidencia,
 } from '../services/gastoEvento.service.js';
 import '../styles/Finanzas.css';
 
@@ -18,12 +19,11 @@ const TIPOS = {
   OTRO: 'Otro',
 };
 
-// RENDICIONES (pendiente)
-// const ESTADOS = {
-//   PENDIENTE: { texto: 'Pendiente', clase: 'pendiente' },
-//   RENDIDA: { texto: 'Rendida', clase: 'rendida' },
-//   SIN_GASTOS: { texto: 'Sin gastos', clase: 'sin-gastos' },
-// };
+const ESTADOS = {
+  PENDIENTE: { texto: 'Pendiente', clase: 'pendiente' },
+  RENDIDA: { texto: 'Rendida', clase: 'rendida' },
+  SIN_GASTOS: { texto: 'Sin gastos', clase: 'sin-gastos' },
+};
 
 const clp = (n) =>
   new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n ?? 0);
@@ -98,6 +98,9 @@ export default function Finanzas() {
   const [trabajadores, setTrabajadores] = useState([]);
   const [idEvento, setIdEvento] = useState('');
   const [gastos, setGastos] = useState([]);
+  const [rend, setRend] = useState(null);
+  const [errorRend, setErrorRend] = useState('');
+  const [vista, setVista] = useState('gastos'); // 'gastos' | 'rendiciones'
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
   const [busqueda, setBusqueda] = useState('');
@@ -105,9 +108,6 @@ export default function Finanzas() {
   const [version, setVersion] = useState(0);
   const [modalGasto, setModalGasto] = useState({ abierto: false, gasto: null });
   const [gastoAEliminar, setGastoAEliminar] = useState(null);
-  // RENDICIONES (pendiente)
-  // const [rend, setRend] = useState(null);
-  // const [vista, setVista] = useState('gastos'); // 'gastos' | 'rendiciones'
 
   const recargar = () => setVersion((v) => v + 1);
 
@@ -125,29 +125,41 @@ export default function Finanzas() {
       .catch((e) => setError(e.message));
   }, []);
 
-  // Trabajadores para el formulario
-  // RENDICIONES (pendiente): cuando estén activas, esta lista sale de rend.rendiciones
+  // Todos los trabajadores: solo se usan si las rendiciones no cargan
   useEffect(() => {
     listarTrabajadores()
       .then(setTrabajadores)
       .catch((e) => setError(e.message));
   }, []);
 
-  // Gastos del evento elegido
+  // Gastos y rendiciones del evento elegido (por separado: si una falla, la otra se ve igual)
   useEffect(() => {
     if (!idEvento) {
       setGastos([]);
+      setRend(null);
+      setErrorRend('');
       return;
     }
     let activo = true;
     setCargando(true);
     setError('');
-    listarGastos(idEvento)
-      // RENDICIONES (pendiente): Promise.all([listarGastos(idEvento), listarRendiciones(idEvento)])
-      .then((g) => {
-        if (activo) setGastos(g);
+    setErrorRend('');
+    Promise.allSettled([listarGastos(idEvento), listarRendiciones(idEvento)])
+      .then(([g, r]) => {
+        if (!activo) return;
+        if (g.status === 'fulfilled') {
+          setGastos(g.value);
+        } else {
+          setGastos([]);
+          setError(g.reason.message);
+        }
+        if (r.status === 'fulfilled') {
+          setRend(r.value);
+        } else {
+          setRend(null);
+          setErrorRend(r.reason.message);
+        }
       })
-      .catch((e) => activo && setError(e.message))
       .finally(() => activo && setCargando(false));
     return () => {
       activo = false;
@@ -157,8 +169,8 @@ export default function Finanzas() {
   const evento = eventos.find((e) => String(e.id_evento) === idEvento);
   const cerrado = String(evento?.estado ?? '').toUpperCase() === 'CERRADO';
   const puedeEditar = esContador && Boolean(idContador) && !cerrado && Boolean(idEvento);
+  const resumen = rend?.resumen;
   const totalGastado = gastos.reduce((suma, g) => suma + g.monto, 0);
-  const trabajadoresConGastos = new Set(gastos.map((g) => g.asignacion.id_trabajador)).size;
 
   const gastosFiltrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
@@ -173,11 +185,21 @@ export default function Finanzas() {
     });
   }, [gastos, busqueda, tipo]);
 
+  const rendicionesFiltradas = useMemo(() => {
+    const q = busqueda.trim().toLowerCase();
+    return (rend?.rendiciones ?? []).filter((r) => !q || r.trabajador.toLowerCase().includes(q));
+  }, [rend, busqueda]);
+
+  // Trabajadores del formulario: los asignados al evento si hay rendiciones; si no, todos
+  const opcionesTrabajadores = rend
+    ? rend.rendiciones.map((r) => ({ id_trabajador: r.id_trabajador, trabajador: r.trabajador }))
+    : trabajadores.map((t) => ({ id_trabajador: t.id_trabajador, trabajador: t.nombre }));
+
   const KPIS = [
-    { titulo: 'Total gastado', valor: idEvento ? clp(totalGastado) : '—', nota: 'En el evento seleccionado', color: 'azul', icono: Wallet },
-    { titulo: 'Gastos registrados', valor: idEvento ? gastos.length : '—', nota: 'Comprobantes ingresados', color: 'verde', icono: Receipt },
-    { titulo: 'Trabajadores', valor: idEvento ? trabajadoresConGastos : '—', nota: 'Con gastos en este evento', color: 'naranja', icono: Users },
-    // RENDICIONES (pendiente): tarjetas Rendidas / Pendientes / Sin gastos, con resumen = rend?.resumen
+    { titulo: 'Total gastado', valor: idEvento ? clp(totalGastado) : '—', nota: `${gastos.length} gastos registrados`, color: 'azul', icono: Wallet },
+    { titulo: 'Rendidas', valor: resumen?.rendidas ?? '—', nota: 'Comprobantes entregados', color: 'verde', icono: Check },
+    { titulo: 'Pendientes', valor: resumen?.pendientes ?? '—', nota: 'Faltan por rendir', color: 'naranja', icono: Clock },
+    { titulo: 'Sin gastos', valor: resumen?.sin_gastos ?? '—', nota: 'No tuvieron gastos', color: 'gris', icono: Ban },
   ];
 
   // ---------- Acciones ----------
@@ -199,16 +221,15 @@ export default function Finanzas() {
     recargar();
   }
 
-  // RENDICIONES (pendiente)
-  // async function marcar(rendicion, estado) {
-  //   setError('');
-  //   try {
-  //     await marcarRendicion(rendicion.id_asignacion, { id_contador: idContador, estado_rendicion: estado });
-  //     recargar();
-  //   } catch (e) {
-  //     setError(e.message);
-  //   }
-  // }
+  async function marcar(rendicion, estado) {
+    setError('');
+    try {
+      await marcarRendicion(rendicion.id_asignacion, { id_contador: idContador, estado_rendicion: estado });
+      recargar();
+    } catch (e) {
+      setError(e.message);
+    }
+  }
 
   // ---------- Pantalla ----------
   return (
@@ -216,7 +237,7 @@ export default function Finanzas() {
       <div className="fin-cabecera">
         <div>
           <h1>Finanzas</h1>
-          <p>Gastos de los eventos realizados</p>
+          <p>Gastos y rendiciones de los eventos realizados</p>
         </div>
         <button
           type="button"
@@ -266,7 +287,7 @@ export default function Finanzas() {
           <Search size={18} />
           <input
             type="text"
-            placeholder="Buscar por trabajador o descripción"
+            placeholder={vista === 'gastos' ? 'Buscar por trabajador o descripción' : 'Buscar por trabajador'}
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
           />
@@ -282,123 +303,136 @@ export default function Finanzas() {
             ))}
           </select>
         </div>
-        <div className="fin-campo fin-filtro">
-          <label htmlFor="filtro-tipo">Tipo de gasto</label>
-          <select id="filtro-tipo" value={tipo} onChange={(e) => setTipo(e.target.value)}>
-            <option value="">Todos los tipos</option>
-            {Object.entries(TIPOS).map(([valor, texto]) => (
-              <option key={valor} value={valor}>{texto}</option>
-            ))}
-          </select>
-        </div>
+        {vista === 'gastos' && (
+          <div className="fin-campo fin-filtro">
+            <label htmlFor="filtro-tipo">Tipo de gasto</label>
+            <select id="filtro-tipo" value={tipo} onChange={(e) => setTipo(e.target.value)}>
+              <option value="">Todos los tipos</option>
+              {Object.entries(TIPOS).map(([valor, texto]) => (
+                <option key={valor} value={valor}>{texto}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </section>
 
       {/* Panel */}
       <section className="fin-panel">
         <div className="fin-panel-cab">
           <div className="fin-tabs">
-            <button type="button" className="fin-tab activa">Gastos del evento</button>
-            {/* RENDICIONES (pendiente): pestaña
-            <button type="button" className="fin-tab" onClick={() => setVista('rendiciones')}>Rendiciones</button>
-            */}
+            <button type="button" className={`fin-tab ${vista === 'gastos' ? 'activa' : ''}`} onClick={() => setVista('gastos')}>
+              Gastos del evento
+            </button>
+            <button type="button" className={`fin-tab ${vista === 'rendiciones' ? 'activa' : ''}`} onClick={() => setVista('rendiciones')}>
+              Rendiciones
+            </button>
           </div>
-          <span className="fin-contador">{gastosFiltrados.length} de {gastos.length}</span>
+          <span className="fin-contador">
+            {vista === 'gastos'
+              ? `${gastosFiltrados.length} de ${gastos.length}`
+              : `${rendicionesFiltradas.length} de ${rend?.rendiciones.length ?? 0}`}
+          </span>
         </div>
 
         {!idEvento ? (
           <EstadoVacio texto="Selecciona un evento realizado para ver sus gastos" />
         ) : cargando ? (
           <EstadoVacio icono={Clock} texto="Cargando…" />
-        ) : gastosFiltrados.length === 0 ? (
-          <EstadoVacio texto="No hay gastos registrados para este evento" />
-        ) : (
-          <div className="fin-grid">
-            {gastosFiltrados.map((g) => (
-              <article key={g.id_gasto} className="fin-card">
-                <div className="fin-card-cab">
-                  <span className="fin-avatar">{g.asignacion.trabajador.nombre.charAt(0).toUpperCase()}</span>
-                  <div className="fin-card-titulo">
-                    <strong>{g.asignacion.trabajador.nombre}</strong>
-                    <span className="fin-sub">{TIPOS[g.tipo_gasto]}</span>
-                  </div>
-                  <span className="fin-monto">{clp(g.monto)}</span>
-                </div>
-
-                <div className="fin-detalle">
-                  <span className="fin-detalle-fila">
-                    <Clock size={15} /> {formatearFecha(g.fecha)}
-                  </span>
-                  {g.tipo_gasto === 'MOVILIZACION' && (
-                    <span className="fin-detalle-fila">
-                      {g.origen} <ArrowRight size={15} /> {g.destino}
-                    </span>
-                  )}
-                  {g.descripcion && (
-                    <span className="fin-detalle-fila">
-                      <Receipt size={15} /> {g.descripcion}
-                    </span>
-                  )}
-                </div>
-
-                <div className="fin-card-pie">
-                  <a className="fin-enlace" href={urlEvidencia(g.evidencia)} target="_blank" rel="noreferrer">
-                    <Paperclip size={14} /> Evidencia
-                  </a>
-                  {puedeEditar && (
-                    <div className="fin-acciones">
-                      <button type="button" className="fin-icono-btn" aria-label="Editar gasto" onClick={() => setModalGasto({ abierto: true, gasto: g })}>
-                        <Pencil size={16} />
-                      </button>
-                      <button type="button" className="fin-icono-btn fin-icono-peligro" aria-label="Eliminar gasto" onClick={() => setGastoAEliminar(g)}>
-                        <Trash2 size={16} />
-                      </button>
+        ) : vista === 'gastos' ? (
+          gastosFiltrados.length === 0 ? (
+            <EstadoVacio texto="No hay gastos registrados para este evento" />
+          ) : (
+            <div className="fin-grid">
+              {gastosFiltrados.map((g) => (
+                <article key={g.id_gasto} className="fin-card">
+                  <div className="fin-card-cab">
+                    <span className="fin-avatar">{g.asignacion.trabajador.nombre.charAt(0).toUpperCase()}</span>
+                    <div className="fin-card-titulo">
+                      <strong>{g.asignacion.trabajador.nombre}</strong>
+                      <span className="fin-sub">{TIPOS[g.tipo_gasto]}</span>
                     </div>
-                  )}
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-
-        {/* RENDICIONES (pendiente): vista de rendiciones. Al activarla, mostrar este bloque
-            cuando vista === 'rendiciones' y el de gastos cuando vista === 'gastos'.
-
-        <div className="fin-grid">
-          {rendicionesFiltradas.map((r) => {
-            const estado = ESTADOS[r.estado_rendicion];
-            return (
-              <article key={r.id_asignacion} className="fin-card">
-                <div className="fin-card-cab">
-                  <span className="fin-avatar">{r.trabajador.charAt(0).toUpperCase()}</span>
-                  <div className="fin-card-titulo">
-                    <strong>{r.trabajador}</strong>
-                    <span className="fin-sub">{r.rol}</span>
+                    <span className="fin-monto">{clp(g.monto)}</span>
                   </div>
-                  <span className={`fin-estado fin-estado-${estado.clase}`}>{estado.texto}</span>
-                </div>
-                <div className="fin-detalle">
-                  <span className="fin-detalle-fila">
-                    <Receipt size={15} /> {r.cantidad_gastos} gastos registrados
-                  </span>
-                </div>
-                {r.estado_rendicion === 'PENDIENTE' && puedeEditar && (
-                  <div className="fin-card-pie">
-                    {r.cantidad_gastos > 0 ? (
-                      <button type="button" className="fin-btn fin-btn-primario fin-btn-chico" onClick={() => marcar(r, 'RENDIDA')}>
-                        <Check size={15} /> Marcar como rendida
-                      </button>
-                    ) : (
-                      <button type="button" className="fin-btn fin-btn-chico" onClick={() => marcar(r, 'SIN_GASTOS')}>
-                        <Ban size={15} /> Marcar sin gastos
-                      </button>
+
+                  <div className="fin-detalle">
+                    <span className="fin-detalle-fila">
+                      <Clock size={15} /> {formatearFecha(g.fecha)}
+                    </span>
+                    {g.tipo_gasto === 'MOVILIZACION' && (
+                      <span className="fin-detalle-fila">
+                        {g.origen} <ArrowRight size={15} /> {g.destino}
+                      </span>
+                    )}
+                    {g.descripcion && (
+                      <span className="fin-detalle-fila">
+                        <Receipt size={15} /> {g.descripcion}
+                      </span>
                     )}
                   </div>
-                )}
-              </article>
-            );
-          })}
-        </div>
-        */}
+
+                  <div className="fin-card-pie">
+                    <a className="fin-enlace" href={urlEvidencia(g.evidencia)} target="_blank" rel="noreferrer">
+                      <Paperclip size={14} /> Evidencia
+                    </a>
+                    {puedeEditar && (
+                      <div className="fin-acciones">
+                        <button type="button" className="fin-icono-btn" aria-label="Editar gasto" onClick={() => setModalGasto({ abierto: true, gasto: g })}>
+                          <Pencil size={16} />
+                        </button>
+                        <button type="button" className="fin-icono-btn fin-icono-peligro" aria-label="Eliminar gasto" onClick={() => setGastoAEliminar(g)}>
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </article>
+              ))}
+            </div>
+          )
+        ) : errorRend ? (
+          <div className="fin-alerta">No se pudieron cargar las rendiciones: {errorRend}</div>
+        ) : rendicionesFiltradas.length === 0 ? (
+          <EstadoVacio texto="Este evento no tiene trabajadores asignados" />
+        ) : (
+          <div className="fin-grid">
+            {rendicionesFiltradas.map((r) => {
+              const estado = ESTADOS[r.estado_rendicion];
+              return (
+                <article key={r.id_asignacion} className="fin-card">
+                  <div className="fin-card-cab">
+                    <span className="fin-avatar">{r.trabajador.charAt(0).toUpperCase()}</span>
+                    <div className="fin-card-titulo">
+                      <strong>{r.trabajador}</strong>
+                      <span className="fin-sub">{r.rol}</span>
+                    </div>
+                    <span className={`fin-estado fin-estado-${estado.clase}`}>{estado.texto}</span>
+                  </div>
+
+                  <div className="fin-detalle">
+                    <span className="fin-detalle-fila">
+                      <Receipt size={15} /> {r.cantidad_gastos} {r.cantidad_gastos === 1 ? 'gasto registrado' : 'gastos registrados'}
+                    </span>
+                  </div>
+
+                  {r.estado_rendicion === 'PENDIENTE' && puedeEditar && (
+                    <div className="fin-card-pie">
+                      {/* Con gastos solo corresponde "Rendida"; sin gastos, "Sin gastos" */}
+                      {r.cantidad_gastos > 0 ? (
+                        <button type="button" className="fin-btn fin-btn-primario fin-btn-chico" onClick={() => marcar(r, 'RENDIDA')}>
+                          <Check size={15} /> Marcar como rendida
+                        </button>
+                      ) : (
+                        <button type="button" className="fin-btn fin-btn-chico" onClick={() => marcar(r, 'SIN_GASTOS')}>
+                          <Ban size={15} /> Marcar sin gastos
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       {/* Ventanas emergentes */}
@@ -409,7 +443,7 @@ export default function Finanzas() {
       >
         <FormularioGasto
           gasto={modalGasto.gasto}
-          trabajadores={trabajadores.map((t) => ({ id_trabajador: t.id_trabajador, trabajador: t.nombre }))}
+          trabajadores={opcionesTrabajadores}
           tipos={TIPOS}
           onGuardar={guardarGasto}
           onCancelar={() => setModalGasto({ abierto: false, gasto: null })}
