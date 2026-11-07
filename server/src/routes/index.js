@@ -11,6 +11,7 @@ import retornoKitRoutes from './retornoKit.routes.js';
 import historialCambioRoutes from './historialCambio.routes.js'; // nico
 import historialEquipoRoutes from './historialEquipo.routes.js';
 import alertaKitsRoutes from './alertaKits.routes.js';
+import equipoRoutes from './equipo.routes.js';
 
 import gastosEventosRoutes from './gastosEvento.routes.js'; // nico
 import eventoRoutes from './evento.routes.js';
@@ -34,5 +35,6 @@ router.use('/alertas', alertaKitsRoutes);
 router.use('/', desempenaRoutes);// nico
 router.use('/eventos', eventoRoutes);
 router.use('/rendiciones', rendicionRoutes);// nico
+router.use('/equipos', equipoRoutes);
 
 export default router;
