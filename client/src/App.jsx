@@ -10,6 +10,7 @@ import Clientes from "./pages/Clientes";
 import RegistrarAcuerdoPage from "./pages/RegistrarAcuerdo";
 import SalidaKits from "./pages/SalidaKits";
 import Plantilla from "./components/Plantilla"; 
+import HistorialEquipo from './pages/HistorialEquipo.jsx';
 import Calendario from "./pages/Calendario";
 import ResumenIncidentesEventoPage from './pages/ResumenIncidentesEventoPage.jsx';
 import MarcarEventoRealizado from './pages/MarcarEventoRealizado.jsx';
@@ -81,10 +82,10 @@ export default function App() {
         />
 
         <Route
-          path="/resumen-incidentes"
+          path="/equipos/historial"
           element={
             <RutaProtegida>
-              <ResumenIncidentesEventoPage />
+              <HistorialEquipo />
             </RutaProtegida>
           }
         />
@@ -94,6 +95,15 @@ export default function App() {
         element={
           <RutaProtegida>
             <MarcarEventoRealizado />
+          </RutaProtegida>
+        }
+      />
+
+      <Route
+        path="/resumen-incidentes"
+        element={
+          <RutaProtegida>
+            <ResumenIncidentesEventoPage />
           </RutaProtegida>
         }
       />
