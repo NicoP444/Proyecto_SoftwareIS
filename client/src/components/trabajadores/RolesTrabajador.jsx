@@ -7,13 +7,13 @@ import { rolesDe } from './ayudas.js';
  * Roles del trabajador (asignar / quitar) y catálogo de roles (crear / modificar).
  */
 export default function RolesTrabajador({ trabajador, roles, onCambio, onCrearRol, onEditarRol }) {
-  const [rolElegido, setRolElegido] = useState('');
-  const [error, setError] = useState('');
-  const [trabajando, setTrabajando] = useState(false);
+  const [rolElegido, setRolElegido] = useState(''); // estado para almacenar el rol elegido por el usuario
+  const [error, setError] = useState(''); // estado para almacenar el mensaje de error, si lo hay
+  const [trabajando, setTrabajando] = useState(false); // estado para indicar si se está realizando una acción (asignar / quitar rol)
 
-  const asignados = rolesDe(trabajador);
-  const idsAsignados = asignados.map((r) => r.id_rol);
-  const sinAsignar = roles.filter((r) => !idsAsignados.includes(r.id_rol));
+  const asignados = rolesDe(trabajador); // obtenemos los roles asignados al trabajador
+  const idsAsignados = asignados.map((r) => r.id_rol);// obtenemos los ids de los roles asignados al trabajador
+  const sinAsignar = roles.filter((r) => !idsAsignados.includes(r.id_rol));// obtenemos los roles que no están asignados al trabajador
 
   // Ejecuta una llamada al back y avisa a la página para que recargue
   async function ejecutar(llamada) {
