@@ -12,6 +12,7 @@ import SalidaKits from "./pages/SalidaKits";
 import Plantilla from "./components/Plantilla"; 
 import Calendario from "./pages/Calendario";
 import ResumenIncidentesEventoPage from './pages/ResumenIncidentesEventoPage.jsx';
+import MarcarEventoRealizado from './pages/MarcarEventoRealizado.jsx';
 
 // Componente para proteger rutas privadas (solo si hay token)
 function RutaProtegida({ children }) {
@@ -87,6 +88,15 @@ export default function App() {
             </RutaProtegida>
           }
         />
+
+        <Route
+        path="/marcar-evento"
+        element={
+          <RutaProtegida>
+            <MarcarEventoRealizado />
+          </RutaProtegida>
+        }
+      />
         {/* Cada compañero agregará aquí su ruta, por ejemplo:
         <Route path="/productos" element={<RutaProtegida><Productos /></RutaProtegida>} />
         <Route path="/categorias" element={<RutaProtegida><Categorias /></RutaProtegida>} />
