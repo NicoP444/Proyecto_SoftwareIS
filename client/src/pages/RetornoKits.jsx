@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from "react-router-dom";
 import { obtenerKitsEnTerreno, registrarRetornoKit } from '../services/retornoKit.service.js';
 
 export default function RetornoKits() {

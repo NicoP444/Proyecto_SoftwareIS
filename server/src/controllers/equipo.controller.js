@@ -1,0 +1,21 @@
+import { equipoService } from '../services/equipo.service.js';
+
+export const obtenerEquipos = async (req, res) => {
+  try {
+    const equipos = await equipoService.obtenerTodos();
+    res.json(equipos);
+  } catch (error) {
+    console.error('Error al obtener equipos:', error);
+    res.status(500).json({ error: error.message || 'Error al obtener equipos' });
+  }
+};
+
+export const crearEquipo = async (req, res) => {
+  try {
+    const nuevoEquipo = await equipoService.crear(req.body);
+    res.status(201).json(nuevoEquipo);
+  } catch (error) {
+    console.error('Error al registrar equipo:', error);
+    res.status(400).json({ error: error.message || 'Error al registrar equipo' });
+  }
+};

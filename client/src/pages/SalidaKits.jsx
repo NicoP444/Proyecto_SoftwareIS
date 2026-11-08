@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+
 import { 
   obtenerKitsPorEvento, 
   registrarSalidaKit, 
@@ -8,6 +10,7 @@ import RetornoKits from './RetornoKits.jsx';
 import Incidentes from './Incidentes.jsx';
 
 export default function SalidaKits() {
+  const navigate = useNavigate();
   const [eventos, setEventos] = useState([]);
   const [idEventoSeleccionado, setIdEventoSeleccionado] = useState('');
   const [reservas, setReservas] = useState([]);
@@ -21,7 +24,21 @@ export default function SalidaKits() {
   const [responsables, setResponsables] = useState({});
   const [mensaje, setMensaje] = useState({ tipo: '', texto: '' });
   const [cargando, setCargando] = useState(false);
-  const [tabActiva, setTabActiva] = useState('salida');
+  //const [tabActiva, setTabActiva] = useState('salida');
+  const [searchParams] = useSearchParams();
+  
+  // Si la URL trae ?tab=revision, inicia directamente en 'retorno'
+  const [tabActiva, setTabActiva] = useState(() => {
+    return searchParams.get('tab') === 'revision' ? 'retorno' : 'salida';
+  });
+
+  // Escuchar si el parámetro en la URL cambia mientras estás en la página
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'revision') {
+      setTabActiva('retorno');
+    }
+  }, [searchParams]);
 
   // 1. Cargar lista de eventos y comprobar el estado de sus kits
   useEffect(() => {
@@ -154,55 +171,96 @@ export default function SalidaKits() {
 
   return (
     <div style={{ maxWidth: '800px', margin: '2rem auto', padding: '1.5rem', fontFamily: 'sans-serif' }}>
-      {/* Botones de las 3 pestañas */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '2px solid #e5e7eb' }}>
+     {/* Barra de pestañas + Botón Volver al inicio a la derecha */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '1.5rem',
+          borderBottom: '2px solid #e5e7eb',
+        }}
+      >
+        {/* Pestañas a la izquierda */}
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button
+            type="button"
+            onClick={() => { setTabActiva('salida'); setMensaje({ tipo: '', texto: '' }); }}
+            style={{
+              padding: '0.6rem 1.2rem',
+              border: 'none',
+              borderBottom: tabActiva === 'salida' ? '3px solid #2563eb' : 'none',
+              backgroundColor: 'transparent',
+              fontWeight: tabActiva === 'salida' ? 'bold' : 'normal',
+              color: tabActiva === 'salida' ? '#2563eb' : '#6b7280',
+              cursor: 'pointer',
+              fontSize: '1rem',
+            }}
+          >
+            Salida de Kits
+          </button>
+          <button
+            type="button"
+            onClick={() => { setTabActiva('retorno'); setMensaje({ tipo: '', texto: '' }); }}
+            style={{
+              padding: '0.6rem 1.2rem',
+              border: 'none',
+              borderBottom: tabActiva === 'retorno' ? '3px solid #2563eb' : 'none',
+              backgroundColor: 'transparent',
+              fontWeight: tabActiva === 'retorno' ? 'bold' : 'normal',
+              color: tabActiva === 'retorno' ? '#2563eb' : '#6b7280',
+              cursor: 'pointer',
+              fontSize: '1rem',
+            }}
+          >
+            Revisión
+          </button>
+          <button
+            type="button"
+            onClick={() => { setTabActiva('incidentes'); setMensaje({ tipo: '', texto: '' }); }}
+            style={{
+              padding: '0.6rem 1.2rem',
+              border: 'none',
+              borderBottom: tabActiva === 'incidentes' ? '3px solid #2563eb' : 'none',
+              backgroundColor: 'transparent',
+              fontWeight: tabActiva === 'incidentes' ? 'bold' : 'normal',
+              color: tabActiva === 'incidentes' ? '#2563eb' : '#6b7280',
+              cursor: 'pointer',
+              fontSize: '1rem',
+            }}
+          >
+            Incidentes
+          </button>
+        </div>
+
+       {/* Botón Volver al Inicio idéntico */}
         <button
           type="button"
-          onClick={() => { setTabActiva('salida'); setMensaje({ tipo: '', texto: '' }); }}
+          onClick={() => navigate('/home')}
           style={{
-            padding: '0.6rem 1.2rem',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            height: '36px',
+            padding: '0 16px',
+            backgroundColor: '#333c87',
+            color: '#ffffff',
             border: 'none',
-            borderBottom: tabActiva === 'salida' ? '3px solid #2563eb' : 'none',
-            backgroundColor: 'transparent',
-            fontWeight: tabActiva === 'salida' ? 'bold' : 'normal',
-            color: tabActiva === 'salida' ? '#2563eb' : '#6b7280',
+            borderRadius: '6px',
+            fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+            fontSize: '14px',
+            fontWeight: '600',
+            lineHeight: '1',
             cursor: 'pointer',
-            fontSize: '1rem',
+            boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+            whiteSpace: 'nowrap',
+            transition: 'background-color 0.15s ease',
           }}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#272e6b')}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#333c87')}
         >
-          Salida de Kits
-        </button>
-        <button
-          type="button"
-          onClick={() => { setTabActiva('retorno'); setMensaje({ tipo: '', texto: '' }); }}
-          style={{
-            padding: '0.6rem 1.2rem',
-            border: 'none',
-            borderBottom: tabActiva === 'retorno' ? '3px solid #2563eb' : 'none',
-            backgroundColor: 'transparent',
-            fontWeight: tabActiva === 'retorno' ? 'bold' : 'normal',
-            color: tabActiva === 'retorno' ? '#2563eb' : '#6b7280',
-            cursor: 'pointer',
-            fontSize: '1rem',
-          }}
-        >
-          Revisión
-        </button>
-        <button
-          type="button"
-          onClick={() => { setTabActiva('incidentes'); setMensaje({ tipo: '', texto: '' }); }}
-          style={{
-            padding: '0.6rem 1.2rem',
-            border: 'none',
-            borderBottom: tabActiva === 'incidentes' ? '3px solid #2563eb' : 'none',
-            backgroundColor: 'transparent',
-            fontWeight: tabActiva === 'incidentes' ? 'bold' : 'normal',
-            color: tabActiva === 'incidentes' ? '#2563eb' : '#6b7280',
-            cursor: 'pointer',
-            fontSize: '1rem',
-          }}
-        >
-          Incidentes
+          ← Volver al Inicio
         </button>
       </div>
 

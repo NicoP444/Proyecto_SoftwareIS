@@ -6,7 +6,7 @@ import '../styles/MenuLateral.css';
 const OPCIONES = [
   { ruta: '/home', texto: 'Panel Principal', icono: LayoutGrid },
   { ruta: '/calendario', texto: 'Calendario', icono: Calendar },
-  { ruta: '/inventario', texto: 'Inventario', icono: Package },
+  { ruta: '/equipos', texto: 'Inventario', icono: Package },
   { ruta: '/trabajadores', texto: 'Personal', icono: User },
   { ruta: '/auspiciadores', texto: 'Auspiciadores', icono: Star },
   { ruta: '/finanzas', texto: 'Finanzas', icono: DollarSign },

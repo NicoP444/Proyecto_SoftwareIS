@@ -1,8 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Landing from "./pages/Landing";
 import Home from "./pages/Home";
-import Trabajadores from "./pages/Trabajadores";//nico
-import Finanzas from "./pages/Finanzas";//nico
+import Trabajadores from "./pages/Trabajadores"; //nico
+import Finanzas from "./pages/Finanzas"; //nico
 import Auspiciadores from "./pages/Auspiciadores";
 import Coberturas from "./pages/Coberturas";
 import Incidentes from "./pages/Incidentes";
@@ -10,11 +10,14 @@ import Clientes from "./pages/Clientes";
 import RegistrarAcuerdoPage from "./pages/RegistrarAcuerdo";
 import SalidaKits from "./pages/SalidaKits";
 import Plantilla from "./components/Plantilla"; 
+import HistorialEquipo from './pages/HistorialEquipo.jsx';
 import Calendario from "./pages/Calendario";
+import ResumenIncidentesEventoPage from './pages/ResumenIncidentesEventoPage.jsx';
+import Equipos from "./pages/Equipos";
 
-// Componente para proteger rutas privadas (solo si hay token)
+// Componente para proteger rutas privadas
 function RutaProtegida({ children }) {
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("token") || localStorage.getItem("usuario");
   return token ? children : <Navigate to="/" replace />;
 }
 
@@ -22,26 +25,28 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Ruta pública */}
-        <Route path="/" element={<Landing />} />
-        {/* Rutas privadas (Inicio y módulos) */}
+       <Route path="/" element={<Landing />} />
+
+        {/* Ruta privada Home */}
         <Route
           path="/home"
           element={
             <RutaProtegida>
-              <>
-                <Home />
-              </>
+              <Home />
             </RutaProtegida>
           }
         />
-         <Route element={<Plantilla />}>
-            <Route path="/trabajadores" element={<Trabajadores />} /> /// nico
-            <Route path="/finanzas" element={<Finanzas />} /> // nico
-            <Route path="/calendario" element={<Calendario />} /> ///Jorge
-            <Route path="/auspiciadores" element={<Auspiciadores />} /> ///gene
-            <Route path="/auspiciadores/registrar-acuerdo" element={<RegistrarAcuerdoPage />} /> ///gene
-          </Route>
+
+        {/* Rutas con barra lateral */}
+        <Route element={<Plantilla />}>
+          <Route path="/trabajadores" element={<Trabajadores />} />
+          <Route path="/finanzas" element={<Finanzas />} />
+          <Route path="/calendario" element={<Calendario />} />
+          <Route path="/auspiciadores" element={<Auspiciadores />} />
+          <Route path="/auspiciadores/registrar-acuerdo" element={<RegistrarAcuerdoPage />} />
+          <Route path="/equipos" element={<Equipos />} />
+        </Route>
+
         <Route
           path="/clientes"
           element={
@@ -77,10 +82,24 @@ export default function App() {
             </RutaProtegida>
           }
         />
-        {/* Cada compañero agregará aquí su ruta, por ejemplo:
-        <Route path="/productos" element={<RutaProtegida><Productos /></RutaProtegida>} />
-        <Route path="/categorias" element={<RutaProtegida><Categorias /></RutaProtegida>} />
-        */}
+
+        <Route
+          path="/equipos/historial"
+          element={
+            <RutaProtegida>
+              <HistorialEquipo />
+            </RutaProtegida>
+          }
+        />
+        
+        <Route
+          path="/resumen-incidentes"
+          element={
+            <RutaProtegida>
+              <ResumenIncidentesEventoPage />
+            </RutaProtegida>
+          }
+        />
 
         {/* Redirección por defecto */}
         <Route path="*" element={<Navigate to="/" replace />} />
