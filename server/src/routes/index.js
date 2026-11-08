@@ -16,6 +16,7 @@ import equipoRoutes from './equipo.routes.js';
 import gastosEventosRoutes from './gastosEvento.routes.js'; // nico
 import eventoRoutes from './evento.routes.js';
 import rendicionRoutes from './rendicion.routes.js';// nico
+import remuneracionRoutes from './remumeracion.routes.js'; // nico
 import marcarEventoRoutes from './marcarEvento.routes.js';
 const router = Router();
 
@@ -36,6 +37,7 @@ router.use('/alertas', alertaKitsRoutes);
 router.use('/', desempenaRoutes);// nico
 router.use('/eventos', eventoRoutes);
 router.use('/rendiciones', rendicionRoutes);// nico
+router.use('/remuneraciones', remuneracionRoutes);// nico
 router.use('/equipos', equipoRoutes);
 router.use('/eventos-realizados', marcarEventoRoutes);
 
