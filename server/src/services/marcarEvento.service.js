@@ -71,12 +71,17 @@ export const marcarEventoRealizadoService = async (id_evento) => {
 
 // Función auxiliar para listar eventos confirmados que el Dueño pueda revisar y marcar
 export const listarEventosParaRealizarService = async () => {
+  const ahora = new Date();
+
   return await prisma.evento.findMany({
     where: {
       estado: 'CONFIRMADO',
+      fecha: {
+        lte: ahora,
+      },
     },
     include: {
-      cliente: { select: { nombre: true } },
+      cliente: true,
       asignaciones: {
         include: {
           trabajador: { select: { id_trabajador: true, nombre: true } },
