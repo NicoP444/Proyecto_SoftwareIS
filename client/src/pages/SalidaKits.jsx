@@ -233,30 +233,34 @@ export default function SalidaKits() {
           </button>
         </div>
 
-        {/* Botón Volver al Panel a la derecha */}
+       {/* Botón Volver al Inicio idéntico */}
         <button
           type="button"
           onClick={() => navigate('/home')}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '0.4rem',
-            padding: '0.55rem 1rem',
+            justifyContent: 'center',
+            gap: '6px',
+            height: '36px',
+            padding: '0 16px',
             backgroundColor: '#333c87',
             color: '#ffffff',
             border: 'none',
             borderRadius: '6px',
-            fontSize: '0.88rem',
+            fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+            fontSize: '14px',
             fontWeight: '600',
+            lineHeight: '1',
             cursor: 'pointer',
-            marginBottom: '0.3rem',
             boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-            transition: 'background-color 0.15s ease'
+            whiteSpace: 'nowrap',
+            transition: 'background-color 0.15s ease',
           }}
           onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#272e6b')}
           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#333c87')}
         >
-          ← Volver al Panel
+          ← Volver al Inicio
         </button>
       </div>
 

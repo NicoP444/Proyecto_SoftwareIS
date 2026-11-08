@@ -44,6 +44,10 @@ export default function App() {
             <Route path="/calendario" element={<Calendario />} /> ///Jorge
             <Route path="/auspiciadores" element={<Auspiciadores />} /> ///gene
             <Route path="/auspiciadores/registrar-acuerdo" element={<RegistrarAcuerdoPage />} /> ///gene
+            <Route path="/salida-kits" element={<SalidaKits />} /> ///seba
+            <Route path="/marcar-evento" element={<MarcarEventoRealizado />} /> ///seba
+            <Route path="/resumen-incidentes" element={<ResumenIncidentesEventoPage />} /> ///seba
+            <Route path="/equipos/historial" element={<HistorialEquipo />} /> ///seba
           </Route>
         <Route
           path="/clientes"
@@ -71,42 +75,7 @@ export default function App() {
             </RutaProtegida>
           }
         />
-
-        <Route
-          path="/salida-kits"
-          element={
-            <RutaProtegida>
-              <SalidaKits />
-            </RutaProtegida>
-          }
-        />
-
-        <Route
-          path="/equipos/historial"
-          element={
-            <RutaProtegida>
-              <HistorialEquipo />
-            </RutaProtegida>
-          }
-        />
-
-        <Route
-        path="/marcar-evento"
-        element={
-          <RutaProtegida>
-            <MarcarEventoRealizado />
-          </RutaProtegida>
-        }
-      />
-
-      <Route
-        path="/resumen-incidentes"
-        element={
-          <RutaProtegida>
-            <ResumenIncidentesEventoPage />
-          </RutaProtegida>
-        }
-      />
+      
         {/* Cada compañero agregará aquí su ruta, por ejemplo:
         <Route path="/productos" element={<RutaProtegida><Productos /></RutaProtegida>} />
         <Route path="/categorias" element={<RutaProtegida><Categorias /></RutaProtegida>} />

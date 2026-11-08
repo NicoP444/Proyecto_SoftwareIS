@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   listarEventosConfirmados,
   marcarEventoComoRealizado,
 } from '../services/marcarEvento.service.js';
 
 export default function MarcarEventoRealizado() {
+  const navigate = useNavigate();
   const [eventos, setEventos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [mensaje, setMensaje] = useState({ tipo: '', texto: '' });
@@ -50,31 +52,64 @@ export default function MarcarEventoRealizado() {
   };
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        backgroundColor: '#f3f4f6',
-        padding: '2.5rem 1.5rem',
-        fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      }}
-    >
+    <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '1.5rem' }}>
       <div
         style={{
-          maxWidth: '1000px',
-          margin: '0 auto',
           backgroundColor: '#ffffff',
           borderRadius: '10px',
           padding: '2rem',
           boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
         }}
       >
-        <div style={{ marginBottom: '1.5rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '1rem' }}>
-          <h1 style={{ fontSize: '1.6rem', fontWeight: 'bold', color: '#111827', margin: 0 }}>
-            Marcar Evento como Realizado (RF-P7-01)
-          </h1>
-          <p style={{ color: '#6b7280', fontSize: '0.95rem', marginTop: '0.4rem', marginBottom: 0 }}>
-            Permite cambiar eventos de <strong>Confirmado</strong> a <strong>Realizado</strong> solo después de su hora de término.
-          </p>
+        {/* Cabecera con título y botón de regreso */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            marginBottom: '1.5rem',
+            borderBottom: '1px solid #e5e7eb',
+            paddingBottom: '1rem',
+            gap: '1rem',
+          }}
+        >
+          <div>
+            <h1 style={{ fontSize: '1.6rem', fontWeight: 'bold', color: '#111827', margin: 0 }}>
+              Marcar Evento como Realizado (RF-P7-01)
+            </h1>
+            <p style={{ color: '#6b7280', fontSize: '0.95rem', marginTop: '0.4rem', marginBottom: 0 }}>
+              Permite cambiar eventos de <strong>Confirmado</strong> a <strong>Realizado</strong> solo después de su hora de término.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => navigate('/home')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              height: '36px',
+              padding: '0 16px',
+              backgroundColor: '#333c87',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '6px',
+              fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+              fontSize: '14px',
+              fontWeight: '600',
+              lineHeight: '1',
+              cursor: 'pointer',
+              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+              whiteSpace: 'nowrap',
+              transition: 'background-color 0.15s ease',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#272e6b')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#333c87')}
+          >
+            ← Volver al Inicio
+          </button>
         </div>
 
         {mensaje.texto && (
@@ -136,7 +171,7 @@ export default function MarcarEventoRealizado() {
                       <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>{ev.cliente?.nombre || 'Sin cliente'}</div>
                     </td>
                     <td style={{ padding: '0.85rem 1rem', color: '#4b5563' }}>
-                      {new Date(ev.fecha).toLocaleDateString()}
+                      {new Date(ev.fecha).toLocaleDateString('es-CL', { timeZone: 'UTC' })}
                     </td>
                     <td style={{ padding: '0.85rem 1rem', color: '#4b5563' }}>
                       {new Date(ev.hora_termino).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
