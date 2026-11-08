@@ -79,7 +79,7 @@ const ICONOS = {
 // Cada compañero agrega aquí el acceso a su módulo
 const MODULOS = [
   { ruta: "/calendario", titulo: "Calendario", icono: "calendario" },
-  { ruta: "/inventario", titulo: "Inventario", icono: "inventario" },
+  { ruta: "/equipos", titulo: "Inventario", icono: "inventario" },
   { ruta: "/trabajadores", titulo: "Personal", icono: "personal" },
   { ruta: "/auspiciadores", titulo: "Auspiciadores", icono: "auspiciadores" },
   { ruta: "/finanzas", titulo: "Finanzas", icono: "finanzas" },

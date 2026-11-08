@@ -25,10 +25,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Ruta pública */}
-        <Route path="/" element={<Plantilla />}>
-  <Route index element={<Equipos />} />
-</Route>
+       <Route path="/" element={<Landing />} />
 
         {/* Ruta privada Home */}
         <Route
@@ -40,14 +37,8 @@ export default function App() {
           }
         />
 
-        {/* Rutas con barra lateral (Plantilla protegida) */}
-        <Route
-          element={
-            <RutaProtegida>
-              <Plantilla />
-            </RutaProtegida>
-          }
-        >
+        {/* Rutas con barra lateral */}
+        <Route element={<Plantilla />}>
           <Route path="/trabajadores" element={<Trabajadores />} />
           <Route path="/finanzas" element={<Finanzas />} />
           <Route path="/calendario" element={<Calendario />} />
