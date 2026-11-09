@@ -1,8 +1,6 @@
 /**
- * Todas las llamadas al back del módulo de Personal.
- * Los componentes NUNCA usan fetch directo: siempre pasan por aquí.
- *
- * ⚠️ Si alguna ruta de tu back es distinta, cámbiala solo en este archivo.
+  * Servicio para manejar la información de los trabajadores, roles y disponibilidad.
+  * se conecta con el back
  */
 import { pedir } from './http.js'; // tu archivo con la función pedir
 

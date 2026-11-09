@@ -6,7 +6,7 @@ import '../styles/Plantilla.css';
 
 /**
  * Plantilla de las pantallas internas: barra superior + menú lateral + contenido.
- * En App.jsx se usa como ruta "padre" y cada página aparece en <Outlet />.
+ * En App.jsx se usa como ruta "padre" y cada página aparece en <Outlet /> contiene layout.
  */
 export default function Plantilla({ nombreEmpresa = 'Empresa' }) {
   const [menuAbierto, setMenuAbierto] = useState(false);

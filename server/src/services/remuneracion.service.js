@@ -9,7 +9,6 @@ const ESTADOS_EDITABLES = ['REALIZADO'];
 const aCentesimas = (valor) => Math.round(Number(valor ?? 0) * 100);
 const aNumero = (valor) => (valor === null || valor === undefined ? null : Number(valor));
 
-// Monto = porcentaje × precio, redondeado al peso (medio peso sube), con aritmética entera
 export const calcularMonto = (porcentaje, precio) =>
   Math.floor((aCentesimas(porcentaje) * precio + 5000) / 10000);
 
@@ -55,7 +54,6 @@ export const listarPorEvento = async (id_evento) => {
   };
 };
 
-// ---------- RF-P7-05: definir el porcentaje de un trabajador (y guardar su monto) ----------
 export const definirPorcentaje = async (id_asignacion, { id_dueno, porcentaje, motivo }) => {
   return prisma.$transaction(async (tx) => {
     const asignacion = await tx.asignacionPersonal.findUnique({

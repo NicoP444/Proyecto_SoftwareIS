@@ -3,7 +3,7 @@ import { X } from 'lucide-react';
 
 /**
  * Ventana emergente reutilizable (la puede usar cualquier compañero).
- * ancho: "normal" para formularios cortos, "amplio" para fichas completas.
+ * es la parte de la pantalla que aparece encima de todo lo demás, con un fondo semitransparente y un cuadro blanco con contenido.
  */
 export default function Modal({ abierto, onCerrar, titulo, ancho = 'normal', children }) {
   const fondo = useRef(null);
