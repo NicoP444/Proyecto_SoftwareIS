@@ -8,37 +8,40 @@ import { formatearFecha } from './formato.js';
 
 // Vista principal de finanzas
 
+
+
+// aqui yo declaro las vistas que se pueden seleccionar, y el texto que se muestra en la pestaña
 const VISTAS = [
   { id: 'gastos', texto: 'Gastos' },
   { id: 'rendiciones', texto: 'Rendiciones' },
   { id: 'remuneraciones', texto: 'Remuneraciones' },
-]; // definimos las vistas posibles, cada persona agrega la suya si corresponde
+];
 
-// Solo el Dueño define los porcentajes de remuneración, el Contador solo ve los valores calculados
+
 export default function FinanzasEventos() {
-  const usuario = obtenerUsuario() ?? {}; // obtenemos usuario en http.js, si no hay sesión devuelve null
-  const rol = String(usuario.rol ?? '').toUpperCase(); // puede ser 'CONTADOR', 'DUENO', 'ADMIN', etc.
-  const esContador = rol === 'CONTADOR';
-  const esDueno = rol === 'DUENO';
+  const usuario = obtenerUsuario() ?? {}; // obtenemos el usuario, si no vacio
+  const rol = String(usuario.rol ?? '').toUpperCase(); // obtenemos el rol del usuario, si no vacio
+  const esContador = rol === 'CONTADOR'; // verificamos si rol, es exactamente a "CONTADOR" y lo guardamos en una variable booleana
+  const esDueno = rol === 'DUENO'; // verificamos si rol, es exactamente a "DUENO" y lo guardamos en una variable booleana
 
-  const [eventos, setEventos] = useState([]); // eventos realizados o cerrados, el más reciente primero
-  const [idEvento, setIdEvento] = useState(''); // id del evento seleccionado, como string
-  const [vista, setVista] = useState('gastos');// 'gastos', 'rendiciones' o 'remuneraciones'
-  const [error, setError] = useState(''); // mensaje de error general, por ejemplo al listar eventos
+  const [eventos, setEventos] = useState([]); // guardamos los eventos realizados en un estado
+  const [idEvento, setIdEvento] = useState(''); // guardamos el id del evento seleccionado en un estado
+  const [vista, setVista] = useState('gastos');// guardamos la vista seleccionada en un estado
+  const [error, setError] = useState('');// guardamos los errores en un estado
 
-  // Solo eventos ya realizados el más reciente primero
   useEffect(() => {
-    listarEventos()
-      .then((lista) => {
+    listarEventos() // nos conectamos al server
+      .then((lista) => { // guardamos los datos en la lista, que me llegan del server
+        //revisa evento por evento, hasta quedarse con los realizado y cerrado
         const realizados = lista.filter((e) => ['REALIZADO', 'CERRADO'].includes(e.estado)).reverse();
-        setEventos(realizados);
-        if (realizados.length) setIdEvento(String(realizados[0].id_evento));
+        setEventos(realizados); // guardamos el array 
+        if (realizados.length) setIdEvento(String(realizados[0].id_evento)); // tomamos el evento, el primer id
       })
-      .catch((e) => setError(e.message));
+      .catch((e) => setError(e.message)); // si algo sale mal error 
   }, []);
 
 
-  const evento = eventos.find((e) => String(e.id_evento) === idEvento); 
+  const evento = eventos.find((e) => String(e.id_evento) === idEvento); // tiene que ser estrictamente id evento 
   const puedeContador = esContador && evento?.estado !== 'CERRADO';
 
   return (

@@ -7,20 +7,21 @@ import {
   listarGastos, listarRendiciones, crearGasto, modificarGasto, eliminarGasto, urlEvidencia,
 } from '../../services/gastoEvento.service.js';
 
+//seccion de gastos
 
 export default function PanelGastos({ idEvento, idContador, puedeEditar }) {
   const [gastos, setGastos] = useState([]);
-  const [trabajadores, setTrabajadores] = useState([]); // los asignados al evento
+  const [trabajadores, setTrabajadores] = useState([]);
   const [error, setError] = useState('');
   const [version, setVersion] = useState(0);
-  const [modal, setModal] = useState(null);       // { gasto }: gasto null = registrar uno nuevo
-  const [eliminar, setEliminar] = useState(null); // gasto que se va a eliminar
+  const [modal, setModal] = useState(null);
+  const [eliminar, setEliminar] = useState(null);
   const [motivo, setMotivo] = useState('');
   const [errorEliminar, setErrorEliminar] = useState('');
 
-  const recargar = () => setVersion((v) => v + 1);
+  const recargar = () => setVersion((v) => v + 1); // obligamos a que recargue la pagina
 
-  useEffect(() => {
+  useEffect(() => { // trabajamos en paralelo. 
     Promise.all([listarGastos(idEvento), listarRendiciones(idEvento)])
       .then(([g, r]) => {
         setGastos(g);
