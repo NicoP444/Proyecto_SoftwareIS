@@ -1,5 +1,11 @@
 import { useState, useEffect } from 'react';
-import { obtenerEquipos, registrarEquipo, actualizarEquipo } from '../services/equipoService';
+import {
+  obtenerEquipos,
+  registrarEquipo,
+  actualizarEquipo,
+  darDeBajaEquipo,
+  eliminarEquipo
+} from '../services/equipoService';
 
 export default function Equipos() {
   const [formData, setFormData] = useState({
@@ -19,6 +25,10 @@ export default function Equipos() {
 
   // Estado para el modal de edición (RF-P5-02)
   const [equipoEditando, setEquipoEditando] = useState(null);
+
+  // Estados para el modal de dar de baja (RF-P5-03)
+  const [equipoBaja, setEquipoBaja] = useState(null);
+  const [motivoBaja, setMotivoBaja] = useState('');
 
   const cargarEquipos = async () => {
     try {
@@ -69,7 +79,7 @@ export default function Equipos() {
     }
   };
 
-  // Abrir formulario de edición con los datos del equipo seleccionado
+  // Abrir formulario de edición con los datos del equipo seleccionado (RF-P5-02)
   const iniciarEdicion = (eq) => {
     setEquipoEditando({
       ...eq,
@@ -89,19 +99,53 @@ export default function Equipos() {
       await actualizarEquipo(equipoEditando.codigo, {
         nombre: equipoEditando.nombre,
         categoria: equipoEditando.categoria,
-        marca: equipoEditando.marca,
-        modelo: equipoEditando.modelo,
+        marca: equipoEditando.marca || null,
+        modelo: equipoEditando.modelo || null,
         fecha_compra: equipoEditando.fecha_compra,
-        valor_compra: Number(equipoEditando.valor_compra),
-        id_jefe: 1
+        valor_compra: Number(equipoEditando.valor_compra)
       });
 
       setMensaje('¡Equipo actualizado con éxito!');
       setEquipoEditando(null);
-      cargarEquipos();
+      await cargarEquipos();
     } catch (error) {
       console.error(error);
       alert(error.message || 'Error al actualizar el equipo.');
+    }
+  };
+
+  // Abrir modal de dar de baja (RF-P5-03)
+  const iniciarBaja = (eq) => {
+    setEquipoBaja(eq);
+    setMotivoBaja('');
+  };
+
+  const confirmarBaja = async (e) => {
+    e.preventDefault();
+    if (!motivoBaja.trim()) {
+      alert('Debe indicar un motivo para dar de baja el equipo.');
+      return;
+    }
+
+    try {
+      const resp = await darDeBajaEquipo(equipoBaja.codigo, motivoBaja);
+
+      // Si no registra historial previo de incidentes o revisiones, ofrece eliminarlo definitivamente
+      if (resp?.sinHistorial) {
+        const deseaEliminar = window.confirm(
+          'El equipo quedó dado de baja y no posee historial de uso registrado. ¿Deseas eliminarlo de forma definitiva del inventario?'
+        );
+        if (deseaEliminar) {
+          await eliminarEquipo(equipoBaja.codigo);
+        }
+      }
+
+      setEquipoBaja(null);
+      setMotivoBaja('');
+      await cargarEquipos();
+    } catch (error) {
+      console.error('Error al dar de baja:', error);
+      alert(error.message || 'Error al procesar la baja del equipo.');
     }
   };
 
@@ -421,6 +465,86 @@ export default function Equipos() {
         </div>
       )}
 
+      {/* MODAL DAR DE BAJA EQUIPO (RF-P5-03) */}
+      {equipoBaja && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
+            padding: '24px',
+            width: '90%',
+            maxWidth: '460px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+          }}>
+            <h2 style={{ marginTop: 0, marginBottom: '6px', fontSize: '18px', color: '#991b1b' }}>
+              Dar de baja: {equipoBaja.codigo}
+            </h2>
+            <p style={{ margin: '0 0 14px 0', fontSize: '13px', color: '#64748b' }}>
+              El equipo quedará inhabilitado para asignarse y saldrá de su kit si estaba asignado.
+            </p>
+
+            <form onSubmit={confirmarBaja} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>
+                  Motivo de la baja:
+                </label>
+                <textarea
+                  rows="3"
+                  value={motivoBaja}
+                  onChange={(e) => setMotivoBaja(e.target.value)}
+                  placeholder="Ej: Falla irreparable en lente, obsoleto..."
+                  required
+                  style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', resize: 'vertical' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setEquipoBaja(null)}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#e2e8f0',
+                    color: '#334155',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    padding: '8px 18px',
+                    backgroundColor: '#dc3545',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Confirmar Baja
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* TABLA PRINCIPAL DE INVENTARIO */}
       <div style={{
         backgroundColor: '#ffffff',
@@ -463,9 +587,10 @@ export default function Equipos() {
                   const fecha = eq.fecha_compra
                     ? new Date(eq.fecha_compra).toLocaleDateString('es-CL')
                     : '--';
+                  const esBaja = eq.estado === 'DADO_DE_BAJA';
 
                   return (
-                    <tr key={eq.codigo} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <tr key={eq.codigo} style={{ borderBottom: '1px solid #f1f5f9', opacity: esBaja ? 0.65 : 1 }}>
                       <td style={{ padding: '14px', fontWeight: '700', color: '#0f172a' }}>
                         {eq.codigo}
                       </td>
@@ -486,8 +611,8 @@ export default function Equipos() {
                       </td>
                       <td style={{ padding: '14px', textAlign: 'center' }}>
                         <span style={{
-                          backgroundColor: eq.estado === 'OPERATIVO' ? '#dcfce7' : '#fee2e2',
-                          color: eq.estado === 'OPERATIVO' ? '#166534' : '#991b1b',
+                          backgroundColor: esBaja ? '#f1f5f9' : eq.estado === 'OPERATIVO' ? '#dcfce7' : '#fee2e2',
+                          color: esBaja ? '#475569' : eq.estado === 'OPERATIVO' ? '#166534' : '#991b1b',
                           padding: '4px 10px',
                           borderRadius: '12px',
                           fontSize: '12px',
@@ -500,22 +625,43 @@ export default function Equipos() {
                         {eq.kit?.nombre || 'Repuesto (Sin kit)'}
                       </td>
                       <td style={{ padding: '14px', textAlign: 'center' }}>
-                        <button
-                          type="button"
-                          onClick={() => iniciarEdicion(eq)}
-                          style={{
-                            backgroundColor: '#f1f5f9',
-                            border: '1px solid #cbd5e1',
-                            padding: '6px 12px',
-                            borderRadius: '6px',
-                            cursor: 'pointer',
-                            fontSize: '12px',
-                            fontWeight: '600',
-                            color: '#1e293b'
-                          }}
-                        >
-                           Modificar
-                        </button>
+                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                          <button
+                            type="button"
+                            onClick={() => iniciarEdicion(eq)}
+                            style={{
+                              backgroundColor: '#f1f5f9',
+                              border: '1px solid #cbd5e1',
+                              padding: '5px 10px',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              color: '#1e293b'
+                            }}
+                          >
+                             Modificar
+                          </button>
+
+                          {!esBaja && (
+                            <button
+                              type="button"
+                              onClick={() => iniciarBaja(eq)}
+                              style={{
+                                backgroundColor: '#fee2e2',
+                                border: '1px solid #fca5a5',
+                                padding: '5px 10px',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                color: '#991b1b'
+                              }}
+                            >
+                               Dar de baja
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );

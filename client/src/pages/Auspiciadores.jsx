@@ -715,7 +715,7 @@ export default function Auspiciadores() {
                 marginBottom: '-2px'
               }}
             >
-              📋 Acuerdos de Auspicio
+               Acuerdos de Auspicio
             </button>
 
             <button
@@ -733,7 +733,7 @@ export default function Auspiciadores() {
                 marginBottom: '-2px'
               }}
             >
-              📊 Reporte Mensual de Aportes
+               Reporte Mensual de Aportes
             </button>
           </div>
 
@@ -898,7 +898,7 @@ export default function Auspiciadores() {
                                         onMouseEnter={(e) => (e.target.style.backgroundColor = '#f8fafc')}
                                         onMouseLeave={(e) => (e.target.style.backgroundColor = 'transparent')}
                                       >
-                                        💵 {esCumplido ? 'Ver / Modificar Pago' : 'Registrar Pago / Entrega'}
+                                         {esCumplido ? 'Ver / Modificar Pago' : 'Registrar Pago / Entrega'}
                                       </button>
                                     )}
 
@@ -927,7 +927,7 @@ export default function Auspiciadores() {
                                         onMouseEnter={(e) => (e.target.style.backgroundColor = '#f8fafc')}
                                         onMouseLeave={(e) => (e.target.style.backgroundColor = 'transparent')}
                                       >
-                                        📄 Ver motivo incobrable
+                                         Ver motivo incobrable
                                       </button>
                                     )}
 
@@ -951,7 +951,7 @@ export default function Auspiciadores() {
                                       onMouseEnter={(e) => (e.target.style.backgroundColor = '#f8fafc')}
                                       onMouseLeave={(e) => (e.target.style.backgroundColor = 'transparent')}
                                     >
-                                      ✏️ Modificar Acuerdo
+                                       Modificar Acuerdo
                                     </button>
 
                                     {/* Declarar Incobrable si está vencido */}
@@ -976,7 +976,7 @@ export default function Auspiciadores() {
                                         onMouseEnter={(e) => (e.target.style.backgroundColor = '#fef2f2')}
                                         onMouseLeave={(e) => (e.target.style.backgroundColor = 'transparent')}
                                       >
-                                        🚫 Declarar Incobrable
+                                         Declarar Incobrable
                                       </button>
                                     )}
 
@@ -1000,7 +1000,7 @@ export default function Auspiciadores() {
                                       onMouseEnter={(e) => (e.target.style.backgroundColor = '#fef2f2')}
                                       onMouseLeave={(e) => (e.target.style.backgroundColor = 'transparent')}
                                     >
-                                      🗑️ Eliminar Acuerdo
+                                       Eliminar Acuerdo
                                     </button>
                                   </div>
                                 )}
