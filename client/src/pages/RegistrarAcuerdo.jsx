@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, AlertTriangle, Info } from 'lucide-react';
 import { obtenerAuspiciadores } from '../services/auspiciadorService';
-import { registrarAcuerdo } from '../services/acuerdoService';
+import { registrarAcuerdo, obtenerAcuerdos } from '../services/acuerdoService';
 
 export default function RegistrarAcuerdoPage() {
   const navigate = useNavigate();
@@ -34,12 +34,10 @@ export default function RegistrarAcuerdoPage() {
         const dataAuspiciadores = await obtenerAuspiciadores();
         setAuspiciadores(dataAuspiciadores || []);
 
+        // Corrección aquí: se reemplazó el fetch directo a localhost:3000 por obtenerAcuerdos()
         try {
-          const resAcuerdos = await fetch('http://localhost:3000/api/acuerdos');
-          if (resAcuerdos.ok) {
-            const dataAcuerdos = await resAcuerdos.json();
-            setHistorialAcuerdos(Array.isArray(dataAcuerdos) ? dataAcuerdos : []);
-          }
+          const dataAcuerdos = await obtenerAcuerdos();
+          setHistorialAcuerdos(Array.isArray(dataAcuerdos) ? dataAcuerdos : []);
         } catch (e) {
           console.warn('No se pudo precargar historial de acuerdos:', e.message);
         }
@@ -331,7 +329,7 @@ export default function RegistrarAcuerdoPage() {
               />
             </div>
 
-            {/* Fecha de cumplimiento (Texto dinámico según el tipo de aporte) */}
+            {/* Fecha de cumplimiento */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label style={{ fontWeight: '600', fontSize: '13px', color: '#334155' }}>
                 {formData.tipo_aporte === 'DINERO' ? 'Fecha Límite de Pago:' : 'Fecha Límite de Entrega del Canje:'}
