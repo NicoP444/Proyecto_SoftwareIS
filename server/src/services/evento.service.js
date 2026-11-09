@@ -126,11 +126,15 @@ export const actualizarEvento = async (id, datos) => {
   if (!existente) {
     throw new Error("El evento no existe");
   }
+  if (existente.estado === "CERRADO") {
+    throw new Error("La jornada está cerrada: el evento ya no puede modificarse");
+  }
 
   const pagos = await prisma.pagoCliente.count({ where: { id_evento } });
   const duracionHoras = (termino - inicio) / (1000 * 60 * 60);
+  const estadoRecalculable = ["PENDIENTE_ADELANTO", "CONFIRMADO"].includes(existente.estado);
   const estado =
-    pagos > 0
+    pagos > 0 || !estadoRecalculable
       ? existente.estado
       : duracionHoras >= HORAS_LIMITE_ADELANTO
         ? "PENDIENTE_ADELANTO"
@@ -155,7 +159,9 @@ export const actualizarEvento = async (id, datos) => {
       include: { cliente: true },
     });
 
-    await recalcularRemuneraciones(tx, id_evento);
+    if (precio !== existente.precio_acordado) {
+      await recalcularRemuneraciones(tx, id_evento);
+    }
 
     return actualizado;
   });
