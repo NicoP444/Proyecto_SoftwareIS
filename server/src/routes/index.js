@@ -18,6 +18,7 @@ import eventoRoutes from './evento.routes.js';
 import rendicionRoutes from './rendicion.routes.js';// nico
 import remuneracionRoutes from './remumeracion.routes.js'; // nico
 import marcarEventoRoutes from './marcarEvento.routes.js';
+import inventarioRoutes from './consultarInventario.routes.js';
 const router = Router();
 
 // Aquí le decimos al servidor que use tus rutas
@@ -40,5 +41,6 @@ router.use('/rendiciones', rendicionRoutes);// nico
 router.use('/remuneraciones', remuneracionRoutes);// nico
 router.use('/equipos', equipoRoutes);
 router.use('/eventos-realizados', marcarEventoRoutes);
+router.use('/inventario', inventarioRoutes);
 
 export default router;

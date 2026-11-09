@@ -14,6 +14,8 @@ import HistorialEquipo from './pages/HistorialEquipo.jsx';
 import Calendario from "./pages/Calendario";
 import ResumenIncidentesEventoPage from './pages/ResumenIncidentesEventoPage.jsx';
 import Equipos from "./pages/Equipos";
+import ConsultaInventario from './pages/ConsultarInventario.jsx';
+import MarcarEventoRealizado from './pages/MarcarEventoRealizado.jsx';
 
 // Componente para proteger rutas privadas
 function RutaProtegida({ children }) {
@@ -45,6 +47,8 @@ export default function App() {
           <Route path="/auspiciadores" element={<Auspiciadores />} />
           <Route path="/auspiciadores/registrar-acuerdo" element={<RegistrarAcuerdoPage />} />
           <Route path="/equipos" element={<Equipos />} />
+          <Route path="/salida-kits" element={<SalidaKits />} />
+          <Route path="/marcar-evento" element={<MarcarEventoRealizado />} />
         </Route>
 
         <Route
@@ -75,15 +79,6 @@ export default function App() {
         />
 
         <Route
-          path="/salida-kits"
-          element={
-            <RutaProtegida>
-              <SalidaKits />
-            </RutaProtegida>
-          }
-        />
-
-        <Route
           path="/equipos/historial"
           element={
             <RutaProtegida>
@@ -97,6 +92,24 @@ export default function App() {
           element={
             <RutaProtegida>
               <ResumenIncidentesEventoPage />
+            </RutaProtegida>
+          }
+        />
+
+        <Route
+          path="/consulta-inventario"
+          element={
+            <RutaProtegida>
+              <ConsultaInventario />
+            </RutaProtegida>
+          }
+        />
+
+        <Route
+          path="/salida-kits"
+          element={
+            <RutaProtegida>
+              <SalidaKits />
             </RutaProtegida>
           }
         />
