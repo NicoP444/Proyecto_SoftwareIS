@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   registrarIncidente, 
   obtenerIncidentes, 
@@ -34,25 +34,29 @@ export default function Incidentes() {
   const cargarDatos = async () => {
     try {
       const resIncidentes = await obtenerIncidentes();
-      setIncidentes(resIncidentes?.data || resIncidentes || []);
+      const listaInc = resIncidentes?.data || resIncidentes || [];
+      setIncidentes(Array.isArray(listaInc) ? listaInc : []);
 
       try {
         const resEquipos = await obtenerEquipos();
-        setEquipos(resEquipos?.data || resEquipos || []);
+        const listaEq = resEquipos?.data || resEquipos || [];
+        setEquipos(Array.isArray(listaEq) ? listaEq : []);
       } catch (e) {
         console.warn('Endpoint /equipos pendiente');
       }
 
       try {
         const resEventos = await obtenerEventos();
-        setEventos(resEventos?.data || resEventos || []);
+        const listaEv = resEventos?.data || resEventos || [];
+        setEventos(Array.isArray(listaEv) ? listaEv : []);
       } catch (e) {
         console.warn('Endpoint /eventos pendiente');
       }
 
       try {
         const resTrabajadores = await obtenerTrabajadores();
-        setTrabajadores(resTrabajadores?.data || resTrabajadores || []);
+        const listaTrab = resTrabajadores?.data || resTrabajadores || [];
+        setTrabajadores(Array.isArray(listaTrab) ? listaTrab : []);
       } catch (e) {
         console.warn('Endpoint /trabajadores pendiente');
       }
@@ -82,13 +86,11 @@ export default function Incidentes() {
 
       await registrarIncidente(payload);
       
-      // Mensaje de éxito limpio sin emojis
       setMensaje({ 
         tipo: 'exito', 
         texto: 'Incidente registrado correctamente. El estado del equipo ha sido actualizado.' 
       });
       
-      // Limpiar formulario completo
       setFormData({
         codigo: '',
         tipo: 'DANO',
@@ -100,7 +102,6 @@ export default function Incidentes() {
       });
       setEquipoSeleccionado(null);
 
-      // Recargar lista para ver reflejado el nuevo incidente
       cargarDatos();
     } catch (error) {
       setMensaje({
@@ -112,40 +113,118 @@ export default function Incidentes() {
     }
   };
 
-  return (
-    <div style={{ fontFamily: 'sans-serif' }}>
-      <h2 style={{ marginBottom: '0.2rem' }}>Registrar Incidente Directo</h2>
-      <p style={{ color: '#4b5563', fontSize: '0.9rem', marginTop: '0', marginBottom: '1.5rem' }}>
-        Reporte de daño, pérdida o robo de equipos en bodega o fuera de un evento
-      </p>
+  // Badge institucional para incidentes (110px de ancho fijo)
+  const renderBadgeIncidente = (tipo) => {
+    let bg = '#fee2e2';
+    let text = '#dc2626';
+    let label = tipo;
 
-      {/* Cartel de retroalimentación sin emojis */}
+    switch (tipo) {
+      case 'DANO':
+        label = 'Dañado';
+        bg = '#fef3c7';
+        text = '#b45309';
+        break;
+      case 'PERDIDA':
+        label = 'Perdido';
+        bg = '#fee2e2';
+        text = '#dc2626';
+        break;
+      case 'ROBO':
+        label = 'Robado';
+        bg = '#fee2e2';
+        text = '#991b1b';
+        break;
+      default:
+        break;
+    }
+
+    return (
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '6px',
+          width: '110px',
+          minWidth: '110px',
+          maxWidth: '110px',
+          height: '24px',
+          padding: '0 8px',
+          boxSizing: 'border-box',
+          borderRadius: '9999px',
+          fontSize: '0.72rem',
+          fontWeight: '700',
+          lineHeight: '1',
+          whiteSpace: 'nowrap',
+          backgroundColor: bg,
+          color: text,
+          letterSpacing: '0.02em',
+          flexShrink: 0,
+        }}
+      >
+        <span
+          style={{
+            width: '6px',
+            height: '6px',
+            borderRadius: '50%',
+            backgroundColor: text,
+            flexShrink: 0,
+          }}
+        />
+        <span>{label}</span>
+      </span>
+    );
+  };
+
+  return (
+    <div>
+      <div style={{ marginBottom: '1.25rem' }}>
+        <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '700', color: '#0f172a' }}>
+          Registro de Incidentes
+        </h3>
+      </div>
+
       {mensaje && (
-        <div style={{
-          padding: '0.75rem 1rem',
-          marginBottom: '1rem',
-          borderRadius: '4px',
-          backgroundColor: mensaje.tipo === 'exito' ? '#e8f5e9' : '#ffebee',
-          color: mensaje.tipo === 'exito' ? '#2e7d32' : '#c62828',
-          border: `1px solid ${mensaje.tipo === 'exito' ? '#c8e6c9' : '#ffcdd2'}`,
-          fontSize: '0.9rem',
-          fontWeight: 500
-        }}>
+        <div
+          style={{
+            padding: '0.85rem 1rem',
+            marginBottom: '1.25rem',
+            borderRadius: '8px',
+            fontSize: '0.88rem',
+            fontWeight: '500',
+            backgroundColor: mensaje.tipo === 'exito' ? '#dcfce7' : '#fee2e2',
+            color: mensaje.tipo === 'exito' ? '#15803d' : '#991b1b',
+            border: mensaje.tipo === 'exito' ? '1px solid #bbf7d0' : '1px solid #fecaca',
+          }}
+        >
           {mensaje.texto}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {/* Fila 1 */}
-        <div style={{ display: 'flex', gap: '1rem' }}>
-          <div style={{ flex: 1 }}>
-            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.3rem', fontSize: '0.9rem' }}>
-              Tipo de Incidente:
+      {/* Formulario de registro */}
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', backgroundColor: '#ffffff', padding: '1.25rem', border: '1px solid #e2e8f0', borderRadius: '10px', marginBottom: '2rem' }}>
+        {/* Fila 1: Tipo y Evento */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Tipo de Incidente
             </label>
             <select
               value={formData.tipo}
               onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
-              style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+              style={{
+                width: '100%',
+                padding: '0.6rem 0.85rem',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0',
+                backgroundColor: '#ffffff',
+                fontSize: '0.88rem',
+                color: '#0f172a',
+                boxSizing: 'border-box',
+                outline: 'none',
+                cursor: 'pointer',
+              }}
             >
               <option value="DANO">Dañado</option>
               <option value="PERDIDA">Perdido</option>
@@ -153,20 +232,31 @@ export default function Incidentes() {
             </select>
           </div>
 
-          <div style={{ flex: 1 }}>
-            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.3rem', fontSize: '0.9rem' }}>
-              Evento (Opcional si fue en bodega):
+          <div>
+            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Evento Asociado
             </label>
             {eventos.length > 0 ? (
               <select
                 value={formData.id_evento}
                 onChange={(e) => setFormData({ ...formData, id_evento: e.target.value })}
-                style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+                style={{
+                  width: '100%',
+                  padding: '0.6rem 0.85rem',
+                  borderRadius: '8px',
+                  border: '1px solid #e2e8f0',
+                  backgroundColor: '#ffffff',
+                  fontSize: '0.88rem',
+                  color: '#0f172a',
+                  boxSizing: 'border-box',
+                  outline: 'none',
+                  cursor: 'pointer',
+                }}
               >
                 <option value="">-- Sin evento / Incidente en Bodega --</option>
                 {eventos.map((ev) => (
                   <option key={ev.id_evento} value={ev.id_evento}>
-                    Evento #{ev.id_evento} - {ev.tipo || ev.nombre}
+                    Evento #{ev.id_evento} - {ev.tipo || ev.nombre || 'Transmisión'}
                   </option>
                 ))}
               </select>
@@ -176,53 +266,95 @@ export default function Incidentes() {
                 placeholder="ID del Evento (opcional)"
                 value={formData.id_evento}
                 onChange={(e) => setFormData({ ...formData, id_evento: e.target.value })}
-                style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+                style={{
+                  width: '100%',
+                  padding: '0.6rem 0.85rem',
+                  borderRadius: '8px',
+                  border: '1px solid #e2e8f0',
+                  backgroundColor: '#f8fafc',
+                  fontSize: '0.88rem',
+                  color: '#0f172a',
+                  boxSizing: 'border-box',
+                  outline: 'none',
+                }}
               />
             )}
           </div>
         </div>
 
-        {/* Fila 2 */}
-        <div style={{ display: 'flex', gap: '1rem' }}>
-          <div style={{ flex: 1 }}>
-            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.3rem', fontSize: '0.9rem' }}>
-              Código o ID del Equipo:
+        {/* Fila 2: Equipo y Responsable */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Equipo Afectado
             </label>
             {equipos.length > 0 ? (
               <select
                 value={formData.codigo}
                 onChange={(e) => handleEquipoChange(e.target.value)}
                 required
-                style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+                style={{
+                  width: '100%',
+                  padding: '0.6rem 0.85rem',
+                  borderRadius: '8px',
+                  border: '1px solid #e2e8f0',
+                  backgroundColor: '#ffffff',
+                  fontSize: '0.88rem',
+                  color: '#0f172a',
+                  boxSizing: 'border-box',
+                  outline: 'none',
+                  cursor: 'pointer',
+                }}
               >
                 <option value="">-- Selecciona un equipo --</option>
                 {equipos.map((eq) => (
                   <option key={eq.codigo} value={eq.codigo}>
-                    {eq.codigo} - {eq.nombre} ({eq.estado})
+                    {eq.codigo} - {eq.nombre}
                   </option>
                 ))}
               </select>
             ) : (
               <input
                 type="text"
-                placeholder="Ej: CAM-001 o Micrófono..."
+                placeholder="Ej: CAM-001..."
                 value={formData.codigo}
                 onChange={(e) => setFormData({ ...formData, codigo: e.target.value })}
                 required
-                style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+                style={{
+                  width: '100%',
+                  padding: '0.6rem 0.85rem',
+                  borderRadius: '8px',
+                  border: '1px solid #e2e8f0',
+                  backgroundColor: '#f8fafc',
+                  fontSize: '0.88rem',
+                  color: '#0f172a',
+                  boxSizing: 'border-box',
+                  outline: 'none',
+                }}
               />
             )}
           </div>
 
-          <div style={{ flex: 1 }}>
-            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.3rem', fontSize: '0.9rem' }}>
-              Quién tenía el equipo / Responsable:
+          <div>
+            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Trabajador Responsable
             </label>
             {trabajadores.length > 0 ? (
               <select
                 value={formData.id_trabajador}
                 onChange={(e) => setFormData({ ...formData, id_trabajador: e.target.value })}
-                style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+                style={{
+                  width: '100%',
+                  padding: '0.6rem 0.85rem',
+                  borderRadius: '8px',
+                  border: '1px solid #e2e8f0',
+                  backgroundColor: '#ffffff',
+                  fontSize: '0.88rem',
+                  color: '#0f172a',
+                  boxSizing: 'border-box',
+                  outline: 'none',
+                  cursor: 'pointer',
+                }}
               >
                 <option value="">-- Ninguno / Bodega / No identificado --</option>
                 {trabajadores.map((t) => (
@@ -234,43 +366,64 @@ export default function Incidentes() {
             ) : (
               <input
                 type="text"
-                placeholder="Nombre del trabajador o Bodeguero..."
+                placeholder="Nombre del trabajador..."
                 value={formData.id_trabajador}
                 onChange={(e) => setFormData({ ...formData, id_trabajador: e.target.value })}
-                style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+                style={{
+                  width: '100%',
+                  padding: '0.6rem 0.85rem',
+                  borderRadius: '8px',
+                  border: '1px solid #e2e8f0',
+                  backgroundColor: '#f8fafc',
+                  fontSize: '0.88rem',
+                  color: '#0f172a',
+                  boxSizing: 'border-box',
+                  outline: 'none',
+                }}
               />
             )}
           </div>
         </div>
 
-        {/* Fila 3 */}
+        {/* Fila 3: Costo o valorización */}
         {formData.tipo === 'DANO' ? (
           <div>
-            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.3rem', fontSize: '0.9rem' }}>
-              Costo Estimado de Reparación ($):
+            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Costo Estimado de Reparación ($)
             </label>
             <input
               type="number"
+              min="0"
               placeholder="Ej: 35000"
               value={formData.costo_reparacion}
               onChange={(e) => setFormData({ ...formData, costo_reparacion: e.target.value })}
               required
-              style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+              style={{
+                width: '100%',
+                padding: '0.6rem 0.85rem',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0',
+                backgroundColor: '#ffffff',
+                fontSize: '0.88rem',
+                color: '#0f172a',
+                boxSizing: 'border-box',
+                outline: 'none',
+              }}
             />
           </div>
         ) : (
-          <div style={{ background: '#f3f4f6', padding: '0.75rem', borderRadius: '4px', borderLeft: '4px solid #333c87' }}>
-            <p style={{ margin: 0, fontSize: '0.85rem', color: '#374151' }}>
-              Se valorizará automáticamente al <strong>valor de compra</strong> registrado en el sistema.
-              {equipoSeleccionado && ` (Valor inventario: $${equipoSeleccionado.valor_compra})`}
-            </p>
+          <div style={{ backgroundColor: '#f8fafc', padding: '0.85rem 1rem', borderRadius: '8px', borderLeft: '4px solid #333c87', borderTop: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0' }}>
+            <span style={{ fontSize: '0.85rem', color: '#475569' }}>
+              La pérdida o robo se valorizará automáticamente según el <strong>valor de compra</strong> registrado en inventario.
+              {equipoSeleccionado && ` (Valor activo: $${Number(equipoSeleccionado.valor_compra || 0).toLocaleString('es-CL')})`}
+            </span>
           </div>
         )}
 
-        {/* Fila 4 */}
+        {/* Fila 4: Descripción */}
         <div>
-          <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.3rem', fontSize: '0.9rem' }}>
-            Descripción del Incidente:
+          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Descripción del Incidente
           </label>
           <textarea
             rows="3"
@@ -278,72 +431,99 @@ export default function Incidentes() {
             value={formData.descripcion}
             onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
             required
-            style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+            style={{
+              width: '100%',
+              padding: '0.6rem 0.85rem',
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0',
+              backgroundColor: '#ffffff',
+              fontSize: '0.88rem',
+              color: '#0f172a',
+              boxSizing: 'border-box',
+              outline: 'none',
+              fontFamily: 'inherit',
+            }}
           />
         </div>
 
         {/* Botón de envío */}
-        <button
-          type="submit"
-          disabled={cargando}
-          style={{
-            backgroundColor: '#333c87',
-            color: 'white',
-            border: 'none',
-            padding: '0.75rem',
-            borderRadius: '6px',
-            fontWeight: 'bold',
-            cursor: cargando ? 'not-allowed' : 'pointer',
-            fontSize: '0.95rem',
-            marginTop: '0.5rem'
-          }}
-        >
-          {cargando ? 'Registrando...' : 'Registrar Incidente en Sistema'}
-        </button>
+        <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '0.25rem' }}>
+          <button
+            type="submit"
+            disabled={cargando}
+            style={{
+              padding: '0.65rem 1.4rem',
+              backgroundColor: '#333c87',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '0.88rem',
+              fontWeight: '600',
+              cursor: cargando ? 'not-allowed' : 'pointer',
+              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+              transition: 'background-color 0.15s ease',
+            }}
+            onMouseEnter={(e) => !cargando && (e.currentTarget.style.backgroundColor = '#272e6b')}
+            onMouseLeave={(e) => !cargando && (e.currentTarget.style.backgroundColor = '#333c87')}
+          >
+            {cargando ? 'Registrando...' : 'Registrar Incidente'}
+          </button>
+        </div>
       </form>
 
       {/* Historial de Incidentes Registrados */}
-      <div style={{ marginTop: '3rem' }}>
-        <h3 style={{ marginBottom: '1rem' }}>Historial de Incidentes Registrados</h3>
-        <div style={{ overflowX: 'auto', border: '1px solid #e5e7eb', borderRadius: '6px' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+      <div>
+        <div style={{ marginBottom: '0.75rem' }}>
+          <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '700', color: '#0f172a' }}>
+            Historial de Incidentes Registrados
+          </h3>
+        </div>
+
+        <div style={{ overflowX: 'auto', maxHeight: '460px', overflowY: 'auto', border: '1px solid #f1f5f9', borderRadius: '10px' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
             <thead>
-              <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb', color: '#4b5563' }}>
-                <th style={{ padding: '0.75rem' }}>Fecha</th>
-                <th style={{ padding: '0.75rem' }}>Equipo</th>
-                <th style={{ padding: '0.75rem' }}>Tipo</th>
-                <th style={{ padding: '0.75rem' }}>Valor/Costo</th>
-                <th style={{ padding: '0.75rem' }}>Responsable</th>
-                <th style={{ padding: '0.75rem' }}>Descripción</th>
+              <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.75rem', fontWeight: '700', letterSpacing: '0.05em', position: 'sticky', top: 0, backgroundColor: '#ffffff', zIndex: 1 }}>
+                <th style={{ padding: '0.75rem 0.5rem' }}>FECHA</th>
+                <th style={{ padding: '0.75rem 0.5rem' }}>EQUIPO</th>
+                <th style={{ padding: '0.75rem 0.5rem' }}>TIPO</th>
+                <th style={{ padding: '0.75rem 0.5rem' }}>VALOR / COSTO</th>
+                <th style={{ padding: '0.75rem 0.5rem' }}>RESPONSABLE</th>
+                <th style={{ padding: '0.75rem 0.5rem' }}>DESCRIPCIÓN</th>
               </tr>
             </thead>
             <tbody>
               {incidentes.length === 0 ? (
                 <tr>
-                  <td colSpan="6" style={{ padding: '1.5rem', textAlign: 'center', color: '#6b7280' }}>
-                    No hay incidentes registrados.
+                  <td colSpan="6" style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
+                    No hay incidentes registrados en el sistema.
                   </td>
                 </tr>
               ) : (
                 incidentes.map((inc) => (
-                  <tr key={inc.id_incidente} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                    <td style={{ padding: '0.75rem' }}>{new Date(inc.fecha).toLocaleDateString()}</td>
-                    <td style={{ padding: '0.75rem' }}><strong>{inc.codigo}</strong> {inc.equipo?.nombre ? `(${inc.equipo.nombre})` : ''}</td>
-                    <td style={{ padding: '0.75rem' }}>
-                      <span style={{
-                        padding: '0.2rem 0.5rem',
-                        borderRadius: '4px',
-                        fontSize: '0.8rem',
-                        fontWeight: 'bold',
-                        backgroundColor: inc.tipo === 'DANO' ? '#fef3c7' : '#fee2e2',
-                        color: inc.tipo === 'DANO' ? '#b45309' : '#b91c1c'
-                      }}>
-                        {inc.tipo === 'DANO' ? 'DAÑO' : inc.tipo}
-                      </span>
+                  <tr key={inc.id_incidente} style={{ borderBottom: '1px solid #f8fafc' }}>
+                    <td style={{ padding: '0.85rem 0.5rem', color: '#64748b', whiteSpace: 'nowrap' }}>
+                      {new Date(inc.fecha).toLocaleDateString('es-CL')}
                     </td>
-                    <td style={{ padding: '0.75rem' }}>${Number(inc.valor || 0).toLocaleString()}</td>
-                    <td style={{ padding: '0.75rem' }}>{inc.trabajador?.nombre || 'No asignado'}</td>
-                    <td style={{ padding: '0.75rem', color: '#4b5563' }}>{inc.descripcion}</td>
+                    <td style={{ padding: '0.85rem 0.5rem', color: '#0f172a' }}>
+                      <strong>{inc.codigo}</strong>
+                      {inc.equipo?.nombre && (
+                        <span style={{ color: '#64748b', fontSize: '0.82rem', marginLeft: '6px' }}>
+                          ({inc.equipo.nombre})
+                        </span>
+                      )}
+                    </td>
+                    <td style={{ padding: '0.85rem 0.5rem' }}>
+                      {renderBadgeIncidente(inc.tipo)}
+                    </td>
+                    <td style={{ padding: '0.85rem 0.5rem', fontWeight: '700', color: '#0f172a' }}>
+                      ${Number(inc.valor || 0).toLocaleString('es-CL')}
+                    </td>
+                    <td style={{ padding: '0.85rem 0.5rem', color: '#334155' }}>
+                      {inc.trabajador?.nombre || 'Bodega / General'}
+                    </td>
+                    <td style={{ padding: '0.85rem 0.5rem', color: '#64748b' }}>
+                      {inc.descripcion}
+                    </td>
                   </tr>
                 ))
               )}

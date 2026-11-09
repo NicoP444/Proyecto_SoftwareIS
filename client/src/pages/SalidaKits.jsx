@@ -16,23 +16,18 @@ export default function SalidaKits() {
   const [reservas, setReservas] = useState([]);
   const [personal, setPersonal] = useState([]);
   
-  // Búsqueda y visualización de historial
   const [busqueda, setBusqueda] = useState('');
   const [mostrarHistorial, setMostrarHistorial] = useState(false);
 
-  // Guardar el trabajador responsable asignado a cada reserva: { [id_reserva]: id_asignacion }
   const [responsables, setResponsables] = useState({});
   const [mensaje, setMensaje] = useState({ tipo: '', texto: '' });
   const [cargando, setCargando] = useState(false);
-  //const [tabActiva, setTabActiva] = useState('salida');
   const [searchParams] = useSearchParams();
   
-  // Si la URL trae ?tab=revision, inicia directamente en 'retorno'
   const [tabActiva, setTabActiva] = useState(() => {
     return searchParams.get('tab') === 'revision' ? 'retorno' : 'salida';
   });
 
-  // Escuchar si el parámetro en la URL cambia mientras estás en la página
   useEffect(() => {
     const tab = searchParams.get('tab');
     if (tab === 'revision') {
@@ -40,7 +35,6 @@ export default function SalidaKits() {
     }
   }, [searchParams]);
 
-  // 1. Cargar lista de eventos y comprobar el estado de sus kits
   useEffect(() => {
     cargarEventos();
   }, []);
@@ -51,7 +45,6 @@ export default function SalidaKits() {
       const res = await obtenerEventos();
       const todosLosEventos = res.data || res || [];
 
-      // Consultamos los kits de cada evento
       const eventosConKits = await Promise.all(
         todosLosEventos.map(async (ev) => {
           try {
@@ -59,8 +52,6 @@ export default function SalidaKits() {
             const dataDetalle = detalle.data || detalle;
             const reservasEv = dataDetalle.reservas || [];
 
-            // Un evento está ACTIVO para despacho solo si tiene kits en terreno
-            // o kits DISPONIBLES que aún no han sido despachados
             const estaActivo = reservasEv.some((r) => {
               const estaEnTerreno = r.kit?.estado === 'EN_TERRENO';
               const pendienteSalida = !r.salida && r.kit?.estado === 'DISPONIBLE';
@@ -86,7 +77,6 @@ export default function SalidaKits() {
     }
   };
 
-  // 2. Separar eventos activos vs historial
   const { eventosActivos, eventosFinalizados } = useMemo(() => {
     const activos = [];
     const finalizados = [];
@@ -102,7 +92,6 @@ export default function SalidaKits() {
     return { eventosActivos: activos, eventosFinalizados: finalizados };
   }, [eventos]);
 
-  // Eventos activos filtrados por el buscador
   const eventosFiltrados = useMemo(() => {
     if (!busqueda.trim()) return eventosActivos;
     const q = busqueda.toLowerCase();
@@ -113,7 +102,6 @@ export default function SalidaKits() {
     );
   }, [eventosActivos, busqueda]);
 
-  // 3. Al seleccionar un evento, cargar sus kits reservados y personal
   const manejarCambioEvento = async (e) => {
     const id = typeof e === 'object' && e.target ? e.target.value : e;
     setIdEventoSeleccionado(id);
@@ -144,7 +132,6 @@ export default function SalidaKits() {
     }));
   };
 
-  // 4. Registrar la salida del kit
   const handleRegistrarSalida = async (idReserva) => {
     const idAsignacion = responsables[idReserva];
     if (!idAsignacion) {
@@ -161,7 +148,6 @@ export default function SalidaKits() {
       });
 
       setMensaje({ tipo: 'exito', texto: 'Salida de kit registrada con éxito' });
-      
       await cargarEventos();
       manejarCambioEvento(idEventoSeleccionado);
     } catch (error) {
@@ -169,316 +155,402 @@ export default function SalidaKits() {
     }
   };
 
-  return (
-    <div style={{ maxWidth: '800px', margin: '2rem auto', padding: '1.5rem', fontFamily: 'sans-serif' }}>
-     {/* Barra de pestañas + Botón Volver al inicio a la derecha */}
-      <div
+  // Badge institucional
+  const renderBadge = (estado) => {
+    let bg = '#f1f5f9';
+    let text = '#475569';
+    let label = estado;
+
+    switch (estado) {
+      case 'OPERATIVO':
+      case 'DISPONIBLE':
+        bg = '#dcfce7';
+        text = '#15803d';
+        label = estado === 'DISPONIBLE' ? 'Disponible' : 'Operativo';
+        break;
+      case 'EN_TERRENO':
+        bg = '#dbeafe';
+        text = '#1d4ed8';
+        label = 'En terreno';
+        break;
+      case 'INCOMPLETO':
+        bg = '#fee2e2';
+        text = '#dc2626';
+        label = 'Incompleto';
+        break;
+      default:
+        break;
+    }
+
+    return (
+      <span
         style={{
-          display: 'flex',
-          justifyContent: 'space-between',
+          display: 'inline-flex',
           alignItems: 'center',
-          marginBottom: '1.5rem',
-          borderBottom: '2px solid #e5e7eb',
+          justifyContent: 'center',
+          gap: '6px',
+          width: '110px',
+          minWidth: '110px',
+          maxWidth: '110px',
+          height: '24px',
+          padding: '0 8px',
+          boxSizing: 'border-box',
+          borderRadius: '9999px',
+          fontSize: '0.72rem',
+          fontWeight: '700',
+          lineHeight: '1',
+          whiteSpace: 'nowrap',
+          backgroundColor: bg,
+          color: text,
+          letterSpacing: '0.02em',
+          flexShrink: 0,
         }}
       >
-        {/* Pestañas a la izquierda */}
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button
-            type="button"
-            onClick={() => { setTabActiva('salida'); setMensaje({ tipo: '', texto: '' }); }}
-            style={{
-              padding: '0.6rem 1.2rem',
-              border: 'none',
-              borderBottom: tabActiva === 'salida' ? '3px solid #2563eb' : 'none',
-              backgroundColor: 'transparent',
-              fontWeight: tabActiva === 'salida' ? 'bold' : 'normal',
-              color: tabActiva === 'salida' ? '#2563eb' : '#6b7280',
-              cursor: 'pointer',
-              fontSize: '1rem',
-            }}
-          >
-            Salida de Kits
-          </button>
-          <button
-            type="button"
-            onClick={() => { setTabActiva('retorno'); setMensaje({ tipo: '', texto: '' }); }}
-            style={{
-              padding: '0.6rem 1.2rem',
-              border: 'none',
-              borderBottom: tabActiva === 'retorno' ? '3px solid #2563eb' : 'none',
-              backgroundColor: 'transparent',
-              fontWeight: tabActiva === 'retorno' ? 'bold' : 'normal',
-              color: tabActiva === 'retorno' ? '#2563eb' : '#6b7280',
-              cursor: 'pointer',
-              fontSize: '1rem',
-            }}
-          >
-            Revisión
-          </button>
-          <button
-            type="button"
-            onClick={() => { setTabActiva('incidentes'); setMensaje({ tipo: '', texto: '' }); }}
-            style={{
-              padding: '0.6rem 1.2rem',
-              border: 'none',
-              borderBottom: tabActiva === 'incidentes' ? '3px solid #2563eb' : 'none',
-              backgroundColor: 'transparent',
-              fontWeight: tabActiva === 'incidentes' ? 'bold' : 'normal',
-              color: tabActiva === 'incidentes' ? '#2563eb' : '#6b7280',
-              cursor: 'pointer',
-              fontSize: '1rem',
-            }}
-          >
-            Incidentes
-          </button>
-        </div>
+        <span
+          style={{
+            width: '6px',
+            height: '6px',
+            borderRadius: '50%',
+            backgroundColor: text,
+            flexShrink: 0,
+          }}
+        />
+        <span>{label}</span>
+      </span>
+    );
+  };
 
-       {/* Botón Volver al Inicio idéntico */}
+  return (
+    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1.5rem', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+      
+      {/* Cabecera superior unificada */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <div>
+          <h1 style={{ fontSize: '1.65rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
+            Control de Salidas y Retornos
+          </h1>
+        </div>
         <button
           type="button"
           onClick={() => navigate('/home')}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px',
-            height: '36px',
-            padding: '0 16px',
+            gap: '0.4rem',
+            padding: '0.55rem 1.1rem',
             backgroundColor: '#333c87',
             color: '#ffffff',
             border: 'none',
             borderRadius: '6px',
-            fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-            fontSize: '14px',
+            fontSize: '0.88rem',
             fontWeight: '600',
-            lineHeight: '1',
             cursor: 'pointer',
             boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-            whiteSpace: 'nowrap',
             transition: 'background-color 0.15s ease',
           }}
           onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#272e6b')}
           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#333c87')}
         >
-          ← Volver al Inicio
+          ← Volver al inicio
         </button>
       </div>
 
-      {mensaje.texto && (
-        <div style={{
-          padding: '0.75rem',
-          marginBottom: '1rem',
-          borderRadius: '4px',
-          backgroundColor: mensaje.tipo === 'error' ? '#ffebee' : '#e8f5e9',
-          color: mensaje.tipo === 'error' ? '#c62828' : '#2e7d32',
-        }}>
-          {mensaje.texto}
-        </div>
-      )}
-
-      {/* PESTAÑA 1: SALIDA DE KITS */}
-      {tabActiva === 'salida' && (
-        <>
-          <h2 style={{ marginBottom: '0.2rem' }}>Registrar Salida de Kits de Bodega</h2>
-          <p style={{ color: '#4b5563', fontSize: '0.9rem', marginTop: '0', marginBottom: '1.5rem' }}>
-            Entrega de kits antes de la transmisión
-          </p>
-
-          <div style={{ marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <label style={{ fontWeight: 'bold' }}>
-              Seleccionar Evento Activo:
-            </label>
-
-            <input
-              type="text"
-              placeholder="Buscar evento por nombre o ID..."
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                borderRadius: '4px',
-                border: '1px solid #d1d5db',
-                fontSize: '0.9rem',
-                boxSizing: 'border-box'
+      {/* Contenedor tipo Tarjeta */}
+      <div style={{ backgroundColor: '#ffffff', borderRadius: '14px', border: '1px solid #eef2f6', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
+        
+        {/* Barra de pestañas */}
+        <div style={{ display: 'flex', borderBottom: '1px solid #f1f5f9', padding: '0 1.5rem', backgroundColor: '#ffffff', overflow: 'hidden' }}>
+          {[
+            { id: 'salida', label: 'Salida de Kits' },
+            { id: 'retorno', label: 'Revisión y Retorno' },
+            { id: 'incidentes', label: 'Registro de Incidentes' },
+          ].map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => {
+                setTabActiva(item.id);
+                setMensaje({ tipo: '', texto: '' });
               }}
-            />
-
-            <select
-              value={idEventoSeleccionado}
-              onChange={manejarCambioEvento}
-              style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc' }}
+              style={{
+                padding: '1.1rem 1.3rem',
+                border: 'none',
+                background: 'none',
+                cursor: 'pointer',
+                fontWeight: tabActiva === item.id ? '700' : '500',
+                fontSize: '0.92rem',
+                color: tabActiva === item.id ? '#333c87' : '#64748b',
+                borderBottom: tabActiva === item.id ? '2.5px solid #333c87' : '2.5px solid transparent',
+                marginBottom: '-1px',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.15s ease',
+              }}
             >
-              <option value="">-- Selecciona un evento --</option>
-              {eventosFiltrados.map((ev) => (
-                <option key={ev.id_evento} value={ev.id_evento}>
-                  {`Evento #${ev.id_evento} - ${ev.tipo || ev.nombre || 'Transmisión'} (${new Date(ev.fecha).toLocaleDateString()})`}
-                </option>
-              ))}
-            </select>
-          </div>
+              {item.label}
+            </button>
+          ))}
+        </div>
 
-          {cargando && <p>Cargando información del evento...</p>}
+        <div style={{ padding: '1.5rem' }}>
+          {mensaje.texto && (
+            <div
+              style={{
+                padding: '0.85rem 1rem',
+                marginBottom: '1.25rem',
+                borderRadius: '8px',
+                fontSize: '0.88rem',
+                fontWeight: '500',
+                backgroundColor: mensaje.tipo === 'error' ? '#fee2e2' : '#dcfce7',
+                color: mensaje.tipo === 'error' ? '#991b1b' : '#15803d',
+                border: mensaje.tipo === 'error' ? '1px solid #fecaca' : '1px solid #bbf7d0',
+              }}
+            >
+              {mensaje.texto}
+            </div>
+          )}
 
-          {Boolean(idEventoSeleccionado) && !cargando && (
+          {/* PESTAÑA 1: SALIDA DE KITS */}
+          {tabActiva === 'salida' && (
             <div>
-              <h3>Kits Asignados al Evento</h3>
-              {reservas.length === 0 ? (
-                <p>No hay kits reservados para este evento.</p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {reservas.map((reserva) => {
-                    const yaSalio = Boolean(reserva.salida || reserva.kit?.estado === 'EN_TERRENO');
-                    const estaIncompleto = reserva.kit?.estado === 'INCOMPLETO';
+              {/* Filtros de selección de evento */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Filtrar Eventos
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Buscar evento por nombre o ID..."
+                    value={busqueda}
+                    onChange={(e) => setBusqueda(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.6rem 0.85rem',
+                      borderRadius: '8px',
+                      border: '1px solid #e2e8f0',
+                      backgroundColor: '#f8fafc',
+                      fontSize: '0.88rem',
+                      color: '#0f172a',
+                      boxSizing: 'border-box',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
 
-                    return (
-                      <div
-                        key={reserva.id_reserva}
-                        style={{
-                          border: '1px solid #ddd',
-                          borderRadius: '6px',
-                          padding: '1rem',
-                          backgroundColor: estaIncompleto ? '#fff1f2' : (yaSalio ? '#f9f9f9' : '#fff'),
-                          borderColor: estaIncompleto ? '#fecdd3' : '#ddd',
-                        }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div>
-                            <strong>{reserva.kit?.nombre}</strong> (Nivel: {reserva.kit?.nivel})
-                            
-                            {(!yaSalio || reserva.kit?.estado === 'EN_TERRENO' || estaIncompleto) && (
-                              <div style={{ fontSize: '0.9rem', color: '#555', marginTop: '4px' }}>
-                                Estado:{' '}
-                                <span style={{
-                                  fontWeight: 'bold',
-                                  color: estaIncompleto ? '#e11d48' : (yaSalio ? '#d97706' : '#16a34a')
-                                }}>
-                                  {reserva.kit?.estado ? reserva.kit.estado.replace(/_/g, ' ') : ''}
-                                </span>
-                              </div>
-                            )}
-                          </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Seleccionar Evento Activo
+                  </label>
+                  <select
+                    value={idEventoSeleccionado}
+                    onChange={manejarCambioEvento}
+                    style={{
+                      width: '100%',
+                      padding: '0.6rem 0.85rem',
+                      borderRadius: '8px',
+                      border: '1px solid #e2e8f0',
+                      backgroundColor: '#ffffff',
+                      fontSize: '0.88rem',
+                      color: '#0f172a',
+                      boxSizing: 'border-box',
+                      outline: 'none',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <option value="">-- Selecciona un evento para despacho --</option>
+                    {eventosFiltrados.map((ev) => (
+                      <option key={ev.id_evento} value={ev.id_evento}>
+                        {`Evento #${ev.id_evento} - ${ev.tipo || ev.nombre || 'Transmisión'} (${new Date(ev.fecha).toLocaleDateString()})`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
 
-                          {estaIncompleto ? (
-                            <div style={{ textAlign: 'right' }}>
-                              <span style={{ fontSize: '0.85rem', color: '#e11d48', fontWeight: 600 }}>
-                                Kit Incompleto
+              {cargando && (
+                <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b', fontSize: '0.92rem' }}>
+                  Cargando información operativa...
+                </div>
+              )}
+
+              {Boolean(idEventoSeleccionado) && !cargando && (
+                <div>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: '700', color: '#0f172a', margin: '0 0 0.85rem 0' }}>
+                    Kits Asignados al Evento
+                  </h3>
+
+                  {reservas.length === 0 ? (
+                    <div style={{ padding: '1.5rem', textAlign: 'center', backgroundColor: '#f8fafc', borderRadius: '10px', color: '#94a3b8', fontSize: '0.88rem' }}>
+                      No hay kits reservados para este evento.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      {reservas.map((reserva) => {
+                        const yaSalio = Boolean(reserva.salida || reserva.kit?.estado === 'EN_TERRENO');
+                        const estaIncompleto = reserva.kit?.estado === 'INCOMPLETO';
+
+                        return (
+                          <div
+                            key={reserva.id_reserva}
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              padding: '1.1rem 1.25rem',
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '10px',
+                              backgroundColor: estaIncompleto ? '#fff1f2' : '#ffffff',
+                              transition: 'all 0.15s ease',
+                            }}
+                          >
+                            <div>
+                              <strong style={{ fontSize: '0.98rem', color: '#0f172a', display: 'block' }}>
+                                {reserva.kit?.nombre}
+                              </strong>
+                              <span style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '3px', display: 'block' }}>
+                                Nivel: <strong>{reserva.kit?.nivel}</strong> • Recargo: {reserva.kit?.recargo_pct}%
                               </span>
                             </div>
-                          ) : yaSalio ? (
-                            reserva.kit?.estado === 'EN_TERRENO' ? (
-                              <div style={{ textAlign: 'right' }}>
-                                <span style={{ fontSize: '0.85rem', color: '#666', fontStyle: 'italic', display: 'block' }}>
-                                  En terreno
-                                </span>
-                                {reserva.salida?.responsable?.trabajador?.nombre && (
-                                  <span style={{ fontSize: '0.85rem', color: '#1f2937', fontWeight: 600, display: 'block', marginTop: '2px' }}>
-                                    Responsable: {reserva.salida.responsable.trabajador.nombre}
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                              {estaIncompleto ? (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                  {renderBadge('INCOMPLETO')}
+                                  <span style={{ fontSize: '0.82rem', color: '#dc2626', fontWeight: '600' }}>
+                                    Requiere reposición
                                   </span>
-                                )}
-                              </div>
-                            ) : (
-                              <div style={{ textAlign: 'right' }}>
-                                <span style={{ fontSize: '0.85rem', color: '#16a34a', fontWeight: 600, display: 'block' }}>
-                                  ✓ Retornado a Bodega
-                                </span>
-                              </div>
-                            )
-                          ) : reserva.kit?.estado === 'DISPONIBLE' ? (
-                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                              <select
-                                value={responsables[reserva.id_reserva] || ''}
-                                onChange={(e) => manejarCambioResponsable(reserva.id_reserva, e.target.value)}
-                                style={{ padding: '0.4rem', borderRadius: '4px', border: '1px solid #ccc' }}
-                              >
-                                <option value="">-- Seleccionar Responsable --</option>
-                                {personal.map((asig) => (
-                                  <option key={asig.id_asignacion} value={asig.id_asignacion}>
-                                    {asig.trabajador.nombre} ({asig.rol?.nombre_rol || 'Personal'})
-                                  </option>
-                                ))}
-                              </select>
+                                </div>
+                              ) : yaSalio ? (
+                                reserva.kit?.estado === 'EN_TERRENO' ? (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                    {renderBadge('EN_TERRENO')}
+                                    {reserva.salida?.responsable?.trabajador?.nombre && (
+                                      <span style={{ fontSize: '0.82rem', color: '#475569' }}>
+                                        Resp: <strong>{reserva.salida.responsable.trabajador.nombre}</strong>
+                                      </span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    {renderBadge('DISPONIBLE')}
+                                    <span style={{ fontSize: '0.82rem', color: '#16a34a', fontWeight: '600' }}>
+                                      Retornado
+                                    </span>
+                                  </div>
+                                )
+                              ) : reserva.kit?.estado === 'DISPONIBLE' ? (
+                                <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+                                  {renderBadge('DISPONIBLE')}
+                                  <select
+                                    value={responsables[reserva.id_reserva] || ''}
+                                    onChange={(e) => manejarCambioResponsable(reserva.id_reserva, e.target.value)}
+                                    style={{
+                                      padding: '0.5rem 0.75rem',
+                                      borderRadius: '6px',
+                                      border: '1px solid #cbd5e1',
+                                      fontSize: '0.85rem',
+                                      backgroundColor: '#f8fafc',
+                                      color: '#0f172a',
+                                      outline: 'none',
+                                    }}
+                                  >
+                                    <option value="">-- Asignar Responsable --</option>
+                                    {personal.map((asig) => (
+                                      <option key={asig.id_asignacion} value={asig.id_asignacion}>
+                                        {asig.trabajador.nombre} ({asig.rol?.nombre_rol || 'Personal'})
+                                      </option>
+                                    ))}
+                                  </select>
 
-                              <button
-                                onClick={() => handleRegistrarSalida(reserva.id_reserva)}
-                                style={{
-                                  backgroundColor: '#2563eb',
-                                  color: 'white',
-                                  border: 'none',
-                                  padding: '0.5rem 1rem',
-                                  borderRadius: '4px',
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                Registrar Salida
-                              </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRegistrarSalida(reserva.id_reserva)}
+                                    style={{
+                                      backgroundColor: '#333c87',
+                                      color: '#ffffff',
+                                      border: 'none',
+                                      padding: '0.5rem 1rem',
+                                      borderRadius: '6px',
+                                      cursor: 'pointer',
+                                      fontSize: '0.85rem',
+                                      fontWeight: '600',
+                                      transition: 'background-color 0.15s ease',
+                                    }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#272e6b')}
+                                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#333c87')}
+                                  >
+                                    Despachar Kit
+                                  </button>
+                                </div>
+                              ) : null}
                             </div>
-                          ) : null}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Historial de Eventos Concluidos */}
-          {eventosFinalizados.length > 0 && (
-            <div style={{ marginTop: '3rem', borderTop: '1px solid #e5e7eb', paddingTop: '1.5rem' }}>
-              <button
-                type="button"
-                onClick={() => setMostrarHistorial(!mostrarHistorial)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#4b5563',
-                  fontWeight: 600,
-                  fontSize: '0.95rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: 0
-                }}
-              >
-                <span>{mostrarHistorial ? '▼' : '▶'}</span>
-                Historial de Eventos Concluidos ({eventosFinalizados.length})
-              </button>
-
-              {mostrarHistorial && (
-                <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {eventosFinalizados.map((ev) => (
-                    <div 
-                      key={ev.id_evento}
-                      onClick={() => manejarCambioEvento(ev.id_evento)}
-                      style={{
-                        padding: '0.6rem 1rem',
-                        backgroundColor: '#f3f4f6',
-                        borderRadius: '4px',
-                        fontSize: '0.85rem',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
-                      }}
-                    >
-                      <span><strong>Evento #{ev.id_evento}</strong> - {ev.tipo || ev.nombre || 'Transmisión'}</span>
-                      <span style={{ color: '#6b7280' }}>{new Date(ev.fecha).toLocaleDateString()}</span>
+                          </div>
+                        );
+                      })}
                     </div>
-                  ))}
+                  )}
+                </div>
+              )}
+
+              {/* Historial de Eventos Concluidos */}
+              {eventosFinalizados.length > 0 && (
+                <div style={{ marginTop: '2.5rem', borderTop: '1px solid #f1f5f9', paddingTop: '1.25rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setMostrarHistorial(!mostrarHistorial)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#64748b',
+                      fontWeight: '700',
+                      fontSize: '0.88rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      padding: 0,
+                    }}
+                  >
+                    <span>{mostrarHistorial ? '▼' : '▶'}</span>
+                    Historial de Eventos Despachados ({eventosFinalizados.length})
+                  </button>
+
+                  {mostrarHistorial && (
+                    <div style={{ marginTop: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '240px', overflowY: 'auto' }}>
+                      {eventosFinalizados.map((ev) => (
+                        <div 
+                          key={ev.id_evento}
+                          onClick={() => manejarCambioEvento(ev.id_evento)}
+                          style={{
+                            padding: '0.75rem 1rem',
+                            backgroundColor: '#f8fafc',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '8px',
+                            fontSize: '0.85rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                          }}
+                        >
+                          <span style={{ color: '#0f172a' }}><strong>Evento #{ev.id_evento}</strong> — {ev.tipo || ev.nombre || 'Transmisión'}</span>
+                          <span style={{ color: '#64748b' }}>{new Date(ev.fecha).toLocaleDateString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           )}
-        </>
-      )}
 
-      {/* PESTAÑA 2: REVISIÓN DE KITS */}
-      {tabActiva === 'retorno' && <RetornoKits />}
+          {/* PESTAÑA 2: REVISIÓN DE KITS */}
+          {tabActiva === 'retorno' && <RetornoKits />}
 
-      {/* PESTAÑA 3: INCIDENTES */}
-      {tabActiva === 'incidentes' && <Incidentes />}
+          {/* PESTAÑA 3: INCIDENTES */}
+          {tabActiva === 'incidentes' && <Incidentes />}
+        </div>
+      </div>
     </div>
   );
 }

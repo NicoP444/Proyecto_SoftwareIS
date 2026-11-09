@@ -52,76 +52,61 @@ export default function MarcarEventoRealizado() {
   };
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '1.5rem' }}>
+    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1.5rem', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+      
+      {/* Cabecera superior unificada */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <div>
+          <h1 style={{ fontSize: '1.65rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
+            Eventos Pendientes de Cierre
+          </h1>
+        </div>
+        <button
+          type="button"
+          onClick={() => navigate('/home')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            padding: '0.55rem 1.1rem',
+            backgroundColor: '#333c87',
+            color: '#ffffff',
+            border: 'none',
+            borderRadius: '6px',
+            fontSize: '0.88rem',
+            fontWeight: '600',
+            cursor: 'pointer',
+            boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+            transition: 'background-color 0.15s ease',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#272e6b')}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#333c87')}
+        >
+          ← Volver al inicio
+        </button>
+      </div>
+
+      {/* Tarjeta contenedora institucional */}
       <div
         style={{
           backgroundColor: '#ffffff',
-          borderRadius: '10px',
-          padding: '2rem',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+          borderRadius: '14px',
+          border: '1px solid #eef2f6',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)',
+          padding: '1.5rem',
         }}
       >
-        {/* Cabecera con título y botón de regreso */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            marginBottom: '1.5rem',
-            borderBottom: '1px solid #e5e7eb',
-            paddingBottom: '1rem',
-            gap: '1rem',
-          }}
-        >
-          <div>
-            <h1 style={{ fontSize: '1.6rem', fontWeight: 'bold', color: '#111827', margin: 0 }}>
-              Marcar Evento como Realizado (RF-P7-01)
-            </h1>
-            <p style={{ color: '#6b7280', fontSize: '0.95rem', marginTop: '0.4rem', marginBottom: 0 }}>
-              Permite cambiar eventos de <strong>Confirmado</strong> a <strong>Realizado</strong> solo después de su hora de término.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => navigate('/home')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              height: '36px',
-              padding: '0 16px',
-              backgroundColor: '#333c87',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '6px',
-              fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-              fontSize: '14px',
-              fontWeight: '600',
-              lineHeight: '1',
-              cursor: 'pointer',
-              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-              whiteSpace: 'nowrap',
-              transition: 'background-color 0.15s ease',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#272e6b')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#333c87')}
-          >
-            ← Volver al Inicio
-          </button>
-        </div>
-
         {mensaje.texto && (
           <div
             style={{
-              padding: '0.9rem 1.2rem',
-              marginBottom: '1.5rem',
-              borderRadius: '6px',
-              backgroundColor: mensaje.tipo === 'exito' ? '#dcfce7' : '#fee2e2',
-              color: mensaje.tipo === 'exito' ? '#166534' : '#991b1b',
+              padding: '0.85rem 1rem',
+              marginBottom: '1.25rem',
+              borderRadius: '8px',
+              fontSize: '0.88rem',
               fontWeight: '500',
-              border: `1px solid ${mensaje.tipo === 'exito' ? '#86efac' : '#fca5a5'}`,
+              backgroundColor: mensaje.tipo === 'exito' ? '#dcfce7' : '#fee2e2',
+              color: mensaje.tipo === 'exito' ? '#15803d' : '#991b1b',
+              border: mensaje.tipo === 'exito' ? '1px solid #bbf7d0' : '1px solid #fecaca',
             }}
           >
             {mensaje.texto}
@@ -129,70 +114,98 @@ export default function MarcarEventoRealizado() {
         )}
 
         {cargando ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#6b7280', fontSize: '1rem' }}>
+          <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b', fontSize: '0.92rem' }}>
             Cargando eventos confirmados...
           </div>
         ) : eventos.length === 0 ? (
           <div
             style={{
-              padding: '3rem',
+              padding: '2.5rem',
               textAlign: 'center',
-              backgroundColor: '#f9fafb',
-              borderRadius: '8px',
-              border: '1px dashed #d1d5db',
-              color: '#6b7280',
+              backgroundColor: '#f8fafc',
+              borderRadius: '10px',
+              border: '1px solid #e2e8f0',
+              color: '#94a3b8',
+              fontSize: '0.9rem',
             }}
           >
-            No hay eventos en estado Confirmado pendientes de cierre.
+            No hay eventos en estado Confirmado pendientes de cierre en este momento.
           </div>
         ) : (
-          <div style={{ overflowX: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+          <div
+            style={{
+              overflowX: 'auto',
+              maxHeight: '460px',
+              overflowY: 'auto',
+              border: '1px solid #f1f5f9',
+              borderRadius: '10px',
+            }}
+          >
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
               <thead>
-                <tr style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-                  <th style={{ padding: '0.85rem 1rem', color: '#374151', fontWeight: '600' }}>ID</th>
-                  <th style={{ padding: '0.85rem 1rem', color: '#374151', fontWeight: '600' }}>Tipo / Cliente</th>
-                  <th style={{ padding: '0.85rem 1rem', color: '#374151', fontWeight: '600' }}>Fecha</th>
-                  <th style={{ padding: '0.85rem 1rem', color: '#374151', fontWeight: '600' }}>Hora Término</th>
-                  <th style={{ padding: '0.85rem 1rem', color: '#374151', fontWeight: '600' }}>Personal Asignado</th>
-                  <th style={{ padding: '0.85rem 1rem', textAlign: 'center', color: '#374151', fontWeight: '600' }}>
-                    Acción
-                  </th>
+                <tr
+                  style={{
+                    borderBottom: '1px solid #e2e8f0',
+                    color: '#64748b',
+                    fontSize: '0.75rem',
+                    fontWeight: '700',
+                    letterSpacing: '0.05em',
+                    position: 'sticky',
+                    top: 0,
+                    backgroundColor: '#ffffff',
+                    zIndex: 1,
+                  }}
+                >
+                  <th style={{ padding: '0.75rem 0.75rem' }}>ID</th>
+                  <th style={{ padding: '0.75rem 0.75rem' }}>TIPO / CLIENTE</th>
+                  <th style={{ padding: '0.75rem 0.75rem' }}>FECHA</th>
+                  <th style={{ padding: '0.75rem 0.75rem' }}>HORA TÉRMINO</th>
+                  <th style={{ padding: '0.75rem 0.75rem' }}>PERSONAL ASIGNADO</th>
+                  <th style={{ padding: '0.75rem 0.75rem', textAlign: 'center' }}>ACCIÓN</th>
                 </tr>
               </thead>
               <tbody>
                 {eventos.map((ev) => (
-                  <tr key={ev.id_evento} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                    <td style={{ padding: '0.85rem 1rem', fontWeight: 'bold', color: '#111827' }}>
+                  <tr key={ev.id_evento} style={{ borderBottom: '1px solid #f8fafc' }}>
+                    <td style={{ padding: '0.85rem 0.75rem', fontWeight: '700', color: '#0f172a' }}>
                       #{ev.id_evento}
                     </td>
-                    <td style={{ padding: '0.85rem 1rem' }}>
-                      <div style={{ fontWeight: '600', color: '#1f2937' }}>{ev.tipo}</div>
-                      <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>{ev.cliente?.nombre || 'Sin cliente'}</div>
+                    <td style={{ padding: '0.85rem 0.75rem' }}>
+                      <div style={{ fontWeight: '600', color: '#0f172a' }}>{ev.tipo}</div>
+                      <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>
+                        {ev.cliente?.nombre || 'Sin cliente asignado'}
+                      </div>
                     </td>
-                    <td style={{ padding: '0.85rem 1rem', color: '#4b5563' }}>
+                    <td style={{ padding: '0.85rem 0.75rem', color: '#64748b', whiteSpace: 'nowrap' }}>
                       {new Date(ev.fecha).toLocaleDateString('es-CL', { timeZone: 'UTC' })}
                     </td>
-                    <td style={{ padding: '0.85rem 1rem', color: '#4b5563' }}>
+                    <td style={{ padding: '0.85rem 0.75rem', color: '#475569', whiteSpace: 'nowrap' }}>
                       {new Date(ev.hora_termino).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </td>
-                    <td style={{ padding: '0.85rem 1rem', color: '#4b5563' }}>
+                    <td style={{ padding: '0.85rem 0.75rem', color: '#334155' }}>
                       {ev.asignaciones?.length || 0} trabajador(es)
                     </td>
-                    <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
+                    <td style={{ padding: '0.85rem 0.75rem', textAlign: 'center' }}>
                       <button
+                        type="button"
                         onClick={() => handleMarcarRealizado(ev.id_evento)}
                         disabled={procesandoId === ev.id_evento}
                         style={{
-                          padding: '0.5rem 1rem',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          padding: '0.45rem 0.9rem',
                           backgroundColor: '#16a34a',
                           color: '#ffffff',
                           border: 'none',
                           borderRadius: '6px',
                           cursor: procesandoId === ev.id_evento ? 'not-allowed' : 'pointer',
                           fontWeight: '600',
-                          fontSize: '0.85rem',
-                          transition: 'background-color 0.2s',
+                          fontSize: '0.82rem',
+                          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                          transition: 'background-color 0.15s ease',
+                          opacity: procesandoId === ev.id_evento ? 0.7 : 1,
                         }}
                         onMouseEnter={(e) => {
                           if (procesandoId !== ev.id_evento) e.currentTarget.style.backgroundColor = '#15803d';

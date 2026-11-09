@@ -315,7 +315,7 @@ export default function Home() {
           <div className="panel-head">
             <h3>
               <Icono>{ICONOS.calendario}</Icono>
-              Eventos por Finalizar (Cierre de Jornada)
+              Eventos Pendientes de Cierre
             </h3>
             <button
               className="panel-link"
