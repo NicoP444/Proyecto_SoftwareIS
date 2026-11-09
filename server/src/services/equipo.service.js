@@ -99,4 +99,40 @@ export const equipoService = {
       },
     });
   },
+
+  async actualizar(codigo, datos) {
+    const {
+      nombre,
+      categoria,
+      marca,
+      modelo,
+      fecha_compra,
+      valor_compra,
+    } = datos;
+
+    const equipoExistente = await prisma.equipo.findUnique({
+      where: { codigo },
+    });
+
+    if (!equipoExistente) {
+      throw new Error(`El equipo con código ${codigo} no existe.`);
+    }
+
+    const dataActualizada = {};
+    if (nombre !== undefined) dataActualizada.nombre = nombre.trim();
+    if (categoria !== undefined) dataActualizada.categoria = categoria;
+    if (marca !== undefined) dataActualizada.marca = marca ? marca.trim() : null;
+    if (modelo !== undefined) dataActualizada.modelo = modelo ? modelo.trim() : null;
+    if (fecha_compra !== undefined) dataActualizada.fecha_compra = new Date(fecha_compra);
+    if (valor_compra !== undefined) dataActualizada.valor_compra = Math.round(Number(valor_compra));
+
+    return await prisma.equipo.update({
+      where: { codigo },
+      data: dataActualizada,
+      include: {
+        kit: true,
+        jefe: true,
+      },
+    });
+  },
 };

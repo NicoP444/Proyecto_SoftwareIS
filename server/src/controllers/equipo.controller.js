@@ -19,3 +19,14 @@ export const crearEquipo = async (req, res) => {
     res.status(400).json({ error: error.message || 'Error al registrar equipo' });
   }
 };
+
+export const modificarEquipo = async (req, res) => {
+  try {
+    const { codigo } = req.params;
+    const equipoModificado = await equipoService.actualizar(codigo, req.body);
+    res.json(equipoModificado);
+  } catch (error) {
+    console.error('Error al modificar equipo:', error);
+    res.status(400).json({ error: error.message || 'Error al modificar equipo' });
+  }
+};
