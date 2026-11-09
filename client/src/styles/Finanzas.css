@@ -270,3 +270,29 @@
   .fin-filtro { width: 100%; }
   .fin-form-fila { grid-template-columns: 1fr; }
 }
+
+
+/* ===== Pestañas internas de la pestaña Eventos ===== */
+.fin-filtros-evento { justify-content: space-between; }
+.fin-filtro-evento { flex: 1; min-width: 240px; max-width: 420px; }
+
+.fin-subtabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--fin-borde);
+  border-radius: 12px;
+  background: #fff;
+}
+.fin-subtab {
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  color: var(--fin-suave);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.fin-subtab.activa { background: var(--fin-azul); color: #fff; }

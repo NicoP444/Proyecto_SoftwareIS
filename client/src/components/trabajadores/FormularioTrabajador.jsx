@@ -23,13 +23,14 @@ export default function FormularioTrabajador({ inicial = VACIO, textoBoton, onGu
   const [guardando, setGuardando] = useState(false);// booleano que indica si se está guardando el formulario, para deshabilitar el botón de guardar mientras se guarda
 
 
-
+  // Pequeña función para no repetir el mismo bloque en cada campo
   function cambiar(e) {
     setDatos({ ...datos, [e.target.name]: e.target.value });
     setErrores({ ...errores, [e.target.name]: undefined });
     setMensaje(null);
   }
 
+  // función que se ejecuta cuando el usuario hace click en el botón de guardar, valida los datos y llama a la función onGuardar que recibe como prop
   async function enviar(e) {
     e.preventDefault(); // prevenimos el comportamiento por defecto del formulario, que es recargar la pagina
     const encontrados = validar(datos); // validamos los datos del formulario
