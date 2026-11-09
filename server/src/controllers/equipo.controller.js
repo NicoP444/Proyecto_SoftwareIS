@@ -30,3 +30,25 @@ export const modificarEquipo = async (req, res) => {
     res.status(400).json({ error: error.message || 'Error al modificar equipo' });
   }
 };
+export const darDeBajaEquipo = async (req, res) => {
+  try {
+    const { codigo } = req.params;
+    const { motivo } = req.body;
+    const resultado = await equipoService.darDeBaja(codigo, motivo);
+    res.json(resultado);
+  } catch (error) {
+    console.error('Error al dar de baja equipo:', error);
+    res.status(400).json({ error: error.message || 'Error al dar de baja equipo' });
+  }
+};
+
+export const eliminarEquipo = async (req, res) => {
+  try {
+    const { codigo } = req.params;
+    await equipoService.eliminar(codigo);
+    res.json({ mensaje: 'Equipo eliminado definitivamente' });
+  } catch (error) {
+    console.error('Error al eliminar equipo:', error);
+    res.status(400).json({ error: error.message || 'Error al eliminar equipo' });
+  }
+};

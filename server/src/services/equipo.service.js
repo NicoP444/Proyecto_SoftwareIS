@@ -147,4 +147,68 @@ export const equipoService = {
       },
     });
   },
+
+  async darDeBaja(codigo, motivo) {
+    if (!motivo || !motivo.trim()) {
+      throw new Error('Debe indicar un motivo para dar de baja el equipo.');
+    }
+
+    const equipo = await prisma.equipo.findUnique({
+      where: { codigo },
+      include: {
+        incidentes: true,
+        revisiones: true,
+      },
+    });
+
+    if (!equipo) {
+      throw new Error(`El equipo con código ${codigo} no existe.`);
+    }
+
+    // Comprobamos si tiene historial de uso
+    const sinHistorial = equipo.incidentes.length === 0 && equipo.revisiones.length === 0;
+
+    const equipoActualizado = await prisma.equipo.update({
+      where: { codigo },
+      data: {
+        estado: 'DADO_DE_BAJA',
+        motivo_baja: motivo.trim(),
+        fecha_baja: new Date(),
+        id_kit: null,
+        id_evento_repuesto: null,
+      },
+      include: {
+        kit: true,
+        jefe: true,
+      },
+    });
+
+    return {
+      equipo: equipoActualizado,
+      sinHistorial,
+      mensaje: 'Equipo dado de baja correctamente.',
+    };
+  },
+
+  async eliminar(codigo) {
+    const equipo = await prisma.equipo.findUnique({
+      where: { codigo },
+      include: {
+        incidentes: true,
+        revisiones: true,
+      },
+    });
+
+    if (!equipo) {
+      throw new Error(`El equipo con código ${codigo} no existe.`);
+    }
+
+    if (equipo.incidentes.length > 0 || equipo.revisiones.length > 0) {
+      throw new Error('No se puede eliminar definitivamente porque registra historial de uso.');
+    }
+
+    return await prisma.equipo.delete({
+      where: { codigo },
+    });
+  },
 };
