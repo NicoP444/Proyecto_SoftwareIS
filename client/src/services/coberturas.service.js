@@ -7,21 +7,19 @@ async function manejarRespuesta(response) {
   return data; //la peticion fue exitosa y retornamos
 }
 
-export const listarClientes = () => fetch(`${API_URL}/clientes`).then(manejarRespuesta); 
-//recibe cliente que viene de await crearCliente(nuevoCliente)
-export const crearCliente = (cliente) => fetch(`${API_URL}/clientes`, {
-  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cliente)
-}).then(manejarRespuesta);
-
 export const listarCoberturas = () => fetch(`${API_URL}/coberturas`).then(manejarRespuesta);
 export const crearCobertura = (cobertura) => fetch(`${API_URL}/coberturas`, {
   method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cobertura)
 }).then(manejarRespuesta);
 
-export const eliminarCobertura = async (id) => {
-  const response = await fetch(`${API_URL}/coberturas/${id}`, { method: 'DELETE' });
+export const eliminarCobertura = async (id, motivo) => {
+  const response = await fetch(`${API_URL}/coberturas/${id}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ motivo }),
+  });
   if (!response.ok) {
-    const data = await response.json().catch(() => ({})); //esperamos la respuesta mientras se intenta obtener el mensaje
+    const data = await response.json().catch(() => ({}));
     throw new Error(data.mensaje || 'No se pudo eliminar la cobertura');
   }
 };

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getEventos, postEvento, deleteEvento } from '../controllers/evento.controller.js';
+import { getEventos, postEvento, deleteEvento, putEvento } from '../controllers/evento.controller.js';
 import { validarId, camposObligatorios } from '../middlewares/validate.middleware.js';
 
 const router = Router();
@@ -9,6 +9,12 @@ router.post(
   camposObligatorios('tipo', 'fecha', 'hora_inicio', 'hora_termino', 'direccion', 'cantidad_camaras', 'precio_acordado', 'id_cliente'),
   postEvento
 );
-router.delete('/:id', validarId, deleteEvento);
+router.put(
+  '/:id',
+  validarId,
+  camposObligatorios('tipo', 'fecha', 'hora_inicio', 'hora_termino', 'direccion', 'cantidad_camaras', 'precio_acordado', 'id_cliente'),
+  putEvento
+);
+router.delete('/:id', validarId, camposObligatorios('motivo'), deleteEvento);
 
 export default router;

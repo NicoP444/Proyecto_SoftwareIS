@@ -96,3 +96,41 @@ export const getIncidentesService = async () => {
     orderBy: { fecha: 'desc' },
   });
 };
+
+/**
+ * Obtener resumen de incidentes por evento (RF-P6-06)
+ */
+export const getIncidentesPorEventoService = async (id_evento) => {
+  const incidentes = await prisma.incidente.findMany({
+    where: {
+      id_evento: Number(id_evento),
+    },
+    include: {
+      equipo: {
+        select: {
+          codigo: true,
+          nombre: true,
+          categoria: true,
+        },
+      },
+      trabajador: {
+        select: {
+          id_trabajador: true,
+          nombre: true,
+        },
+      },
+    },
+    orderBy: {
+      fecha: 'desc',
+    },
+  });
+
+  const totalPerdidas = incidentes.reduce((acc, inc) => acc + (inc.valor || 0), 0);
+
+  return {
+    id_evento: Number(id_evento),
+    cantidad: incidentes.length,
+    totalPerdidas,
+    incidentes,
+  };
+};

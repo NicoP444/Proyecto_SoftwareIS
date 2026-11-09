@@ -1,0 +1,55 @@
+/* ---------- Disponibilidad por bloques ---------- */
+.lista-bloques {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+}
+
+.lista-bloques li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+}
+
+.lista-bloques li + li {
+  border-top: 1px solid var(--borde);
+}
+
+.bloque-fechas,
+.bloque-horario {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bloque-fechas {
+  font-weight: 600;
+}
+
+.bloque-horario {
+  color: var(--texto-suave);
+}
+
+.lista-bloques svg {
+  width: 15px;
+  height: 15px;
+  color: var(--primario);
+}
+
+.nuevo-bloque {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--borde);
+}
+
+.ficha-semana strong {
+  font-size: 0.85rem;
+}

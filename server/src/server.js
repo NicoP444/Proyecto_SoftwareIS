@@ -4,7 +4,6 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import authRoutes from './routes/auth.routes.js';
-import trabajadorRoutes from './routes/trabajador.routes.js'; // nico
 import routes from './routes/index.js'; //gene
 import clienteRoutes from './routes/cliente.routes.js'; //jorge
 import recintoRoutes from './routes/recinto.routes.js'; //jorge
@@ -26,8 +25,10 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 
 // Trabajadores y roles
-app.use('/api/trabajadores', trabajadorRoutes); // nico
-app.use('/api', routes);//gene
+app.use(express.json({ limit: '20mb' }));// en caso de que se suban archivos grandes, como evidencia de gastos
+app.use('/api', routes);//gene y nico
+
+app.use('/uploads', express.static('uploads')); // Para servir archivos subidos (evidencias de gastos, etc.)
 
 //JORGE
 app.use('/api/clientes', clienteRoutes);
@@ -54,6 +55,9 @@ app.get(/^(?!\/api).*/, (req, res) => {
 app.use((err, req, res, next) => {
   if (err.type === 'entity.parse.failed') {
     return res.status(400).json({ mensaje: 'El JSON enviado no es válido' });
+  }
+  if (err.type === 'entity.too.large') { // error de tamaño de archivo demasiado grande
+  return res.status(413).json({ mensaje: 'El archivo enviado es demasiado grande' });
   }
   console.error(err);
   res.status(500).json({ mensaje: 'Error interno del servidor' });

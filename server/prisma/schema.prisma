@@ -19,6 +19,7 @@ datasource db {
 enum EstadoCuenta {
   ACTIVO
   INACTIVO
+  LICENCIA
 }
 
 enum EstadoEvento {
@@ -162,6 +163,7 @@ model Contador {
   meses_cerrados       MesContable[]
   gastos_fijos         GastoFijo[]
   cumplimientos_aporte CumplimientoAporte[]
+  historial            HistorialCambio[] // le asignamos historial
 
   @@map("contador")
 }
@@ -210,11 +212,13 @@ model HistorialCambio {
   valor_anterior String?  @db.VarChar(255)
   valor_nuevo    String?  @db.VarChar(255)
   motivo         String?  @db.VarChar(255)
-  id_dueno       Int
+  id_dueno       Int?
+  id_contador    Int?
   id_evento      Int?
 
-  dueno  Dueno   @relation(fields: [id_dueno], references: [id_dueno], onDelete: Restrict)
-  evento Evento? @relation(fields: [id_evento], references: [id_evento], onDelete: Restrict)
+  dueno    Dueno?    @relation(fields: [id_dueno], references: [id_dueno], onDelete: Restrict)
+  contador Contador? @relation(fields: [id_contador], references: [id_contador], onDelete: Restrict)
+  evento   Evento?   @relation(fields: [id_evento], references: [id_evento], onDelete: Restrict)
 
   @@map("historial_cambio")
 }
@@ -290,6 +294,7 @@ model Trabajador {
   id_trabajador     Int          @id @default(autoincrement())
   nombre            String       @db.VarChar(80)
   telefono_whatsapp String       @db.VarChar(20)
+  correo            String?      @db.VarChar(120)
   observaciones     String?      @db.VarChar(255)
   rol_fijo          Boolean      @default(false)
   estado            EstadoCuenta @default(ACTIVO)
@@ -334,8 +339,9 @@ model Desempena {
 model Disponibilidad {
   id_trabajador Int
   nro_bloque    Int
-  fecha         DateTime @db.Date
-  hora_inicio   DateTime @db.Time(6)
+  fecha_inicio  DateTime @db.Date // fecha de inicio del bloque de disponibilidad 
+  fecha_termino DateTime @db.Date // fecha de término del bloque de disponibilidad
+  hora_inicio   DateTime @db.Time(6) 
   hora_termino  DateTime @db.Time(6)
   id_dueno      Int
 

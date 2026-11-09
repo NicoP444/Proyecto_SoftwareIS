@@ -8,17 +8,31 @@ async function main() {
   const passwordHasheada = await bcrypt.hash('123456', 10);
 
   // Creamos un dueño de prueba
-  const duenoPrueba = await prisma.dueno.create({
-    data: {
+  const duenoPrueba = await prisma.dueno.upsert({
+    where: { correo: 'admin@demo.com' },
+    update: {},
+    create: {
       nombre: 'Administrador Demo',
       correo: 'admin@demo.com',
       contrasena: passwordHasheada,
-      intentos_fallidos: 0
-    }
+      intentos_fallidos: 0,
+    },
   });
 
-  console.log(' Usuario de prueba creado con éxito:');
-  console.log(duenoPrueba);
+  // Creamos un contador de prueba
+  const contadorPrueba = await prisma.contador.upsert({
+    where: { correo: 'contador@demo.com' },
+    update: {},
+    create: {
+      nombre: 'Contador Demo',
+      correo: 'contador@demo.com',
+      contrasena: passwordHasheada,
+      intentos_fallidos: 0,
+    },
+  });
+
+  console.log(' Usuarios de prueba creados con éxito:');
+  console.log({ dueno: duenoPrueba, contador: contadorPrueba });
 }
 
 main()

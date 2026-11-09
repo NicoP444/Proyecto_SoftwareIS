@@ -1,0 +1,84 @@
+/* Mismas medidas que .sidebar del Home */
+.menu-lateral {
+  position: fixed;
+  top: var(--alto-barra);
+  bottom: 0;
+  left: 0;
+  width: var(--ancho-menu);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: var(--blanco);
+  border-right: 1px solid var(--borde);
+}
+
+.menu-opciones {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 12px;
+}
+
+.menu-enlace {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #374151;
+  font-size: 0.92rem;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.menu-enlace svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: var(--texto-suave);
+}
+
+.menu-enlace:hover {
+  background: var(--primario-suave);
+}
+
+.menu-enlace.active {
+  color: var(--primario);
+  font-weight: 600;
+}
+
+.menu-enlace.active svg {
+  color: var(--primario);
+}
+
+.menu-pie {
+  padding: 12px;
+  border-top: 1px solid var(--borde);
+}
+
+.menu-salir:hover {
+  background: rgba(229, 72, 77, 0.08);
+  color: var(--rojo);
+}
+
+.menu-salir:hover svg {
+  color: var(--rojo);
+}
+
+/* En celular se esconde y aparece con el botón ☰ */
+@media (max-width: 768px) {
+  .menu-lateral {
+    z-index: 40;
+    transform: translateX(-100%);
+    transition: transform 0.2s;
+  }
+
+  .menu-lateral.abierto {
+    transform: translateX(0);
+    box-shadow: 0 12px 32px rgba(17, 24, 39, 0.18);
+  }
+}
