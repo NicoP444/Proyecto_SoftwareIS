@@ -48,9 +48,6 @@ const ESTADOS = {
   CERRADO: { texto: "Cerrado", clase: "cerrado" },
 };
 
-const [pidiendoMotivo, setPidiendoMotivo] = useState(false); // muestra el campo de motivo
-const [motivoEliminar, setMotivoEliminar] = useState("");
-
 // Tarjetas de arriba: al hacer clic filtran por estado
 const RESUMEN = [
   {
@@ -129,6 +126,8 @@ export default function Calendario() {
   const [fechaNueva, setFechaNueva] = useState(""); // fecha que se precarga al crear
   const [errorEliminar, setErrorEliminar] = useState(""); // motivo si el back no deja eliminar
   const [eliminando, setEliminando] = useState(false);
+  const [pidiendoMotivo, setPidiendoMotivo] = useState(false); // muestra el campo de motivo
+  const [motivoEliminar, setMotivoEliminar] = useState("");
 
   // RF-P1-12 y RF-P1-13: el Jefe técnico no ve datos financieros
   const rol = obtenerUsuario()?.rol;
@@ -162,8 +161,7 @@ export default function Calendario() {
     setCreando(true);
   }
 
-    // Cierra el detalle y limpia el error anterior
-    // Cierra el detalle y limpia lo de eliminar
+  // Cierra el detalle y limpia lo de eliminar
   function cerrarDetalle() {
     setEventoAbierto(null);
     setErrorEliminar("");
@@ -510,7 +508,7 @@ export default function Calendario() {
             {errorEliminar && (
               <div className="mensaje mensaje-error">{errorEliminar}</div>
             )}
-                        {puedeEliminar && !pidiendoMotivo && (
+            {puedeEliminar && !pidiendoMotivo && (
               <button
                 type="button"
                 className="boton boton-peligro"
