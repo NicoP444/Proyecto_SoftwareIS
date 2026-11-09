@@ -81,7 +81,7 @@ export async function crearEvento(datos) {
   });
 }
 
-export async function eliminarEvento(id) {
+export async function eliminarEvento(id, motivo) {
   const motivoLimpio = String(motivo ?? "").trim();
   if (!motivoLimpio) {
     throw new Error("Debes indicar el motivo de la eliminación");
