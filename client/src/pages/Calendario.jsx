@@ -9,6 +9,7 @@ import {
   Clock,
   MapPin,
   Plus,
+  Trash2,
   Video,
   Wallet,
 } from "lucide-react";
@@ -16,6 +17,7 @@ import Modal from "../components/Modal";
 import {
   listarCoberturas,
   crearCobertura,
+  eliminarCobertura,
 } from "../services/coberturas.service.js";
 import { listarClientes, crearCliente } from "../services/cliente.service.js";
 import FormularioEvento from "../components/calendario/FormularioEvento";
@@ -45,6 +47,9 @@ const ESTADOS = {
   REALIZADO: { texto: "Realizado", clase: "realizado" },
   CERRADO: { texto: "Cerrado", clase: "cerrado" },
 };
+
+const [pidiendoMotivo, setPidiendoMotivo] = useState(false); // muestra el campo de motivo
+const [motivoEliminar, setMotivoEliminar] = useState("");
 
 // Tarjetas de arriba: al hacer clic filtran por estado
 const RESUMEN = [
@@ -122,11 +127,14 @@ export default function Calendario() {
   const [clientes, setClientes] = useState([]);
   const [creando, setCreando] = useState(false); // ventana "Nuevo evento"
   const [fechaNueva, setFechaNueva] = useState(""); // fecha que se precarga al crear
+  const [errorEliminar, setErrorEliminar] = useState(""); // motivo si el back no deja eliminar
+  const [eliminando, setEliminando] = useState(false);
 
   // RF-P1-12 y RF-P1-13: el Jefe técnico no ve datos financieros
   const rol = obtenerUsuario()?.rol;
   const verFinanzas = rol === "DUENO" || rol === "CONTADOR";
   const puedeCrear = rol === "DUENO"; // RF-P1-05: solo el Dueño agenda eventos
+  const puedeEliminar = rol === "DUENO"; // RF-P1-08: solo el Dueño elimina eventos
 
   // Pedimos las coberturas y los clientes al back
   async function cargarDatos() {
@@ -152,6 +160,40 @@ export default function Calendario() {
   function abrirCrear(fecha = "") {
     setFechaNueva(fecha);
     setCreando(true);
+  }
+
+    // Cierra el detalle y limpia el error anterior
+    // Cierra el detalle y limpia lo de eliminar
+  function cerrarDetalle() {
+    setEventoAbierto(null);
+    setErrorEliminar("");
+    setPidiendoMotivo(false);
+    setMotivoEliminar("");
+  }
+
+  function cancelarEliminar() {
+    setPidiendoMotivo(false);
+    setMotivoEliminar("");
+    setErrorEliminar("");
+  }
+
+  async function manejarEliminar() {
+    if (!motivoEliminar.trim()) {
+      setErrorEliminar("Debes indicar el motivo de la eliminación");
+      return;
+    }
+
+    setErrorEliminar("");
+    setEliminando(true);
+    try {
+      await eliminarCobertura(eventoAbierto.id_evento, motivoEliminar.trim());
+      cerrarDetalle();
+      await cargarDatos(); // recarga el calendario sin el evento
+    } catch (err) {
+      setErrorEliminar(err.message);
+    } finally {
+      setEliminando(false);
+    }
   }
 
   async function guardarEvento(datos) {
@@ -378,7 +420,7 @@ export default function Calendario() {
       {/* Detalle del evento */}
       <Modal
         abierto={Boolean(e)}
-        onCerrar={() => setEventoAbierto(null)}
+        onCerrar={cerrarDetalle}
         titulo="Detalle de la transmisión"
       >
         {e && (
@@ -463,6 +505,54 @@ export default function Calendario() {
                     </p>
                   ))
                 )}
+              </div>
+            )}
+            {errorEliminar && (
+              <div className="mensaje mensaje-error">{errorEliminar}</div>
+            )}
+                        {puedeEliminar && !pidiendoMotivo && (
+              <button
+                type="button"
+                className="boton boton-peligro"
+                onClick={() => setPidiendoMotivo(true)}
+              >
+                <Trash2 size={16} /> Eliminar cobertura
+              </button>
+            )}
+            {puedeEliminar && pidiendoMotivo && (
+              <div className="cal-eliminar">
+                <div className="campo">
+                  <label htmlFor="motivo-eliminar">
+                    Motivo de la eliminación
+                  </label>
+                  <textarea
+                    id="motivo-eliminar"
+                    rows={3}
+                    maxLength={255}
+                    value={motivoEliminar}
+                    onChange={(ev) => setMotivoEliminar(ev.target.value)}
+                    placeholder="Ej: El cliente canceló el evento"
+                  />
+                </div>
+                <div className="cal-eliminar-botones">
+                  <button
+                    type="button"
+                    className="boton boton-secundario"
+                    onClick={cancelarEliminar}
+                    disabled={eliminando}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    className="boton boton-peligro"
+                    onClick={manejarEliminar}
+                    disabled={eliminando || !motivoEliminar.trim()}
+                  >
+                    <Trash2 size={16} />
+                    {eliminando ? "Eliminando…" : "Confirmar eliminación"}
+                  </button>
+                </div>
               </div>
             )}
           </div>

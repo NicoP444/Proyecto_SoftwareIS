@@ -84,3 +84,8 @@ button.cal-mas { flex-shrink: 0; padding: 0; border: 0; background: none; text-a
 /* ---------- Formulario de nuevo evento ---------- */
 .cal-cliente { display: flex; gap: 8px; }
 .cal-cliente select { flex: 1; min-width: 0; }
+.boton-peligro { background: #dc2626; color: #fff; }
+.boton-peligro:hover:not(:disabled) { background: #b91c1c; }
+.cal-detalle .boton-peligro { align-self: flex-start; }
+.cal-eliminar { display: flex; flex-direction: column; gap: 10px; }
+.cal-eliminar-botones { display: flex; gap: 8px; }

@@ -82,6 +82,14 @@ export async function crearEvento(datos) {
 }
 
 export async function eliminarEvento(id) {
+  const motivoLimpio = String(motivo ?? "").trim();
+  if (!motivoLimpio) {
+    throw new Error("Debes indicar el motivo de la eliminación");
+  }
+  if (motivoLimpio.length > 255) {
+    throw new Error("El motivo no puede superar los 255 caracteres");
+  }
+
   const evento = await prisma.evento.findUnique({ where: { id_evento: id } });
   if (!evento) {
     throw new Error("El evento no existe");
@@ -127,6 +135,16 @@ export async function eliminarEvento(id) {
       data: { id_evento: null },
     });
 
+        // Dejamos registrado quién/por qué se eliminó (id_evento queda null porque el evento ya no existe)
+    await tx.historialCambio.create({
+      data: {
+        tabla_afectada: "evento",
+        dato: `evento #${id}: eliminado`,
+        valor_anterior: `${evento.tipo} - ${evento.fecha.toISOString().slice(0, 10)}`,
+        motivo: motivoLimpio,
+        id_dueno: ID_DUENO_DEMO,
+      },
+    });
     return tx.evento.delete({ where: { id_evento: id } });
   });
 }
