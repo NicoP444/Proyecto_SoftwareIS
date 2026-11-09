@@ -82,16 +82,53 @@ export async function crearEvento(datos) {
 }
 
 export async function eliminarEvento(id) {
-  const pagos = await prisma.pagoCliente.count({ where: { id_evento: id } });
-  const incidentes = await prisma.incidente.count({ where: { id_evento: id } });
+  const evento = await prisma.evento.findUnique({ where: { id_evento: id } });
+  if (!evento) {
+    throw new Error("El evento no existe");
+  }
 
-  if (pagos > 0 || incidentes > 0) {
+  // Cuenta todo lo que impide eliminar el evento
+  const [pagos, gastos, aportes, incidentes, salidas, remuneraciones] =
+    await Promise.all([
+      prisma.pagoCliente.count({ where: { id_evento: id } }),
+      prisma.gastoEvento.count({ where: { asignacion: { id_evento: id } } }),
+      prisma.acuerdoAuspicio.count({ where: { id_evento: id } }),
+      prisma.incidente.count({ where: { id_evento: id } }),
+      prisma.salidaKit.count({ where: { reserva: { id_evento: id } } }),
+      prisma.pagoRemuneracion.count({
+        where: { asignacion: { id_evento: id } },
+      }),
+    ]);
+
+  // Armamos el motivo con todo lo que corresponda
+  const motivos = [];
+  if (pagos > 0) motivos.push("pagos del cliente");
+  if (gastos > 0) motivos.push("gastos");
+  if (aportes > 0) motivos.push("aportes de auspiciadores");
+  if (incidentes > 0) motivos.push("incidentes");
+  if (salidas > 0) motivos.push("salidas de kits");
+  if (remuneraciones > 0) motivos.push("pagos de remuneraciones");
+
+  if (motivos.length > 0) {
     throw new Error(
-      "No se puede eliminar: la cobertura tiene pagos o incidentes registrados",
+      `No se puede eliminar: la cobertura tiene ${motivos.join(", ")} registrados`,
     );
   }
 
-  return prisma.evento.delete({ where: { id_evento: id } });
+  // Todo en una transacción: o se hace completo o no se hace nada
+  return prisma.$transaction(async (tx) => {
+    // Libera a los trabajadores y a los kits del evento
+    await tx.asignacionPersonal.deleteMany({ where: { id_evento: id } });
+    await tx.reservaKit.deleteMany({ where: { id_evento: id } });
+
+    // El historial se conserva, pero ya sin apuntar al evento borrado
+    await tx.historialCambio.updateMany({
+      where: { id_evento: id },
+      data: { id_evento: null },
+    });
+
+    return tx.evento.delete({ where: { id_evento: id } });
+  });
 }
 
 export const actualizarEvento = async (id, datos) => {
