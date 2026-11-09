@@ -5,5 +5,7 @@ const router = Router();
 
 router.get('/', equipoController.obtenerEquipos);
 router.post('/', equipoController.crearEquipo);
+router.put('/:codigo', equipoController.modificarEquipo);
+
 
 export default router;

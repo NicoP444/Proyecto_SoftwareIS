@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { obtenerEquipos, registrarEquipo } from '../services/equipoService';
+import { obtenerEquipos, registrarEquipo, actualizarEquipo } from '../services/equipoService';
 
 export default function Equipos() {
   const [formData, setFormData] = useState({
@@ -16,6 +16,9 @@ export default function Equipos() {
   const [cargando, setCargando] = useState(true);
   const [mensaje, setMensaje] = useState('');
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
+
+  // Estado para el modal de edición (RF-P5-02)
+  const [equipoEditando, setEquipoEditando] = useState(null);
 
   const cargarEquipos = async () => {
     try {
@@ -63,6 +66,42 @@ export default function Equipos() {
     } catch (error) {
       console.error(error);
       setMensaje(error.message || 'Error al registrar el equipo.');
+    }
+  };
+
+  // Abrir formulario de edición con los datos del equipo seleccionado
+  const iniciarEdicion = (eq) => {
+    setEquipoEditando({
+      ...eq,
+      fecha_compra: eq.fecha_compra ? eq.fecha_compra.split('T')[0] : '',
+      valor_compra: eq.valor_compra ?? ''
+    });
+  };
+
+  const manejarCambioEdicion = (e) => {
+    const { name, value } = e.target;
+    setEquipoEditando({ ...equipoEditando, [name]: value });
+  };
+
+  const guardarEdicion = async (e) => {
+    e.preventDefault();
+    try {
+      await actualizarEquipo(equipoEditando.codigo, {
+        nombre: equipoEditando.nombre,
+        categoria: equipoEditando.categoria,
+        marca: equipoEditando.marca,
+        modelo: equipoEditando.modelo,
+        fecha_compra: equipoEditando.fecha_compra,
+        valor_compra: Number(equipoEditando.valor_compra),
+        id_jefe: 1
+      });
+
+      setMensaje('¡Equipo actualizado con éxito!');
+      setEquipoEditando(null);
+      cargarEquipos();
+    } catch (error) {
+      console.error(error);
+      alert(error.message || 'Error al actualizar el equipo.');
     }
   };
 
@@ -236,6 +275,152 @@ export default function Equipos() {
         </div>
       )}
 
+      {/* MODAL / FORMULARIO FLOTANTE DE EDICIÓN (RF-P5-02) */}
+      {equipoEditando && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
+            padding: '24px',
+            width: '90%',
+            maxWidth: '520px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+          }}>
+            <h2 style={{ marginTop: 0, marginBottom: '6px', fontSize: '18px', color: '#1e293b' }}>
+              Modificar Equipo: {equipoEditando.codigo}
+            </h2>
+            <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748b' }}>
+              Actualiza los datos del equipo y su valor de compra.
+            </p>
+
+            <form onSubmit={guardarEdicion} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Nombre del equipo:</label>
+                <input
+                  type="text"
+                  name="nombre"
+                  value={equipoEditando.nombre}
+                  onChange={manejarCambioEdicion}
+                  required
+                  style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Categoría:</label>
+                  <select
+                    name="categoria"
+                    value={equipoEditando.categoria}
+                    onChange={manejarCambioEdicion}
+                    style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#ffffff' }}
+                  >
+                    <option value="CAMARA">CAMARA</option>
+                    <option value="TRIPODE">TRIPODE</option>
+                    <option value="MICROFONO">MICROFONO</option>
+                    <option value="SWITCH_VIDEO">SWITCH_VIDEO</option>
+                    <option value="OTRO">OTRO</option>
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Fecha de compra:</label>
+                  <input
+                    type="date"
+                    name="fecha_compra"
+                    value={equipoEditando.fecha_compra}
+                    onChange={manejarCambioEdicion}
+                    required
+                    style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Marca:</label>
+                  <input
+                    type="text"
+                    name="marca"
+                    value={equipoEditando.marca || ''}
+                    onChange={manejarCambioEdicion}
+                    style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Modelo:</label>
+                  <input
+                    type="text"
+                    name="modelo"
+                    value={equipoEditando.modelo || ''}
+                    onChange={manejarCambioEdicion}
+                    style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>
+                  Valor de compra ($):
+                </label>
+                <input
+                  type="number"
+                  name="valor_compra"
+                  value={equipoEditando.valor_compra}
+                  onChange={manejarCambioEdicion}
+                  required
+                  style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '14px' }}>
+                <button
+                  type="button"
+                  onClick={() => setEquipoEditando(null)}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#e2e8f0',
+                    color: '#334155',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    padding: '8px 18px',
+                    backgroundColor: '#0d6efd',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Guardar Cambios
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* TABLA PRINCIPAL DE INVENTARIO */}
       <div style={{
         backgroundColor: '#ffffff',
@@ -270,6 +455,7 @@ export default function Equipos() {
                   <th style={{ padding: '12px 14px', textAlign: 'right' }}>Valor Compra</th>
                   <th style={{ padding: '12px 14px', textAlign: 'center' }}>Estado</th>
                   <th style={{ padding: '12px 14px', textAlign: 'center' }}>Kit</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -312,6 +498,24 @@ export default function Equipos() {
                       </td>
                       <td style={{ padding: '14px', textAlign: 'center', color: eq.kit ? '#0f172a' : '#64748b' }}>
                         {eq.kit?.nombre || 'Repuesto (Sin kit)'}
+                      </td>
+                      <td style={{ padding: '14px', textAlign: 'center' }}>
+                        <button
+                          type="button"
+                          onClick={() => iniciarEdicion(eq)}
+                          style={{
+                            backgroundColor: '#f1f5f9',
+                            border: '1px solid #cbd5e1',
+                            padding: '6px 12px',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            color: '#1e293b'
+                          }}
+                        >
+                           Modificar
+                        </button>
                       </td>
                     </tr>
                   );
