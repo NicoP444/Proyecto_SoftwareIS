@@ -160,7 +160,18 @@ export const actualizarEvento = async (id, datos) => {
     });
 
     if (precio !== existente.precio_acordado) {
-      await recalcularRemuneraciones(tx, id_evento);
+      await tx.historialCambio.create({
+        data: {
+          tabla_afectada: "evento",
+          dato: `evento #${id_evento}: precio_acordado`,
+          valor_anterior: String(existente.precio_acordado),
+          valor_nuevo: String(precio),
+          motivo: "Modificación del precio del evento",
+          id_dueno: ID_DUENO_DEMO,
+          id_evento,
+        },
+      });
+      await recalcularRemuneraciones(id_evento, ID_DUENO_DEMO, tx);
     }
 
     return actualizado;
