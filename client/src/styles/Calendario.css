@@ -134,3 +134,19 @@ button.cal-mas { flex-shrink: 0; padding: 0; border: 0; background: none; text-a
 .cli-gestion { display: flex; flex-direction: column; gap: 12px; }
 .cli-barra { display: flex; gap: 8px; align-items: flex-end; }
 .cli-barra .campo { flex: 1; }
+
+
+/* ---------- Personal: dotación del evento y personal disponible (RF-P1-03 / RF-P3-01) ---------- */
+.personal-panel { display: flex; flex-direction: column; gap: 8px; }
+.personal-cabecera { display: flex; align-items: center; justify-content: space-between; }
+.personal-buscador { display: flex; flex-direction: column; gap: 10px; padding: 12px; border: 1px solid var(--borde); border-radius: var(--radio); background: var(--fondo); }
+.personal-filtros { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.personal-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; }
+.personal-fila { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid var(--borde); border-radius: 10px; background: var(--blanco); }
+.personal-datos { display: flex; flex-direction: column; gap: 4px; min-width: 0; font-size: 0.85rem; }
+.personal-accion { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.personal-accion select { height: 36px; padding: 0 8px; border: 1px solid var(--borde); border-radius: 8px; background: var(--blanco); font-size: 0.8rem; }
+@media (max-width: 720px) {
+  .personal-fila { flex-direction: column; align-items: stretch; }
+  .personal-accion { justify-content: space-between; }
+}

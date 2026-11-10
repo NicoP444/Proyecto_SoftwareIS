@@ -10,6 +10,7 @@ import {
   MapPin,
   Plus,
   Trash2,
+  UserCheck,
   Users,
   Video,
   Wallet,
@@ -22,6 +23,8 @@ import {
 } from "../services/coberturas.service.js";
 import FormularioEvento from "../components/calendario/FormularioEvento";
 import GestionClientes from "../components/calendario/GestionClientes";
+import PanelPersonal from "../components/calendario/PanelPersonal";
+import BuscadorPersonal from "../components/calendario/BuscadorPersonal";
 import { obtenerUsuario } from "../services/http.js";
 import "../styles/Calendario.css";
 
@@ -124,6 +127,7 @@ export default function Calendario() {
   const [error, setError] = useState("");
   const [creando, setCreando] = useState(false); // ventana "Nuevo evento"
   const [gestionandoClientes, setGestionandoClientes] = useState(false); // ventana "Clientes"
+  const [consultandoPersonal, setConsultandoPersonal] = useState(false); // ventana "Personal disponible"
   const [fechaNueva, setFechaNueva] = useState(""); // fecha que se precarga al crear
   const [errorEliminar, setErrorEliminar] = useState(""); // motivo si el back no deja eliminar
   const [eliminando, setEliminando] = useState(false);
@@ -276,6 +280,13 @@ export default function Calendario() {
                 onClick={() => setGestionandoClientes(true)}
               >
                 <Users size={18} /> Clientes
+                              <button
+                type="button"
+                className="boton boton-secundario"
+                onClick={() => setConsultandoPersonal(true)}
+              >
+                <UserCheck size={18} /> Personal disponible
+              </button>
               </button>
             </>
           )}
@@ -454,18 +465,18 @@ export default function Calendario() {
             )}
 
             {/* Estos bloques aparecen cuando el back los envía (Paso 5) */}
-            {e.asignaciones?.length > 0 && (
-              <div>
-                <span className="etiqueta">Trabajadores</span>
-                <div className="lista-roles">
-                  {e.asignaciones.map((a) => (
-                    <span key={a.id_asignacion} className="chip-rol">
-                      {a.trabajador?.nombre} · {a.rol?.nombre}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
+                        {/* Dotación del evento (RF-P3-01) */}
+            <PanelPersonal
+              evento={{
+                id_evento: e.id_evento,
+                estado: e.estado,
+                fecha: claveDe(e),
+                hora_inicio: horaDe(e.hora_inicio),
+                hora_termino: horaDe(e.hora_termino),
+              }}
+              puedeEditar={puedeCrear}
+              onCambio={cargarDatos}
+            />
             {e.reservas_kit?.length > 0 && (
               <div>
                 <span className="etiqueta">Kits</span>
@@ -577,6 +588,15 @@ export default function Calendario() {
         ancho="amplio"
       >
         <GestionClientes onCambio={cargarDatos} />
+      </Modal>
+            {/* Consulta de personal disponible (RF-P1-03) */}
+      <Modal
+        abierto={consultandoPersonal}
+        onCerrar={() => setConsultandoPersonal(false)}
+        titulo="Personal disponible"
+        ancho="amplio"
+      >
+        <BuscadorPersonal />
       </Modal>
     </div>
   );
