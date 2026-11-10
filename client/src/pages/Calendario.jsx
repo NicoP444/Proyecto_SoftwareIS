@@ -10,6 +10,7 @@ import {
   MapPin,
   Plus,
   Trash2,
+  Users,
   Video,
   Wallet,
 } from "lucide-react";
@@ -19,8 +20,8 @@ import {
   crearCobertura,
   eliminarCobertura,
 } from "../services/coberturas.service.js";
-import { listarClientes, crearCliente } from "../services/cliente.service.js";
 import FormularioEvento from "../components/calendario/FormularioEvento";
+import GestionClientes from "../components/calendario/GestionClientes";
 import { obtenerUsuario } from "../services/http.js";
 import "../styles/Calendario.css";
 
@@ -121,8 +122,8 @@ export default function Calendario() {
   const [eventoAbierto, setEventoAbierto] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
-  const [clientes, setClientes] = useState([]);
   const [creando, setCreando] = useState(false); // ventana "Nuevo evento"
+  const [gestionandoClientes, setGestionandoClientes] = useState(false); // ventana "Clientes"
   const [fechaNueva, setFechaNueva] = useState(""); // fecha que se precarga al crear
   const [errorEliminar, setErrorEliminar] = useState(""); // motivo si el back no deja eliminar
   const [eliminando, setEliminando] = useState(false);
@@ -135,15 +136,10 @@ export default function Calendario() {
   const puedeCrear = rol === "DUENO"; // RF-P1-05: solo el Dueño agenda eventos
   const puedeEliminar = rol === "DUENO"; // RF-P1-08: solo el Dueño elimina eventos
 
-  // Pedimos las coberturas y los clientes al back
+  // Pedimos las coberturas al back
   async function cargarDatos() {
     try {
-      const [listaCoberturas, listaClientes] = await Promise.all([
-        listarCoberturas(),
-        listarClientes(),
-      ]);
-      setCoberturas(listaCoberturas);
-      setClientes(listaClientes);
+      setCoberturas(await listarCoberturas());
     } catch (err) {
       setError(err.message);
     } finally {
@@ -201,12 +197,6 @@ export default function Calendario() {
     // Llevamos el calendario a la fecha del evento recién creado
     const [a, m, d] = datos.fecha.split("-").map(Number);
     setFechaBase(new Date(a, m - 1, d));
-  }
-
-  async function guardarCliente(datos) {
-    const nuevo = await crearCliente(datos);
-    await cargarDatos();
-    return nuevo; // el formulario lo deja seleccionado
   }
 
   const anio = fechaBase.getFullYear();
@@ -272,13 +262,22 @@ export default function Calendario() {
         </div>
         <div className="encabezado-botones">
           {puedeCrear && (
-            <button
-              type="button"
-              className="boton boton-principal"
-              onClick={() => abrirCrear()}
-            >
-              <Plus size={18} /> Nuevo evento
-            </button>
+            <>
+              <button
+                type="button"
+                className="boton boton-principal"
+                onClick={() => abrirCrear()}
+              >
+                <Plus size={18} /> Nuevo evento
+              </button>
+              <button
+                type="button"
+                className="boton boton-secundario"
+                onClick={() => setGestionandoClientes(true)}
+              >
+                <Users size={18} /> Clientes
+              </button>
+            </>
           )}
           <div className="cal-selector">
             <button
@@ -564,12 +563,20 @@ export default function Calendario() {
         titulo="Nuevo evento"
       >
         <FormularioEvento
-          clientes={clientes}
           fechaInicial={fechaNueva}
           onGuardar={guardarEvento}
           onCancelar={() => setCreando(false)}
-          onCrearCliente={guardarCliente}
         />
+      </Modal>
+
+      {/* Gestión de clientes (RF-P1-01) */}
+      <Modal
+        abierto={gestionandoClientes}
+        onCerrar={() => setGestionandoClientes(false)}
+        titulo="Clientes"
+        ancho="amplio"
+      >
+        <GestionClientes onCambio={cargarDatos} />
       </Modal>
     </div>
   );

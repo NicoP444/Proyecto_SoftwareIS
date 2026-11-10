@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, AlertTriangle, Info } from 'lucide-react';
 import { obtenerAuspiciadores } from '../services/auspiciadorService';
 import { registrarAcuerdo, obtenerAcuerdos } from '../services/acuerdoService';
+import { listarCoberturas } from '../services/coberturas.service.js';
 
 export default function RegistrarAcuerdoPage() {
   const navigate = useNavigate();
@@ -31,10 +32,11 @@ export default function RegistrarAcuerdoPage() {
   useEffect(() => {
     async function cargarDatosIniciales() {
       try {
+        // 1. Cargar Auspiciadores
         const dataAuspiciadores = await obtenerAuspiciadores();
         setAuspiciadores(dataAuspiciadores || []);
 
-        // Corrección aquí: se reemplazó el fetch directo a localhost:3000 por obtenerAcuerdos()
+        // 2. Cargar Historial de Acuerdos con el servicio oficial
         try {
           const dataAcuerdos = await obtenerAcuerdos();
           setHistorialAcuerdos(Array.isArray(dataAcuerdos) ? dataAcuerdos : []);
@@ -42,9 +44,17 @@ export default function RegistrarAcuerdoPage() {
           console.warn('No se pudo precargar historial de acuerdos:', e.message);
         }
 
-        setEventos([
-          { id_evento: 1, tipo: 'Torneo Apertura' }
-        ]);
+        // 3. Cargar Coberturas / Eventos reales con listarCoberturas
+        try {
+          const resCoberturas = await listarCoberturas();
+          const lista = Array.isArray(resCoberturas)
+            ? resCoberturas
+            : (resCoberturas?.data || []);
+          setEventos(lista);
+        } catch (errCoberturas) {
+          console.error('Error al cargar coberturas con el servicio:', errCoberturas);
+        }
+
       } catch (err) {
         console.error('Error al cargar datos iniciales:', err);
       }
@@ -70,7 +80,16 @@ export default function RegistrarAcuerdoPage() {
     setCargando(true);
 
     try {
-      await registrarAcuerdo(formData);
+      // Conversión de tipos para evitar fallos de validación en Prisma/Postgres
+      const payload = {
+        ...formData,
+        id_auspiciador: Number(formData.id_auspiciador),
+        id_evento: Number(formData.id_evento),
+        monto_comprometido: Number(formData.monto_comprometido),
+        cant_menciones: formData.cant_menciones ? Number(formData.cant_menciones) : null,
+      };
+
+      await registrarAcuerdo(payload);
       setMensaje('Acuerdo registrado con éxito!');
       setTimeout(() => {
         navigate('/auspiciadores');
@@ -182,9 +201,9 @@ export default function RegistrarAcuerdoPage() {
               </select>
             </div>
 
-            {/* Evento */}
+            {/* Evento / Cobertura dinámico */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontWeight: '600', fontSize: '13px', color: '#334155' }}>Evento:</label>
+              <label style={{ fontWeight: '600', fontSize: '13px', color: '#334155' }}>Evento / Transmisión:</label>
               <select
                 name="id_evento"
                 value={formData.id_evento}
@@ -201,11 +220,15 @@ export default function RegistrarAcuerdoPage() {
                 }}
               >
                 <option value="">-- Selecciona un evento --</option>
-                {eventos.map((ev) => (
-                  <option key={ev.id_evento} value={ev.id_evento}>
-                    Evento #{ev.id_evento} - {ev.tipo || ev.nombre || 'Sin título'}
-                  </option>
-                ))}
+                {eventos.map((ev) => {
+                  const idEv = ev.id_cobertura || ev.id_evento || ev.id;
+                  const nombreEv = ev.nombre || ev.tipo || ev.titulo || `Cobertura #${idEv}`;
+                  return (
+                    <option key={idEv} value={idEv}>
+                      {nombreEv}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 

@@ -13,6 +13,7 @@ async function main() {
   if (!cliente) {
     cliente = await prisma.cliente.create({
       data: {
+        rut: '112223339',
         nombre: 'Cliente de Prueba',
         telefono: '+56911223344',
         id_dueno: dueno.id_dueno,

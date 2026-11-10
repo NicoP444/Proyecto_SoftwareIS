@@ -19,9 +19,9 @@ async function main() {
 
   // 2. Tres Clientes
   const clientesData = [
-    { nombre: 'Club Deportivo Bío-Bío', telefono: '+56941238910', contacto: 'Felipe Garrido', correo: 'contacto@deportesbiobio.cl' },
-    { nombre: 'Municipalidad de Concepción', telefono: '+56978451234', contacto: 'Marcela Soto', correo: 'eventos@concepcion.cl' },
-    { nombre: 'Productora Musical Sur', telefono: '+56999887766', contacto: 'Rodrigo Baeza', correo: 'contacto@prosur.cl' },
+    { rut: '201112222', nombre: 'Club Deportivo Bío-Bío', telefono: '+56941238910', contacto: 'Felipe Garrido', correo: 'contacto@deportesbiobio.cl' },
+    { rut: '187654327', nombre: 'Municipalidad de Concepción', telefono: '+56978451234', contacto: 'Marcela Soto', correo: 'eventos@concepcion.cl' },
+    { rut: '154321985', nombre: 'Productora Musical Sur', telefono: '+56999887766', contacto: 'Rodrigo Baeza', correo: 'contacto@prosur.cl' },
   ];
 
   const clientes = [];
