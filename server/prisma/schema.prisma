@@ -229,6 +229,7 @@ model HistorialCambio {
 
 model Cliente {
   id_cliente Int     @id @default(autoincrement())
+  rut        String  @unique @db.VarChar(10)
   nombre     String  @db.VarChar(80)
   contacto   String? @db.VarChar(80)
   telefono   String  @db.VarChar(20)

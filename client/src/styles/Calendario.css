@@ -89,3 +89,48 @@ button.cal-mas { flex-shrink: 0; padding: 0; border: 0; background: none; text-a
 .cal-detalle .boton-peligro { align-self: flex-start; }
 .cal-eliminar { display: flex; flex-direction: column; gap: 10px; }
 .cal-eliminar-botones { display: flex; gap: 8px; }
+
+/* ---------- Buscador de clientes ---------- */
+.selector-cliente-elegido {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 6px 4px 10px;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  background: var(--primario-suave);
+  font-size: 0.85rem;
+}
+.selector-cliente-lista {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  background: var(--blanco);
+}
+.selector-cliente-lista li button {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.selector-cliente-lista li button:hover { background: var(--fondo); }
+.selector-cliente-vacio { padding: 8px; font-size: 0.8rem; color: var(--texto-suave); }
+
+/* ---------- Gestión de clientes ---------- */
+.cli-tabla { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.cli-tabla th, .cli-tabla td { padding: 8px; border-bottom: 1px solid var(--borde); text-align: left; }
+.cli-acciones { display: flex; gap: 4px; justify-content: flex-end; }
+.cli-gestion { display: flex; flex-direction: column; gap: 12px; }
+.cli-barra { display: flex; gap: 8px; align-items: flex-end; }
+.cli-barra .campo { flex: 1; }
