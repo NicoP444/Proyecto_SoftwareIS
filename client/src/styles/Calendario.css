@@ -150,3 +150,18 @@ button.cal-mas { flex-shrink: 0; padding: 0; border: 0; background: none; text-a
   .personal-fila { flex-direction: column; align-items: stretch; }
   .personal-accion { justify-content: space-between; }
 }
+
+
+/* ---------- Ventana "Personal disponible": filtros y lista completa ---------- */
+.personal-consulta { display: flex; flex-direction: column; gap: 12px; }
+.personal-barra { display: grid; grid-template-columns: minmax(180px, 2fr) repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.campo.campo-busqueda { position: relative; }
+.campo.campo-busqueda svg { position: absolute; left: 10px; bottom: 10px; width: 16px; height: 16px; color: var(--texto-tenue); pointer-events: none; }
+.campo.campo-busqueda input { padding-left: 32px; }
+.personal-franja { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px dashed var(--borde); border-radius: 10px; }
+.personal-resumen { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.personal-resumen .texto-tenue { margin: 0; }
+.personal-lista-alta { max-height: 360px; }
+@media (max-width: 720px) {
+  .personal-barra { grid-template-columns: minmax(0, 1fr); }
+}

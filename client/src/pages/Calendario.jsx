@@ -24,7 +24,7 @@ import {
 import FormularioEvento from "../components/calendario/FormularioEvento";
 import GestionClientes from "../components/calendario/GestionClientes";
 import PanelPersonal from "../components/calendario/PanelPersonal";
-import BuscadorPersonal from "../components/calendario/BuscadorPersonal";
+import ConsultaPersonal from "../components/calendario/ConsultaPersonal";
 import { obtenerUsuario } from "../services/http.js";
 import "../styles/Calendario.css";
 
@@ -265,7 +265,7 @@ export default function Calendario() {
           <p>Vista general de las transmisiones agendadas</p>
         </div>
         <div className="encabezado-botones">
-          {puedeCrear && (
+                    {puedeCrear && (
             <>
               <button
                 type="button"
@@ -280,13 +280,13 @@ export default function Calendario() {
                 onClick={() => setGestionandoClientes(true)}
               >
                 <Users size={18} /> Clientes
-                              <button
+              </button>
+              <button
                 type="button"
                 className="boton boton-secundario"
                 onClick={() => setConsultandoPersonal(true)}
               >
                 <UserCheck size={18} /> Personal disponible
-              </button>
               </button>
             </>
           )}
@@ -596,7 +596,7 @@ export default function Calendario() {
         titulo="Personal disponible"
         ancho="amplio"
       >
-        <BuscadorPersonal />
+        <ConsultaPersonal />
       </Modal>
     </div>
   );

@@ -11,6 +11,17 @@ export function listarPersonalDisponible({ fecha, hora_inicio, hora_termino, id_
   return pedir(`/personal-disponible?${params}`);
 }
 
+// Todo el personal con su estado; la franja (fecha + horas) es opcional
+export function listarPersonalConEstado({ fecha, hora_inicio, hora_termino } = {}) {
+  const params = new URLSearchParams({ id_dueno: idDueno(), todos: 'true' });
+  if (fecha && hora_inicio && hora_termino) {
+    params.set('fecha', fecha);
+    params.set('hora_inicio', hora_inicio);
+    params.set('hora_termino', hora_termino);
+  }
+  return pedir(`/personal-disponible?${params}`);
+}
+
 // Trabajadores ya asignados a un evento
 export const listarAsignaciones = (idEvento) => pedir(`/eventos/${idEvento}/asignaciones`);
 
