@@ -1,6 +1,7 @@
 import { manejarError } from '../utils/errores.js';
 import {
   listarPersonalDisponible,
+  listarPersonalConEstado,
   listarAsignaciones,
   asignarTrabajador,
   quitarAsignacion,
@@ -9,7 +10,19 @@ import {
 // RF-P1-03: GET /api/personal-disponible?id_dueno=1&fecha=...&hora_inicio=...&hora_termino=...&id_rol=...
 export const getPersonalDisponible = async (req, res) => {
   try {
-    const { fecha, hora_inicio, hora_termino, id_rol, id_evento } = req.query;
+    const { fecha, hora_inicio, hora_termino, id_rol, id_evento, todos } = req.query;
+
+    // todos=true: lista a todo el personal con su estado (ventana "Personal disponible")
+    if (todos === 'true') {
+      const personal = await listarPersonalConEstado({
+        id_dueno: Number(req.query.id_dueno),
+        fecha,
+        hora_inicio,
+        hora_termino,
+      });
+      return res.json(personal);
+    }
+
     const disponibles = await listarPersonalDisponible({
       id_dueno: Number(req.query.id_dueno),
       fecha,

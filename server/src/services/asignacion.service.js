@@ -1,6 +1,7 @@
 import prisma from '../config/prisma.js';
 import { ValidationError, NotFoundError } from '../utils/errores.js';
 
+
 const FECHA = /^\d{4}-\d{2}-\d{2}$/; // AAAA-MM-DD
 const HORA = /^\d{2}:\d{2}$/; // HH:MM
 
@@ -79,6 +80,61 @@ export const listarPersonalDisponible = async ({ id_dueno, fecha, hora_inicio, h
     }));
 };
 
+// ---------- Todo el personal, con su estado para una franja opcional ----------
+// Sin franja: lista a todos. Con franja (fecha + horas): a cada persona activa
+// le agrega si está DISPONIBLE, OCUPADO (en otro evento) o SIN_DISPONIBILIDAD.
+export const listarPersonalConEstado = async ({ id_dueno, fecha, hora_inicio, hora_termino }) => {
+  const hayFranja = Boolean(fecha || hora_inicio || hora_termino);
+  if (hayFranja) validarFranja({ fecha, hora_inicio, hora_termino });
+
+  const trabajadores = await prisma.trabajador.findMany({
+    where: { id_dueno },
+    include: {
+      roles: { select: { rol: { select: { id_rol: true, nombre: true, estado: true } } } },
+      disponibilidades: true,
+      ...(hayFranja
+        ? {
+            asignaciones: {
+              where: { evento: { fecha: new Date(`${fecha}T00:00:00Z`) } },
+              include: { evento: { select: { tipo: true, hora_inicio: true, hora_termino: true } } },
+            },
+          }
+        : {}),
+    },
+    orderBy: { nombre: 'asc' },
+  });
+
+  return trabajadores.map((t) => {
+    let estado_franja = null;
+    let detalle = null;
+
+    // Solo tiene sentido evaluar la franja de quienes están activos
+    if (hayFranja && t.estado === 'ACTIVO') {
+      const choque = t.asignaciones.find((a) =>
+        seTraslapan(hora_inicio, hora_termino, aHora(a.evento.hora_inicio), aHora(a.evento.hora_termino)),
+      );
+      if (choque) {
+        estado_franja = 'OCUPADO';
+        detalle = `En "${choque.evento.tipo}" (${aHora(choque.evento.hora_inicio)}–${aHora(choque.evento.hora_termino)})`;
+      } else if (!cubreFranja(t.disponibilidades, fecha, hora_inicio, hora_termino)) {
+        estado_franja = 'SIN_DISPONIBILIDAD';
+      } else {
+        estado_franja = 'DISPONIBLE';
+      }
+    }
+
+    return {
+      id_trabajador: t.id_trabajador,
+      nombre: t.nombre,
+      telefono_whatsapp: t.telefono_whatsapp,
+      rol_fijo: t.rol_fijo,
+      estado_cuenta: t.estado, // ACTIVO, LICENCIA o INACTIVO
+      estado_franja,
+      detalle,
+      roles: t.roles.filter((r) => r.rol.estado === 'ACTIVO').map((r) => ({ id_rol: r.rol.id_rol, nombre: r.rol.nombre })),
+    };
+  });
+};
 // ---------- Trabajadores asignados a un evento ----------
 export const listarAsignaciones = async (id_evento) => {
   const evento = await prisma.evento.findUnique({ where: { id_evento } });
