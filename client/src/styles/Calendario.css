@@ -165,3 +165,19 @@ button.cal-mas { flex-shrink: 0; padding: 0; border: 0; background: none; text-a
 @media (max-width: 720px) {
   .personal-barra { grid-template-columns: minmax(0, 1fr); }
 }
+
+
+/* ---------- Margen de traslado (RF-P3-02) ---------- */
+.margen-form { display: flex; flex-direction: column; gap: 14px; }
+.margen-form .texto-tenue { margin: 0; }
+.margen-control { display: flex; align-items: flex-end; gap: 16px; }
+.margen-control input[type="range"] { flex: 1; accent-color: var(--primario); }
+.margen-numero { width: 96px; flex-shrink: 0; }
+.margen-atajos { display: flex; flex-wrap: wrap; gap: 6px; }
+.margen-atajos button { padding: 4px 12px; border: 1px solid var(--borde); border-radius: 999px; background: var(--blanco); color: var(--texto-suave); font-size: 0.75rem; font-weight: 600; cursor: pointer; }
+.margen-atajos button:hover { background: var(--fondo); }
+.margen-atajos button.activo { border-color: var(--primario); background: var(--primario-suave); color: var(--primario); }
+.margen-acciones { display: flex; justify-content: flex-end; }
+
+/* Aviso naranjo: se asignó, pero hay algo que revisar */
+.mensaje-aviso { background: rgba(240, 138, 60, 0.12); color: #b45f12; }

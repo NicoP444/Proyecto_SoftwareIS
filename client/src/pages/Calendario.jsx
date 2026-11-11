@@ -9,6 +9,7 @@ import {
   Clock,
   MapPin,
   Plus,
+  Timer,
   Trash2,
   UserCheck,
   Users,
@@ -25,6 +26,7 @@ import FormularioEvento from "../components/calendario/FormularioEvento";
 import GestionClientes from "../components/calendario/GestionClientes";
 import PanelPersonal from "../components/calendario/PanelPersonal";
 import ConsultaPersonal from "../components/calendario/ConsultaPersonal";
+import MargenTraslado from "../components/calendario/MargenTraslado";
 import { obtenerUsuario } from "../services/http.js";
 import "../styles/Calendario.css";
 
@@ -128,6 +130,7 @@ export default function Calendario() {
   const [creando, setCreando] = useState(false); // ventana "Nuevo evento"
   const [gestionandoClientes, setGestionandoClientes] = useState(false); // ventana "Clientes"
   const [consultandoPersonal, setConsultandoPersonal] = useState(false); // ventana "Personal disponible"
+  const [configurandoMargen, setConfigurandoMargen] = useState(false); // ventana "Margen de traslado"
   const [fechaNueva, setFechaNueva] = useState(""); // fecha que se precarga al crear
   const [errorEliminar, setErrorEliminar] = useState(""); // motivo si el back no deja eliminar
   const [eliminando, setEliminando] = useState(false);
@@ -137,7 +140,7 @@ export default function Calendario() {
   // RF-P1-12 y RF-P1-13: el Jefe técnico no ve datos financieros
   const rol = obtenerUsuario()?.rol;
   const verFinanzas = rol === "DUENO" || rol === "CONTADOR";
-  const puedeCrear = rol === "DUENO"; // RF-P1-05: solo el Dueño agenda eventos
+  const puedeCrear = rol === "DUENO"; // RF-P1-04: solo el Dueño agenda eventos
   const puedeEliminar = rol === "DUENO"; // RF-P1-08: solo el Dueño elimina eventos
 
   // Pedimos las coberturas al back
@@ -210,6 +213,12 @@ export default function Calendario() {
 
   // Coberturas que caen dentro del periodo visible
   const claves = dias.map(clave);
+  // Direcciones ya usadas, para sugerirlas al crear un evento
+  const direcciones = useMemo(
+    () => [...new Set(coberturas.map((c) => c.direccion).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
+    [coberturas],
+  );
+
   const delPeriodo = useMemo(
     () =>
       coberturas.filter((c) =>
@@ -265,7 +274,7 @@ export default function Calendario() {
           <p>Vista general de las transmisiones agendadas</p>
         </div>
         <div className="encabezado-botones">
-                    {puedeCrear && (
+          {puedeCrear && (
             <>
               <button
                 type="button"
@@ -287,6 +296,13 @@ export default function Calendario() {
                 onClick={() => setConsultandoPersonal(true)}
               >
                 <UserCheck size={18} /> Personal disponible
+              </button>
+              <button
+                type="button"
+                className="boton boton-secundario"
+                onClick={() => setConfigurandoMargen(true)}
+              >
+                <Timer size={18} /> Margen de traslado
               </button>
             </>
           )}
@@ -464,8 +480,7 @@ export default function Calendario() {
               <p className="texto-tenue">{e.observaciones}</p>
             )}
 
-            {/* Estos bloques aparecen cuando el back los envía (Paso 5) */}
-                        {/* Dotación del evento (RF-P3-01) */}
+            {/* Dotación del evento (RF-P3-01) */}
             <PanelPersonal
               evento={{
                 id_evento: e.id_evento,
@@ -477,6 +492,7 @@ export default function Calendario() {
               puedeEditar={puedeCrear}
               onCambio={cargarDatos}
             />
+            {/* Estos bloques aparecen cuando el back los envía (Paso 5) */}
             {e.reservas_kit?.length > 0 && (
               <div>
                 <span className="etiqueta">Kits</span>
@@ -575,6 +591,7 @@ export default function Calendario() {
       >
         <FormularioEvento
           fechaInicial={fechaNueva}
+          direcciones={direcciones}
           onGuardar={guardarEvento}
           onCancelar={() => setCreando(false)}
         />
@@ -589,7 +606,8 @@ export default function Calendario() {
       >
         <GestionClientes onCambio={cargarDatos} />
       </Modal>
-            {/* Consulta de personal disponible (RF-P1-03) */}
+
+      {/* Consulta de personal disponible (RF-P1-03) */}
       <Modal
         abierto={consultandoPersonal}
         onCerrar={() => setConsultandoPersonal(false)}
@@ -597,6 +615,15 @@ export default function Calendario() {
         ancho="amplio"
       >
         <ConsultaPersonal />
+      </Modal>
+
+      {/* Margen de traslado (RF-P3-02) */}
+      <Modal
+        abierto={configurandoMargen}
+        onCerrar={() => setConfigurandoMargen(false)}
+        titulo="Margen de traslado"
+      >
+        <MargenTraslado />
       </Modal>
     </div>
   );

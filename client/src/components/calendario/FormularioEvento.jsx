@@ -8,11 +8,12 @@ const minutos = (hora) => {
 };
 
 /**
- * Formulario para agendar un evento (RF-P1-05).
+ * Formulario para agendar un evento (RF-P1-04).
  * Repite aquí las reglas del back para avisar antes de enviar.
  * El cliente se busca por nombre o RUT; para crearlos se usa el botón "Clientes".
+ * "direcciones" son las ya usadas en otros eventos: se sugieren al escribir.
  */
-export default function FormularioEvento({ fechaInicial = "", onGuardar, onCancelar }) {
+export default function FormularioEvento({ fechaInicial = "", direcciones = [], onGuardar, onCancelar }) {
   const [datos, setDatos] = useState({
     tipo: "",
     direccion: "",
@@ -98,7 +99,15 @@ export default function FormularioEvento({ fechaInicial = "", onGuardar, onCance
           onChange={cambiar("direccion")}
           placeholder="Calle, número, comuna"
           maxLength={120}
+          list="ev-direcciones"
+          autoComplete="off"
         />
+        {/* Direcciones ya usadas en otros eventos: así el mismo lugar se escribe siempre igual */}
+        <datalist id="ev-direcciones">
+          {direcciones.map((d) => (
+            <option key={d} value={d} />
+          ))}
+        </datalist>
       </div>
 
       <div className="fila-doble">
