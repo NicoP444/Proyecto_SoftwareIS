@@ -1,7 +1,6 @@
 import prisma from '../config/prisma.js';
 import { ValidationError, NotFoundError } from '../utils/errores.js';
 
-
 const FECHA = /^\d{4}-\d{2}-\d{2}$/; // AAAA-MM-DD
 const HORA = /^\d{2}:\d{2}$/; // HH:MM
 
@@ -11,6 +10,22 @@ const aFecha = (d) => d.toISOString().slice(0, 10); // "2026-11-10"
 
 // Dos franjas se traslapan si una empieza antes de que la otra termine (y al revés)
 const seTraslapan = (iniA, finA, iniB, finB) => iniA < finB && finA > iniB;
+
+// "09:30" -> 570 (minutos desde la medianoche), para poder restar horas
+const aMinutos = (hhmm) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
+
+// Deja la dirección sin tildes, mayúsculas, puntuación ni espacios repetidos
+const normalizar = (texto) =>
+  texto
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+// Dos eventos están en el mismo lugar si la dirección normalizada es igual
+const mismaDireccion = (a, b) => normalizar(a) === normalizar(b);
 
 // ¿Algún bloque de disponibilidad del trabajador cubre toda la franja del evento?
 const cubreFranja = (bloques, fecha, horaIni, horaFin) =>
@@ -135,6 +150,7 @@ export const listarPersonalConEstado = async ({ id_dueno, fecha, hora_inicio, ho
     };
   });
 };
+
 // ---------- Trabajadores asignados a un evento ----------
 export const listarAsignaciones = async (id_evento) => {
   const evento = await prisma.evento.findUnique({ where: { id_evento } });
@@ -208,10 +224,29 @@ export const asignarTrabajador = async (id_evento, { id_trabajador, id_rol, id_d
     );
   }
 
-  // Fuera de su disponibilidad: se permite, pero se avisa
   const advertencias = [];
+
+  // Fuera de su disponibilidad: se permite, pero se avisa
   if (!cubreFranja(trabajador.disponibilidades, aFecha(evento.fecha), horaIni, horaFin)) {
     advertencias.push(`${trabajador.nombre} queda fuera de su disponibilidad registrada para ese día y horario`);
+  }
+
+  // Margen de traslado (RF-P3-02): otro evento el mismo día en otra dirección, con poco tiempo entre ambos
+  const { margen_traslado_min } = await prisma.dueno.findUnique({
+    where: { id_dueno },
+    select: { margen_traslado_min: true },
+  });
+  for (const a of otras) {
+    if (mismaDireccion(a.evento.direccion, evento.direccion)) continue;
+    const iniOtro = aMinutos(aHora(a.evento.hora_inicio));
+    const finOtro = aMinutos(aHora(a.evento.hora_termino));
+    // Ya sabemos que no se traslapan: el tiempo libre es lo que separa un evento del otro
+    const espera = finOtro <= aMinutos(horaIni) ? aMinutos(horaIni) - finOtro : iniOtro - aMinutos(horaFin);
+    if (espera < margen_traslado_min) {
+      advertencias.push(
+        `Entre este evento y "${a.evento.tipo}" hay solo ${espera} min y están en direcciones distintas (el margen de traslado es de ${margen_traslado_min} min)`,
+      );
+    }
   }
 
   const asignacion = await prisma.asignacionPersonal.create({

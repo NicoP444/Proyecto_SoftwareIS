@@ -130,6 +130,7 @@ model Dueno {
   estado            EstadoCuenta @default(ACTIVO)
   intentos_fallidos Int          @default(0) @db.SmallInt
   bloqueado_hasta   DateTime?    @db.Timestamp(6)
+  margen_traslado_min Int        @default(60) @db.SmallInt // minutos mínimos entre dos eventos en direcciones distintas (RF-P3-02)
 
   sesiones        Sesion[]
   historial       HistorialCambio[]
