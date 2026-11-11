@@ -98,6 +98,14 @@ export default function GestionClientes({ onCambio }) {
   }
 
   async function eliminar(c) {
+    const nEventos = c._count?.eventos ?? 0;
+    if (nEventos > 0) {
+      setError(
+        `No se puede eliminar a ${c.nombre}: tiene ${nEventos} evento(s) asociado(s). ` +
+          "Elimina o reasigna esos eventos primero."
+      );
+      return;
+    }
     if (!window.confirm(`¿Eliminar al cliente ${c.nombre}?`)) return;
     setError("");
     try {
@@ -209,7 +217,8 @@ export default function GestionClientes({ onCambio }) {
                           type="button"
                           className="boton-icono"
                           onClick={() => eliminar(c)}
-                          disabled={nEventos > 0}
+                          aria-disabled={nEventos > 0}
+                          style={nEventos > 0 ? { opacity: 0.45, cursor: "not-allowed" } : undefined}
                           title={nEventos > 0 ? `Tiene ${nEventos} evento(s) asociado(s)` : "Eliminar"}
                           aria-label="Eliminar"
                         >
