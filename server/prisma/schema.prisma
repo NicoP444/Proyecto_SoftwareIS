@@ -134,7 +134,6 @@ model Dueno {
   sesiones        Sesion[]
   historial       HistorialCambio[]
   clientes        Cliente[]
-  recintos        Recinto[]
   eventos         Evento[]
   trabajadores    Trabajador[]
   roles           RolTrabajo[]
@@ -240,18 +239,6 @@ model Cliente {
   eventos Evento[]
 
   @@map("cliente")
-}
-
-model Recinto {
-  id_recinto Int     @id @default(autoincrement())
-  nombre     String  @db.VarChar(80)
-  direccion  String? @db.VarChar(120)
-  comuna     String  @db.VarChar(60)
-  id_dueno   Int
-
-  dueno   Dueno    @relation(fields: [id_dueno], references: [id_dueno], onDelete: Restrict)
-
-  @@map("recinto")
 }
 
 model Evento {
