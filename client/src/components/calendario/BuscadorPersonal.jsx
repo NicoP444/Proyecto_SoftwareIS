@@ -23,7 +23,7 @@ export default function BuscadorPersonal({ evento, onAsignado }) {
   const [cargando, setCargando] = useState(false);
   const [asignando, setAsignando] = useState(null); // id del trabajador que se está asignando
   const [error, setError] = useState("");
-  const [aviso, setAviso] = useState("");
+  const [aviso, setAviso] = useState(null); // { advertencia, textos }
   const [version, setVersion] = useState(0); // sube para volver a buscar
 
   const franjaValida = Boolean(fecha && horaInicio && horaTermino && horaTermino > horaInicio);
@@ -72,10 +72,14 @@ export default function BuscadorPersonal({ evento, onAsignado }) {
   async function asignar(t) {
     setAsignando(t.id_trabajador);
     setError("");
-    setAviso("");
+    setAviso(null);
     try {
       const res = await asignarTrabajador(evento.id_evento, t.id_trabajador, rolDe(t));
-      setAviso(res.advertencias?.length ? res.advertencias.join(". ") : `${t.nombre} fue asignado al evento`);
+      setAviso(
+        res.advertencias?.length
+          ? { advertencia: true, textos: res.advertencias }
+          : { advertencia: false, textos: [`${t.nombre} fue asignado al evento`] },
+      );
       setVersion((v) => v + 1);
       onAsignado?.();
     } catch (err) {
@@ -118,7 +122,12 @@ export default function BuscadorPersonal({ evento, onAsignado }) {
       </div>
 
       {error && <div className="mensaje mensaje-error">{error}</div>}
-      {aviso && <div className="mensaje mensaje-exito">{aviso}</div>}
+      {aviso && (
+        <div className={`mensaje ${aviso.advertencia ? "mensaje-aviso" : "mensaje-exito"}`}>
+          {aviso.advertencia && <strong>Asignado, pero revisa: </strong>}
+          {aviso.textos.join(". ")}
+        </div>
+      )}
 
       {!franjaValida && (
         <p className="texto-tenue">
