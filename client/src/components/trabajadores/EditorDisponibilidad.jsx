@@ -6,13 +6,14 @@ import {
 } from '../../services/personalServicio.js';
 import { periodoMesActual, textoFechasBloque, textoHorarioBloque } from './ayudas.js';
 
-// este permite crear un nuevo bloque de disponibilidad con valores por defecto
-function bloqueNuevo() {
-  const mes = periodoMesActual();// llamamos a la funcion en ayuda...
+
+//bloque disponibilidad
+
+function bloqueNuevo(){ 
+  const mes = periodoMesActual();
   return { fecha_inicio: mes.inicio, fecha_termino: mes.termino, hora_inicio: '09:00', hora_termino: '18:00' }; // valores por defecto
 }
 
-// valida que el bloque tenga fechas y horas correctas, recibe un objeto, del usuario
 function validar(bloque) {
   if (!bloque.fecha_inicio || !bloque.fecha_termino) return 'Indica la fecha de inicio y de término';
   if (bloque.fecha_inicio > bloque.fecha_termino) return 'La fecha de término debe ser posterior a la de inicio';
@@ -21,21 +22,15 @@ function validar(bloque) {
   return null;
 }
 
-// declaramos el componente EditorDisponibilidad, que recibe idTrabajador, disponibilidad y onGuardado como props
 export default function EditorDisponibilidad({ idTrabajador, disponibilidad, onGuardado }) {
-  // definimos los objetos de estado bloque, mensaje y guardando, usando useState(propio estado interno)
-  // bloque es el objeto que representa el bloque de disponibilidad, utiliza la funcion bloqueNuevo() para inicializarlo con valores por defecto
   const [bloque, setBloque] = useState(bloqueNuevo);
-  // utilizamos este objeto para mostrar mensajes de error o éxito al usuario, inicialmente es null
   const [mensaje, setMensaje] = useState(null); 
-  // guardando es un booleano que indica si se está guardando el bloque, inicialmente es false, se conecta con el server
   const [guardando, setGuardando] = useState(false);
 
   // declaramos esta funciona cada vez que el usuario cambia un valor o actualiza
   function cambiar(e) {
-    //actualizamos el estado bloque con los nuevos valores.
     setBloque({ ...bloque, [e.target.name]: e.target.value }); 
-    setMensaje(null);// limpiamos el mensaje de error o éxito al cambiar un valor
+    setMensaje(null);
   }
 
   //declaramos la funcion asincornica, permite esperar la respuesta del servidor, recibe un evento e, cuando el usuario hace click en guardar
