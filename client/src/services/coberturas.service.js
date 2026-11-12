@@ -12,6 +12,11 @@ export const crearCobertura = (cobertura) => fetch(`${API_URL}/coberturas`, {
   method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cobertura)
 }).then(manejarRespuesta);
 
+// RF-P1-07: modifica un evento. La respuesta trae "advertencias" (lista de avisos, puede venir vacía)
+export const modificarCobertura = (id, cobertura) => fetch(`${API_URL}/coberturas/${id}`, {
+  method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cobertura)
+}).then(manejarRespuesta);
+
 export const eliminarCobertura = async (id, motivo) => {
   const response = await fetch(`${API_URL}/coberturas/${id}`, {
     method: 'DELETE',

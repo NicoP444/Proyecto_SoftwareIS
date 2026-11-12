@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Clock,
   MapPin,
+  Pencil,
   Plus,
   Timer,
   Trash2,
@@ -21,6 +22,7 @@ import {
   listarCoberturas,
   crearCobertura,
   eliminarCobertura,
+  modificarCobertura,
 } from "../services/coberturas.service.js";
 import FormularioEvento from "../components/calendario/FormularioEvento";
 import GestionClientes from "../components/calendario/GestionClientes";
@@ -136,12 +138,15 @@ export default function Calendario() {
   const [eliminando, setEliminando] = useState(false);
   const [pidiendoMotivo, setPidiendoMotivo] = useState(false); // muestra el campo de motivo
   const [motivoEliminar, setMotivoEliminar] = useState("");
+  const [editando, setEditando] = useState(false); // ventana "Modificar evento" (RF-P1-07)
+  const [avisosEdicion, setAvisosEdicion] = useState([]); // avisos que devuelve el back al modificar
 
   // RF-P1-12 y RF-P1-13: el Jefe técnico no ve datos financieros
   const rol = obtenerUsuario()?.rol;
   const verFinanzas = rol === "DUENO" || rol === "CONTADOR";
   const puedeCrear = rol === "DUENO"; // RF-P1-04: solo el Dueño agenda eventos
   const puedeEliminar = rol === "DUENO"; // RF-P1-08: solo el Dueño elimina eventos
+  const puedeModificar = rol === "DUENO"; // RF-P1-07: solo el Dueño modifica eventos
 
   // Pedimos las coberturas al back
   async function cargarDatos() {
@@ -170,6 +175,7 @@ export default function Calendario() {
     setErrorEliminar("");
     setPidiendoMotivo(false);
     setMotivoEliminar("");
+    setAvisosEdicion([]);
   }
 
   function cancelarEliminar() {
@@ -195,6 +201,21 @@ export default function Calendario() {
     } finally {
       setEliminando(false);
     }
+  }
+
+  // RF-P1-07: guarda los cambios y deja el detalle abierto con los datos nuevos
+  async function guardarEdicion(datos) {
+    const respuesta = await modificarCobertura(eventoAbierto.id_evento, datos);
+    setEditando(false);
+    const lista = await listarCoberturas().catch(() => null);
+    if (lista) {
+      setCoberturas(lista);
+      setEventoAbierto(lista.find((c) => c.id_evento === eventoAbierto.id_evento) ?? null);
+    }
+    setAvisosEdicion(respuesta.advertencias ?? []);
+    // Llevamos el calendario a la nueva fecha del evento
+    const [a, m, d] = datos.fecha.split("-").map(Number);
+    setFechaBase(new Date(a, m - 1, d));
   }
 
   async function guardarEvento(datos) {
@@ -479,6 +500,16 @@ export default function Calendario() {
             {e.observaciones && (
               <p className="texto-tenue">{e.observaciones}</p>
             )}
+            {avisosEdicion.length > 0 && (
+              <div className="mensaje mensaje-aviso">
+                <strong>Evento modificado. Revisa lo siguiente:</strong>
+                <ul>
+                  {avisosEdicion.map((aviso) => (
+                    <li key={aviso}>{aviso}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {/* Dotación del evento (RF-P3-01) */}
             <PanelPersonal
@@ -534,6 +565,18 @@ export default function Calendario() {
             {errorEliminar && (
               <div className="mensaje mensaje-error">{errorEliminar}</div>
             )}
+            {puedeModificar && !pidiendoMotivo && e.estado !== "CERRADO" && (
+              <button
+                type="button"
+                className="boton boton-secundario"
+                onClick={() => {
+                  setAvisosEdicion([]);
+                  setEditando(true);
+                }}
+              >
+                <Pencil size={16} /> Modificar evento
+              </button>
+            )}
             {puedeEliminar && !pidiendoMotivo && (
               <button
                 type="button"
@@ -580,6 +623,22 @@ export default function Calendario() {
               </div>
             )}
           </div>
+        )}
+      </Modal>
+
+      {/* Modificar evento (RF-P1-07), hermano del detalle */}
+      <Modal
+        abierto={editando}
+        onCerrar={() => setEditando(false)}
+        titulo="Modificar evento"
+      >
+        {e && (
+          <FormularioEvento
+            evento={e}
+            direcciones={direcciones}
+            onGuardar={guardarEdicion}
+            onCancelar={() => setEditando(false)}
+          />
         )}
       </Modal>
 

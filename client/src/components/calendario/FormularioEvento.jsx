@@ -8,23 +8,25 @@ const minutos = (hora) => {
 };
 
 /**
- * Formulario para agendar un evento (RF-P1-04).
+ * Formulario para agendar un evento (RF-P1-04) o modificarlo (RF-P1-07).
  * Repite aquí las reglas del back para avisar antes de enviar.
  * El cliente se busca por nombre o RUT; para crearlos se usa el botón "Clientes".
  * "direcciones" son las ya usadas en otros eventos: se sugieren al escribir.
  */
-export default function FormularioEvento({ fechaInicial = "", direcciones = [], onGuardar, onCancelar }) {
+export default function FormularioEvento({ evento = null, fechaInicial = "", direcciones = [], onGuardar, onCancelar }) {
+  const editando = Boolean(evento); // con "evento" el formulario sirve para modificarlo (RF-P1-07)
   const [datos, setDatos] = useState({
-    tipo: "",
-    direccion: "",
-    fecha: fechaInicial,
-    hora_inicio: "",
-    hora_termino: "",
-    cantidad_camaras: 1,
-    precio_acordado: "",
-    observaciones: "",
+    tipo: evento?.tipo ?? "",
+    direccion: evento?.direccion ?? "",
+    fecha: evento ? String(evento.fecha).slice(0, 10) : fechaInicial,
+    hora_inicio: evento ? String(evento.hora_inicio).slice(11, 16) : "",
+    hora_termino: evento ? String(evento.hora_termino).slice(11, 16) : "",
+    cantidad_camaras: evento?.cantidad_camaras ?? 1,
+    precio_acordado: evento?.precio_acordado ?? "",
+    observaciones: evento?.observaciones ?? "",
+    motivo: "", // solo al modificar: por qué cambió (queda en el historial)
   });
-  const [cliente, setCliente] = useState(null); // cliente elegido en el buscador
+  const [cliente, setCliente] = useState(evento?.cliente ?? null); // cliente elegido en el buscador
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
 
@@ -142,7 +144,26 @@ export default function FormularioEvento({ fechaInicial = "", direcciones = [], 
         <input id="ev-obs" value={datos.observaciones} onChange={cambiar("observaciones")} maxLength={255} />
       </div>
 
-      {horasValidas && (
+      {editando && (
+        <div className="campo">
+          <label htmlFor="ev-motivo">Motivo del cambio (opcional)</label>
+          <input
+            id="ev-motivo"
+            value={datos.motivo}
+            onChange={cambiar("motivo")}
+            maxLength={255}
+            placeholder="Ej: El cliente adelantó la hora de inicio"
+          />
+        </div>
+      )}
+
+      {editando && (
+        <p className="texto-tenue">
+          Si cambias la fecha, el horario o el lugar, el sistema revisa los kits y el personal ya asignados.
+        </p>
+      )}
+
+      {horasValidas && (!editando || ["CONFIRMADO", "PENDIENTE_ADELANTO"].includes(evento.estado)) && (
         <p className="texto-tenue">
           Dura {duracion.toLocaleString("es-CL", { maximumFractionDigits: 1 })} h: el evento quedará{" "}
           <strong>{duracion >= 5 ? "Pendiente de adelanto" : "Confirmado"}</strong>.
@@ -154,7 +175,7 @@ export default function FormularioEvento({ fechaInicial = "", direcciones = [], 
           Cancelar
         </button>
         <button type="submit" className="boton boton-principal" disabled={guardando}>
-          {guardando ? "Guardando…" : "Agendar evento"}
+          {guardando ? "Guardando…" : editando ? "Guardar cambios" : "Agendar evento"}
         </button>
       </div>
     </form>
