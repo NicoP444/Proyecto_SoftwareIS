@@ -58,7 +58,7 @@ export default function Landing() {
           <div className="hero-text">
             <form className="login-card" onSubmit={handleSubmit}>
               <h1>Iniciar sesión</h1>
-              <p className="lead">Accede para coordinar tus coberturas.</p>
+              <p className="lead">Accede para coordinar tus eventos.</p>
 
               {error && (
                 <div className="login-error" role="alert">

@@ -7,8 +7,8 @@ import {
   listarClientes
 } from '../services/cliente.service.js';
 import {
-  listarCoberturas, crearCobertura, eliminarCobertura
-} from '../services/coberturas.service.js';
+  listarEventos, crearEvento, eliminarEvento
+} from '../services/evento.service.js';
 
 //Estados posibles que puede tomar un evento.
 const ESTADOS = { 
@@ -46,14 +46,14 @@ const labelStyle = { display: 'block', marginBottom: '4px', fontSize: '13px', fo
 const cardStyle = { border: '1px solid #e5e7eb', borderRadius: '8px', padding: '20px', marginBottom: '24px' };
 
 //funcion para la presentacion y renderizacion del formulario cliente y evento
-export default function Coberturas() {
+export default function Eventos() {
   const navigate = useNavigate(); //para volver al inicio
 
   const [clientes, setClientes] = useState([]); //crea un estado llamado "clientes" vacio, serClientes permite cambiarlo
-  const [coberturas, setCoberturas] = useState([]); //crea un estado llamado "coberturas" vacio, setCoberturas permite cambiarlo
+  const [eventos, setEventos] = useState([]); //crea un estado llamado "eventos" vacio, setEventos permite cambiarlo
   const [error, setError] = useState(null); //guarda posibles errores
 
-  const [nuevaCobertura, setNuevaCobertura] = useState({ //almacenamos lo escrito por el usuario en el formulario
+  const [nuevoEvento, setNuevoEvento] = useState({ //almacenamos lo escrito por el usuario en el formulario
     tipo: '', fecha: '', hora_inicio: '', hora_termino: '', direccion: '',
     cantidad_camaras: 1, precio_acordado: '', observaciones: '',
     id_cliente: ''
@@ -61,9 +61,9 @@ export default function Coberturas() {
 
   const cargarDatos = async () => { //definicion de funcion > async: realizara operaciones que pueden tardar pedir, consultar, esperar
     try {
-      const [clientesData, coberturasData] = await Promise.all([listarClientes(), listarCoberturas()])// obtenemos los clientes y coberturas con promise.all para esperar ambos
+      const [clientesData, eventosData] = await Promise.all([listarClientes(), listarEventos()])// obtenemos los clientes y eventos con promise.all para esperar ambos
       setClientes(clientesData); //guardamos clientes en este estado
-      setCoberturas(coberturasData); //guardamos coberturas en este estado
+      setEventos(eventosData); //guardamos eventos en este estado
     } catch (err) {
       setError(err.message);
     }
@@ -71,12 +71,12 @@ export default function Coberturas() {
 
   useEffect(() => { cargarDatos(); }, []); //indica al inicio del componente la funcion cargardatos para mostrar actualizada la lista desde el inicio
 
-  const handleCrearCobertura = async (e) => {
+  const handleCrearEvento = async (e) => {
     e.preventDefault(); 
     setError(null); 
     try {
-      await crearCobertura(nuevaCobertura); 
-      setNuevaCobertura({ //limpiamos el formulario
+      await crearEvento(nuevoEvento); 
+      setNuevoEvento({ //limpiamos el formulario
         tipo: '', fecha: '', hora_inicio: '', hora_termino: '', direccion: '',
         cantidad_camaras: 1, precio_acordado: '', observaciones: '',
         id_cliente: ''
@@ -88,7 +88,7 @@ export default function Coberturas() {
   const handleEliminar = async (id) => {
     setError(null);
     try {
-      await eliminarCobertura(id); 
+      await eliminarEvento(id); 
       cargarDatos(); 
     } catch (err) { setError(err.message); }
   };
@@ -99,7 +99,7 @@ export default function Coberturas() {
         ← Volver al Home
       </button>
 
-      <h1 style={{ marginBottom: '20px' }}>Coberturas</h1>
+      <h1 style={{ marginBottom: '20px' }}>Eventos</h1>
 
       {error && (
         <div style={{ padding: '10px', background: '#ffe3e3', color: '#c92a2a', borderRadius: '4px', marginBottom: '20px' }}>
@@ -108,45 +108,45 @@ export default function Coberturas() {
       )}
 
       <div style={cardStyle}>
-        <h2>Agendar cobertura</h2>
-        <form onSubmit={handleCrearCobertura}>
+        <h2>Agendar evento</h2>
+        <form onSubmit={handleCrearEvento}>
           <label style={labelStyle}>Tipo de evento</label>
-          <input style={inputStyle} value={nuevaCobertura.tipo} onChange={(e) => setNuevaCobertura({ ...nuevaCobertura, tipo: e.target.value })} placeholder="Matrimonio, cumpleaños, etc." required />
+          <input style={inputStyle} value={nuevoEvento.tipo} onChange={(e) => setNuevoEvento({ ...nuevoEvento, tipo: e.target.value })} placeholder="Matrimonio, cumpleaños, etc." required />
 
           <label style={labelStyle}>Cliente</label>
-          <select style={inputStyle} value={nuevaCobertura.id_cliente} onChange={(e) => setNuevaCobertura({ ...nuevaCobertura, id_cliente: e.target.value })} required>
+          <select style={inputStyle} value={nuevoEvento.id_cliente} onChange={(e) => setNuevoEvento({ ...nuevoEvento, id_cliente: e.target.value })} required>
             <option value="">Selecciona un cliente</option>
             {clientes.map((c) => <option key={c.id_cliente} value={c.id_cliente}>{c.nombre}</option>)}
           </select>
 
           <label style={labelStyle}>Dirección del evento</label>
-          <input style={inputStyle} value={nuevaCobertura.direccion} onChange={(e) => setNuevaCobertura({ ...nuevaCobertura, direccion: e.target.value })} placeholder="Calle, número, comuna" required />
+          <input style={inputStyle} value={nuevoEvento.direccion} onChange={(e) => setNuevoEvento({ ...nuevoEvento, direccion: e.target.value })} placeholder="Calle, número, comuna" required />
 
           <label style={labelStyle}>Fecha</label>
-          <input style={inputStyle} type="date" value={nuevaCobertura.fecha} onChange={(e) => setNuevaCobertura({ ...nuevaCobertura, fecha: e.target.value })} required />
+          <input style={inputStyle} type="date" value={nuevoEvento.fecha} onChange={(e) => setNuevoEvento({ ...nuevoEvento, fecha: e.target.value })} required />
 
           <label style={labelStyle}>Hora de inicio</label>
-          <input style={inputStyle} type="time" value={nuevaCobertura.hora_inicio} onChange={(e) => setNuevaCobertura({ ...nuevaCobertura, hora_inicio: e.target.value })} required />
+          <input style={inputStyle} type="time" value={nuevoEvento.hora_inicio} onChange={(e) => setNuevoEvento({ ...nuevoEvento, hora_inicio: e.target.value })} required />
 
           <label style={labelStyle}>Hora de término</label>
-          <input style={inputStyle} type="time" value={nuevaCobertura.hora_termino} onChange={(e) => setNuevaCobertura({ ...nuevaCobertura, hora_termino: e.target.value })} required />
+          <input style={inputStyle} type="time" value={nuevoEvento.hora_termino} onChange={(e) => setNuevoEvento({ ...nuevoEvento, hora_termino: e.target.value })} required />
 
           <label style={labelStyle}>Cantidad de cámaras</label>
-          <input style={inputStyle} type="number" min="1" value={nuevaCobertura.cantidad_camaras} onChange={(e) => setNuevaCobertura({ ...nuevaCobertura, cantidad_camaras: e.target.value })} required />
+          <input style={inputStyle} type="number" min="1" value={nuevoEvento.cantidad_camaras} onChange={(e) => setNuevoEvento({ ...nuevoEvento, cantidad_camaras: e.target.value })} required />
 
           <label style={labelStyle}>Precio acordado (CLP)</label>
-          <input style={inputStyle} type="number" min="1" value={nuevaCobertura.precio_acordado} onChange={(e) => setNuevaCobertura({ ...nuevaCobertura, precio_acordado: e.target.value })} required />
+          <input style={inputStyle} type="number" min="1" value={nuevoEvento.precio_acordado} onChange={(e) => setNuevoEvento({ ...nuevoEvento, precio_acordado: e.target.value })} required />
 
           <label style={labelStyle}>Observaciones (opcional)</label>
-          <textarea style={inputStyle} value={nuevaCobertura.observaciones} onChange={(e) => setNuevaCobertura({ ...nuevaCobertura, observaciones: e.target.value })} />
+          <textarea style={inputStyle} value={nuevoEvento.observaciones} onChange={(e) => setNuevoEvento({ ...nuevoEvento, observaciones: e.target.value })} />
 
-          <button type="submit" style={{ padding: '8px 14px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Agendar cobertura</button>
+          <button type="submit" style={{ padding: '8px 14px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Agendar evento</button>
         </form>
       </div>
 
       <div style={cardStyle}>
-        <h2>Lista de coberturas</h2>
-        {coberturas.length === 0 ? <p>Todavía no hay coberturas agendadas.</p> : (
+        <h2>Lista de eventos</h2>
+        {eventos.length === 0 ? <p>Todavía no hay eventos agendados.</p> : (
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ textAlign: 'left', borderBottom: '2px solid #e5e7eb' }}>
@@ -161,7 +161,7 @@ export default function Coberturas() {
               </tr>
             </thead>
             <tbody>
-              {coberturas.map((ev) => (
+              {eventos.map((ev) => (
                 <tr key={ev.id_evento} style={{ borderBottom: '1px solid #f1f1f1' }}>
                   <td style={{ padding: '8px' }}>{formatFecha(ev.fecha)}</td>
                   <td style={{ padding: '8px' }}>{formatHora(ev.hora_inicio)} - {formatHora(ev.hora_termino)}</td>

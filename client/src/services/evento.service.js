@@ -7,24 +7,24 @@ async function manejarRespuesta(response) {
   return data; //la peticion fue exitosa y retornamos
 }
 
-export const listarCoberturas = () => fetch(`${API_URL}/coberturas`).then(manejarRespuesta);
-export const crearCobertura = (cobertura) => fetch(`${API_URL}/coberturas`, {
-  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cobertura)
+export const listarEventos = () => fetch(`${API_URL}/eventos`).then(manejarRespuesta);
+export const crearEvento = (evento) => fetch(`${API_URL}/eventos`, {
+  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(evento)
 }).then(manejarRespuesta);
 
 // RF-P1-07: modifica un evento. La respuesta trae "advertencias" (lista de avisos, puede venir vacía)
-export const modificarCobertura = (id, cobertura) => fetch(`${API_URL}/coberturas/${id}`, {
-  method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cobertura)
+export const modificarEvento = (id, evento) => fetch(`${API_URL}/eventos/${id}`, {
+  method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(evento)
 }).then(manejarRespuesta);
 
-export const eliminarCobertura = async (id, motivo) => {
-  const response = await fetch(`${API_URL}/coberturas/${id}`, {
+export const eliminarEvento = async (id, motivo) => {
+  const response = await fetch(`${API_URL}/eventos/${id}`, {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ motivo }),
   });
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
-    throw new Error(data.mensaje || 'No se pudo eliminar la cobertura');
+    throw new Error(data.mensaje || 'No se pudo eliminar el evento');
   }
 };

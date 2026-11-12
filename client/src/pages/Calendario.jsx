@@ -19,11 +19,11 @@ import {
 } from "lucide-react";
 import Modal from "../components/Modal";
 import {
-  listarCoberturas,
-  crearCobertura,
-  eliminarCobertura,
-  modificarCobertura,
-} from "../services/coberturas.service.js";
+  listarEventos,
+  crearEvento,
+  eliminarEvento,
+  modificarEvento,
+} from "../services/evento.service.js";
 import FormularioEvento from "../components/calendario/FormularioEvento";
 import GestionClientes from "../components/calendario/GestionClientes";
 import PanelPersonal from "../components/calendario/PanelPersonal";
@@ -60,7 +60,7 @@ const ESTADOS = {
 const RESUMEN = [
   {
     estado: "",
-    texto: "Coberturas del periodo",
+    texto: "Eventos del periodo",
     icono: CalendarDays,
     color: "azul",
   },
@@ -124,7 +124,7 @@ export default function Calendario() {
   const hoy = new Date();
   const [fechaBase, setFechaBase] = useState(hoy); // fecha que define el mes o la semana visible
   const [vista, setVista] = useState("mes"); // 'mes' o 'semana'
-  const [coberturas, setCoberturas] = useState([]);
+  const [eventos, setEventos] = useState([]);
   const [filtroEstado, setFiltroEstado] = useState("");
   const [eventoAbierto, setEventoAbierto] = useState(null);
   const [cargando, setCargando] = useState(true);
@@ -148,10 +148,10 @@ export default function Calendario() {
   const puedeEliminar = rol === "DUENO"; // RF-P1-08: solo el Dueño elimina eventos
   const puedeModificar = rol === "DUENO"; // RF-P1-07: solo el Dueño modifica eventos
 
-  // Pedimos las coberturas al back
+  // Pedimos los eventos al back
   async function cargarDatos() {
     try {
-      setCoberturas(await listarCoberturas());
+      setEventos(await listarEventos());
     } catch (err) {
       setError(err.message);
     } finally {
@@ -193,7 +193,7 @@ export default function Calendario() {
     setErrorEliminar("");
     setEliminando(true);
     try {
-      await eliminarCobertura(eventoAbierto.id_evento, motivoEliminar.trim());
+      await eliminarEvento(eventoAbierto.id_evento, motivoEliminar.trim());
       cerrarDetalle();
       await cargarDatos(); // recarga el calendario sin el evento
     } catch (err) {
@@ -205,11 +205,11 @@ export default function Calendario() {
 
   // RF-P1-07: guarda los cambios y deja el detalle abierto con los datos nuevos
   async function guardarEdicion(datos) {
-    const respuesta = await modificarCobertura(eventoAbierto.id_evento, datos);
+    const respuesta = await modificarEvento(eventoAbierto.id_evento, datos);
     setEditando(false);
-    const lista = await listarCoberturas().catch(() => null);
+    const lista = await listarEventos().catch(() => null);
     if (lista) {
-      setCoberturas(lista);
+      setEventos(lista);
       setEventoAbierto(lista.find((c) => c.id_evento === eventoAbierto.id_evento) ?? null);
     }
     setAvisosEdicion(respuesta.advertencias ?? []);
@@ -219,7 +219,7 @@ export default function Calendario() {
   }
 
   async function guardarEvento(datos) {
-    await crearCobertura(datos);
+    await crearEvento(datos);
     setCreando(false);
     await cargarDatos();
     // Llevamos el calendario a la fecha del evento recién creado
@@ -232,23 +232,23 @@ export default function Calendario() {
   const dias =
     vista === "mes" ? celdasDelMes(anio, mes) : diasDeSemana(fechaBase);
 
-  // Coberturas que caen dentro del periodo visible
+  // Eventos que caen dentro del periodo visible
   const claves = dias.map(clave);
   // Direcciones ya usadas, para sugerirlas al crear un evento
   const direcciones = useMemo(
-    () => [...new Set(coberturas.map((c) => c.direccion).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
-    [coberturas],
+    () => [...new Set(eventos.map((c) => c.direccion).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
+    [eventos],
   );
 
   const delPeriodo = useMemo(
     () =>
-      coberturas.filter((c) =>
+      eventos.filter((c) =>
         vista === "mes"
           ? claveDe(c).startsWith(`${anio}-${String(mes + 1).padStart(2, "0")}`)
           : claves.includes(claveDe(c)),
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [coberturas, vista, anio, mes, fechaBase],
+    [eventos, vista, anio, mes, fechaBase],
   );
 
   // Agrupadas por día y ordenadas por hora (aplicando el filtro de estado)
@@ -397,7 +397,7 @@ export default function Calendario() {
         </div>
 
         {error && <div className="mensaje mensaje-error">{error}</div>}
-        {cargando && <p className="vacio">Cargando coberturas…</p>}
+        {cargando && <p className="vacio">Cargando eventos…</p>}
         {!cargando && !error && delPeriodo.length === 0 && (
           <p className="vacio">
             No hay transmisiones agendadas en este periodo.
@@ -583,7 +583,7 @@ export default function Calendario() {
                 className="boton boton-peligro"
                 onClick={() => setPidiendoMotivo(true)}
               >
-                <Trash2 size={16} /> Eliminar cobertura
+                <Trash2 size={16} /> Eliminar evento
               </button>
             )}
             {puedeEliminar && pidiendoMotivo && (

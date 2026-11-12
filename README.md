@@ -1,18 +1,18 @@
 # Proyecto - Ingeniería de Software
-## Sistema de Gestión de Cobertura de Transmisiones en Vivo
+## Sistema de Gestión de Eventos y Transmisiones en Vivo
 
 Este repositorio contiene el código fuente y las evidencias del proyecto final para la asignatura de Ingeniería de Software.
-El sistema está orientado a la administración de coberturas (transmisiones en vivo), clientes, inventario de equipos, personal técnico y auspiciadores de una empresa de transmisión audiovisual, integrando funcionalidades de agendamiento, control financiero y paneles diferenciados por rol.
+El sistema está orientado a la administración de eventos (transmisiones en vivo), clientes, inventario de equipos, personal técnico y auspiciadores de una empresa de transmisión audiovisual, integrando funcionalidades de agendamiento, control financiero y paneles diferenciados por rol.
 
 ## Sobre el Proyecto
 
-Aplicación web full-stack para la gestión integral de una empresa de coberturas de transmisiones en vivo (licenciaturas, eventos deportivos, partidos, etc.).
-Incluye módulos de agendamiento de coberturas mediante calendario, gestión de clientes, control de inventario y kits de equipos, asignación de personal técnico, registro de auspiciadores, y cálculo automático de sueldos, gastos y utilidad neta.
+Aplicación web full-stack para la gestión integral de una empresa de eventos y transmisiones en vivo (licenciaturas, eventos deportivos, partidos, etc.).
+Incluye módulos de agendamiento de eventos mediante calendario, gestión de clientes, control de inventario y kits de equipos, asignación de personal técnico, registro de auspiciadores, y cálculo automático de sueldos, gastos y utilidad neta.
 
 ## Características Principales
 
-- **Gestión de Coberturas:** Agendamiento, modificación y eliminación de transmisiones, con cálculo automático de estado (Confirmado / Pendiente de adelanto) según la duración del evento.
-- **Gestión de Clientes:** Registro y administración de los clientes que contratan las coberturas.
+- **Gestión de Eventos:** Agendamiento, modificación y eliminación de transmisiones, con cálculo automático de estado (Confirmado / Pendiente de adelanto) según la duración del evento.
+- **Gestión de Clientes:** Registro y administración de los clientes que contratan los eventos.
 - **Gestión de Inventario:** Registro de equipos individuales (cámaras, trípodes, micrófonos, switches), con nombre, fecha de ingreso, estado, stock y valor monetario.
 - **Kits de Inventario:** Agrupación de equipos en kits de trabajo (con mínimo una cámara, un trípode, un micrófono y un switch de video), y clasificación como "repuestos" del equipo no asignado a ningún kit.
 - **Registro de Incidentes:** Registro de pérdidas, daños o robos de inventario, enlazando el valor del equipo a las pérdidas de la transmisión asociada.

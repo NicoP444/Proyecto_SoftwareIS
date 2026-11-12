@@ -120,7 +120,7 @@ export async function eliminarEvento(id, motivo) {
 
   if (motivos.length > 0) {
     throw new Error(
-      `No se puede eliminar: la cobertura tiene ${motivos.join(", ")} registrados`,
+      `No se puede eliminar: el evento tiene ${motivos.join(", ")} registrados`,
     );
   }
 

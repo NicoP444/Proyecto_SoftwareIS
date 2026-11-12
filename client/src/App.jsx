@@ -4,7 +4,7 @@ import Home from "./pages/Home";
 import Trabajadores from "./pages/Trabajadores"; //nico
 import Finanzas from "./pages/Finanzas"; //nico
 import Auspiciadores from "./pages/Auspiciadores";
-import Coberturas from "./pages/Coberturas";
+import Eventos from "./pages/Eventos";
 import Incidentes from "./pages/Incidentes";
 import Clientes from "./pages/Clientes";
 import RegistrarAcuerdoPage from "./pages/RegistrarAcuerdo";
@@ -61,10 +61,10 @@ export default function App() {
         />
 
         <Route
-          path="/coberturas"
+          path="/eventos"
           element={
             <RutaProtegida>
-              <Coberturas />
+              <Eventos />
             </RutaProtegida>
           }
         />
