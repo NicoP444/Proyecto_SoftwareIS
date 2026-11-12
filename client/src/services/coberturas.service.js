@@ -1,5 +1,9 @@
 import { API_URL } from './config.js';
 
+
+//funcion que recibe la respuesta que entrega fetch despues de comunicarse al backend
+
+
 //funcion que recibe la respuesta que entrega fetch despues de comunicarse al backend
 async function manejarRespuesta(response) {
   const data = await response.json().catch(() => ({}));//transformamos a obj js y en caso que falle data = {}

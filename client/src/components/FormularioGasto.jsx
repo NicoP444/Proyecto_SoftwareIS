@@ -2,6 +2,10 @@ import { useState } from 'react';
 import { TIPOS } from './finanzas/formato.js'; // Corrección 1: Ruta ajustada
 import { urlEvidencia } from '../services/gastoEvento.service.js';
 
+
+// fromulario para registrar o modificar un gasto, con validaciones y manejo de errores
+
+
 export default function FormularioGasto({ gasto, trabajadores, onGuardar, onCancelar }) {
   const editando = Boolean(gasto);
   const [tipo, setTipo] = useState(gasto?.tipo_gasto ?? 'MOVILIZACION');

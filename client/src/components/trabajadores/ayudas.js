@@ -119,5 +119,5 @@ export function periodoMesActual() {
   const anio = hoy.getFullYear(); // obtenemos el año actual
   const mes = String(hoy.getMonth() + 1).padStart(2, '0'); // obtenemos el mes actual y lo formateamos con dos dígitos
   const ultimoDia = new Date(anio, hoy.getMonth() + 1, 0).getDate();// obtenemos el último día del mes actual
-  return { inicio: `${anio}-${mes}-01`, termino: `${anio}-${mes}-${ultimoDia}` };// devolvemos un objeto con las fechas de inicio y término del mes actual
+  return { inicio: `${anio}-${mes}-01`, termino: `${anio}-${mes}-${ultimoDia}` };
 }

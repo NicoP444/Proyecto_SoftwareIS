@@ -6,7 +6,8 @@ import RolesTrabajador from './RolesTrabajador';
 import FormularioTrabajador from './FormularioTrabajador';
 import { bloqueVigente, iniciales, nombreCompleto, rolesDe, textoEstado, textoFechasBloque, textoHorarioBloque } from './ayudas.js';
 
-/** Cuadro con un número destacado (mismo estilo que el Panel Principal). */
+/* este es ficha trabajador, para ver todo*/
+
 function Indicador({ icono: Icono, titulo, valor, detalle, color }) {
   return (
     <div className={`indicador ${color}`}>
