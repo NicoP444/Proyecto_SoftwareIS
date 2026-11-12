@@ -84,3 +84,100 @@ button.cal-mas { flex-shrink: 0; padding: 0; border: 0; background: none; text-a
 /* ---------- Formulario de nuevo evento ---------- */
 .cal-cliente { display: flex; gap: 8px; }
 .cal-cliente select { flex: 1; min-width: 0; }
+.boton-peligro { background: #dc2626; color: #fff; }
+.boton-peligro:hover:not(:disabled) { background: #b91c1c; }
+.cal-detalle .boton-peligro { align-self: flex-start; }
+.cal-eliminar { display: flex; flex-direction: column; gap: 10px; }
+.cal-eliminar-botones { display: flex; gap: 8px; }
+
+/* ---------- Buscador de clientes ---------- */
+.selector-cliente-elegido {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 6px 4px 10px;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  background: var(--primario-suave);
+  font-size: 0.85rem;
+}
+.selector-cliente-lista {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  background: var(--blanco);
+}
+.selector-cliente-lista li button {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.selector-cliente-lista li button:hover { background: var(--fondo); }
+.selector-cliente-vacio { padding: 8px; font-size: 0.8rem; color: var(--texto-suave); }
+
+/* ---------- Gestión de clientes ---------- */
+.cli-tabla { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.cli-tabla th, .cli-tabla td { padding: 8px; border-bottom: 1px solid var(--borde); text-align: left; }
+.cli-acciones { display: flex; gap: 4px; justify-content: flex-end; }
+.cli-gestion { display: flex; flex-direction: column; gap: 12px; }
+.cli-barra { display: flex; gap: 8px; align-items: flex-end; }
+.cli-barra .campo { flex: 1; }
+
+
+/* ---------- Personal: dotación del evento y personal disponible (RF-P1-03 / RF-P3-01) ---------- */
+.personal-panel { display: flex; flex-direction: column; gap: 8px; }
+.personal-cabecera { display: flex; align-items: center; justify-content: space-between; }
+.personal-buscador { display: flex; flex-direction: column; gap: 10px; padding: 12px; border: 1px solid var(--borde); border-radius: var(--radio); background: var(--fondo); }
+.personal-filtros { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.personal-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; }
+.personal-fila { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid var(--borde); border-radius: 10px; background: var(--blanco); }
+.personal-datos { display: flex; flex-direction: column; gap: 4px; min-width: 0; font-size: 0.85rem; }
+.personal-accion { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.personal-accion select { height: 36px; padding: 0 8px; border: 1px solid var(--borde); border-radius: 8px; background: var(--blanco); font-size: 0.8rem; }
+@media (max-width: 720px) {
+  .personal-fila { flex-direction: column; align-items: stretch; }
+  .personal-accion { justify-content: space-between; }
+}
+
+
+/* ---------- Ventana "Personal disponible": filtros y lista completa ---------- */
+.personal-consulta { display: flex; flex-direction: column; gap: 12px; }
+.personal-barra { display: grid; grid-template-columns: minmax(180px, 2fr) repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.campo.campo-busqueda { position: relative; }
+.campo.campo-busqueda svg { position: absolute; left: 10px; bottom: 10px; width: 16px; height: 16px; color: var(--texto-tenue); pointer-events: none; }
+.campo.campo-busqueda input { padding-left: 32px; }
+.personal-franja { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px dashed var(--borde); border-radius: 10px; }
+.personal-resumen { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.personal-resumen .texto-tenue { margin: 0; }
+.personal-lista-alta { max-height: 360px; }
+@media (max-width: 720px) {
+  .personal-barra { grid-template-columns: minmax(0, 1fr); }
+}
+
+
+/* ---------- Margen de traslado (RF-P3-02) ---------- */
+.margen-form { display: flex; flex-direction: column; gap: 14px; }
+.margen-form .texto-tenue { margin: 0; }
+.margen-control { display: flex; align-items: flex-end; gap: 16px; }
+.margen-control input[type="range"] { flex: 1; accent-color: var(--primario); }
+.margen-numero { width: 96px; flex-shrink: 0; }
+.margen-atajos { display: flex; flex-wrap: wrap; gap: 6px; }
+.margen-atajos button { padding: 4px 12px; border: 1px solid var(--borde); border-radius: 999px; background: var(--blanco); color: var(--texto-suave); font-size: 0.75rem; font-weight: 600; cursor: pointer; }
+.margen-atajos button:hover { background: var(--fondo); }
+.margen-atajos button.activo { border-color: var(--primario); background: var(--primario-suave); color: var(--primario); }
+.margen-acciones { display: flex; justify-content: flex-end; }
+
+/* Aviso naranjo: se asignó, pero hay algo que revisar */
+.mensaje-aviso { background: rgba(240, 138, 60, 0.12); color: #b45f12; }

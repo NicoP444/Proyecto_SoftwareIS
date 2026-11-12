@@ -6,8 +6,8 @@ import { fileURLToPath } from 'url';
 import authRoutes from './routes/auth.routes.js';
 import routes from './routes/index.js'; //gene
 import clienteRoutes from './routes/cliente.routes.js'; //jorge
-import recintoRoutes from './routes/recinto.routes.js'; //jorge
-import eventoRoutes from './routes/evento.routes.js'; //jorge
+import asignacionRoutes from './routes/asignacion.routes.js'; //jorge
+import configuracionRoutes from './routes/configuracion.routes.js'; //jorge
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -32,8 +32,8 @@ app.use('/uploads', express.static('uploads')); // Para servir archivos subidos 
 
 //JORGE
 app.use('/api/clientes', clienteRoutes);
-app.use('/api/recintos', recintoRoutes);
-app.use('/api/coberturas', eventoRoutes);
+app.use('/api', asignacionRoutes); // personal disponible y asignación de personal a eventos
+app.use('/api/configuracion', configuracionRoutes); // margen de traslado
 
 
 // Comentar, cuando esta en el server....

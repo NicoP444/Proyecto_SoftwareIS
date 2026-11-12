@@ -130,11 +130,11 @@ model Dueno {
   estado            EstadoCuenta @default(ACTIVO)
   intentos_fallidos Int          @default(0) @db.SmallInt
   bloqueado_hasta   DateTime?    @db.Timestamp(6)
+  margen_traslado_min Int        @default(60) @db.SmallInt // minutos mínimos entre dos eventos en direcciones distintas (RF-P3-02)
 
   sesiones        Sesion[]
   historial       HistorialCambio[]
   clientes        Cliente[]
-  recintos        Recinto[]
   eventos         Evento[]
   trabajadores    Trabajador[]
   roles           RolTrabajo[]
@@ -229,6 +229,7 @@ model HistorialCambio {
 
 model Cliente {
   id_cliente Int     @id @default(autoincrement())
+  rut        String  @unique @db.VarChar(10)
   nombre     String  @db.VarChar(80)
   contacto   String? @db.VarChar(80)
   telefono   String  @db.VarChar(20)
@@ -239,18 +240,6 @@ model Cliente {
   eventos Evento[]
 
   @@map("cliente")
-}
-
-model Recinto {
-  id_recinto Int     @id @default(autoincrement())
-  nombre     String  @db.VarChar(80)
-  direccion  String? @db.VarChar(120)
-  comuna     String  @db.VarChar(60)
-  id_dueno   Int
-
-  dueno   Dueno    @relation(fields: [id_dueno], references: [id_dueno], onDelete: Restrict)
-
-  @@map("recinto")
 }
 
 model Evento {

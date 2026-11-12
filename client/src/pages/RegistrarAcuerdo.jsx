@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, AlertTriangle, Info } from 'lucide-react';
 import { obtenerAuspiciadores } from '../services/auspiciadorService';
-import { registrarAcuerdo } from '../services/acuerdoService';
+import { registrarAcuerdo, obtenerAcuerdos } from '../services/acuerdoService';
+import { listarEventos } from '../services/evento.service.js';
 
 export default function RegistrarAcuerdoPage() {
   const navigate = useNavigate();
@@ -31,22 +32,29 @@ export default function RegistrarAcuerdoPage() {
   useEffect(() => {
     async function cargarDatosIniciales() {
       try {
+        // 1. Cargar Auspiciadores
         const dataAuspiciadores = await obtenerAuspiciadores();
         setAuspiciadores(dataAuspiciadores || []);
 
+        // 2. Cargar Historial de Acuerdos con el servicio oficial
         try {
-          const resAcuerdos = await fetch('http://localhost:3000/api/acuerdos');
-          if (resAcuerdos.ok) {
-            const dataAcuerdos = await resAcuerdos.json();
-            setHistorialAcuerdos(Array.isArray(dataAcuerdos) ? dataAcuerdos : []);
-          }
+          const dataAcuerdos = await obtenerAcuerdos();
+          setHistorialAcuerdos(Array.isArray(dataAcuerdos) ? dataAcuerdos : []);
         } catch (e) {
           console.warn('No se pudo precargar historial de acuerdos:', e.message);
         }
 
-        setEventos([
-          { id_evento: 1, tipo: 'Torneo Apertura' }
-        ]);
+        // 3. Cargar eventos reales
+        try {
+          const resEventos = await listarEventos();
+          const lista = Array.isArray(resEventos)
+            ? resEventos
+            : (resEventos?.data || []);
+          setEventos(lista);
+        } catch (errEventos) {
+          console.error('Error al cargar eventos con el servicio:', errEventos);
+        }
+
       } catch (err) {
         console.error('Error al cargar datos iniciales:', err);
       }
@@ -72,7 +80,16 @@ export default function RegistrarAcuerdoPage() {
     setCargando(true);
 
     try {
-      await registrarAcuerdo(formData);
+      // Conversión de tipos para evitar fallos de validación en Prisma/Postgres
+      const payload = {
+        ...formData,
+        id_auspiciador: Number(formData.id_auspiciador),
+        id_evento: Number(formData.id_evento),
+        monto_comprometido: Number(formData.monto_comprometido),
+        cant_menciones: formData.cant_menciones ? Number(formData.cant_menciones) : null,
+      };
+
+      await registrarAcuerdo(payload);
       setMensaje('Acuerdo registrado con éxito!');
       setTimeout(() => {
         navigate('/auspiciadores');
@@ -184,9 +201,9 @@ export default function RegistrarAcuerdoPage() {
               </select>
             </div>
 
-            {/* Evento */}
+            {/* Evento dinámico */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontWeight: '600', fontSize: '13px', color: '#334155' }}>Evento:</label>
+              <label style={{ fontWeight: '600', fontSize: '13px', color: '#334155' }}>Evento / Transmisión:</label>
               <select
                 name="id_evento"
                 value={formData.id_evento}
@@ -203,11 +220,15 @@ export default function RegistrarAcuerdoPage() {
                 }}
               >
                 <option value="">-- Selecciona un evento --</option>
-                {eventos.map((ev) => (
-                  <option key={ev.id_evento} value={ev.id_evento}>
-                    Evento #{ev.id_evento} - {ev.tipo || ev.nombre || 'Sin título'}
-                  </option>
-                ))}
+                {eventos.map((ev) => {
+                  const idEv = ev.id_evento || ev.id;
+                  const nombreEv = ev.nombre || ev.tipo || ev.titulo || `Evento #${idEv}`;
+                  return (
+                    <option key={idEv} value={idEv}>
+                      {nombreEv}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 
@@ -331,7 +352,7 @@ export default function RegistrarAcuerdoPage() {
               />
             </div>
 
-            {/* Fecha de cumplimiento (Texto dinámico según el tipo de aporte) */}
+            {/* Fecha de cumplimiento */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label style={{ fontWeight: '600', fontSize: '13px', color: '#334155' }}>
                 {formData.tipo_aporte === 'DINERO' ? 'Fecha Límite de Pago:' : 'Fecha Límite de Entrega del Canje:'}

@@ -52,7 +52,7 @@ const ICONOS = {
   auspiciadores: (
     <path d="M12 3l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.4 6.7 19.1l1-5.8L3.5 9.2l5.9-.9z" />
   ),
-  coberturas: (
+  eventos: (
     <>
       <rect x="3" y="6" width="13" height="12" rx="2" />
       <path d="M16 10l5-3v10l-5-3z" />

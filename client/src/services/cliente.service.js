@@ -7,9 +7,24 @@ async function manejarRespuesta(response) {
   return data; // la peticion fue exitosa y retornamos
 }
 
-export const listarClientes = () => fetch(`${API_URL}/clientes`).then(manejarRespuesta);
+const cabeceras = { 'Content-Type': 'application/json' };
 
-// recibe cliente que viene de await crearCliente(nuevoCliente)
+// buscar y limite son opcionales: con ellos el back filtra por nombre o RUT
+export const listarClientes = ({ buscar = '', limite } = {}) => {
+  const params = new URLSearchParams();
+  if (buscar) params.set('buscar', buscar);
+  if (limite) params.set('limite', limite);
+  return fetch(`${API_URL}/clientes?${params}`).then(manejarRespuesta);
+};
+
 export const crearCliente = (cliente) => fetch(`${API_URL}/clientes`, {
-  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cliente)
+  method: 'POST', headers: cabeceras, body: JSON.stringify(cliente)
+}).then(manejarRespuesta);
+
+export const modificarCliente = (id, cliente) => fetch(`${API_URL}/clientes/${id}`, {
+  method: 'PUT', headers: cabeceras, body: JSON.stringify(cliente)
+}).then(manejarRespuesta);
+
+export const eliminarCliente = (id) => fetch(`${API_URL}/clientes/${id}`, {
+  method: 'DELETE'
 }).then(manejarRespuesta);

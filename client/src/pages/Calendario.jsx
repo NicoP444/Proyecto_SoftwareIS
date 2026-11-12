@@ -8,17 +8,27 @@ import {
   ChevronRight,
   Clock,
   MapPin,
+  Pencil,
   Plus,
+  Timer,
+  Trash2,
+  UserCheck,
+  Users,
   Video,
   Wallet,
 } from "lucide-react";
 import Modal from "../components/Modal";
 import {
-  listarCoberturas,
-  crearCobertura,
-} from "../services/coberturas.service.js";
-import { listarClientes, crearCliente } from "../services/cliente.service.js";
+  listarEventos,
+  crearEvento,
+  eliminarEvento,
+  modificarEvento,
+} from "../services/evento.service.js";
 import FormularioEvento from "../components/calendario/FormularioEvento";
+import GestionClientes from "../components/calendario/GestionClientes";
+import PanelPersonal from "../components/calendario/PanelPersonal";
+import ConsultaPersonal from "../components/calendario/ConsultaPersonal";
+import MargenTraslado from "../components/calendario/MargenTraslado";
 import { obtenerUsuario } from "../services/http.js";
 import "../styles/Calendario.css";
 
@@ -50,7 +60,7 @@ const ESTADOS = {
 const RESUMEN = [
   {
     estado: "",
-    texto: "Coberturas del periodo",
+    texto: "Eventos del periodo",
     icono: CalendarDays,
     color: "azul",
   },
@@ -114,29 +124,34 @@ export default function Calendario() {
   const hoy = new Date();
   const [fechaBase, setFechaBase] = useState(hoy); // fecha que define el mes o la semana visible
   const [vista, setVista] = useState("mes"); // 'mes' o 'semana'
-  const [coberturas, setCoberturas] = useState([]);
+  const [eventos, setEventos] = useState([]);
   const [filtroEstado, setFiltroEstado] = useState("");
   const [eventoAbierto, setEventoAbierto] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
-  const [clientes, setClientes] = useState([]);
   const [creando, setCreando] = useState(false); // ventana "Nuevo evento"
+  const [gestionandoClientes, setGestionandoClientes] = useState(false); // ventana "Clientes"
+  const [consultandoPersonal, setConsultandoPersonal] = useState(false); // ventana "Personal disponible"
+  const [configurandoMargen, setConfigurandoMargen] = useState(false); // ventana "Margen de traslado"
   const [fechaNueva, setFechaNueva] = useState(""); // fecha que se precarga al crear
+  const [errorEliminar, setErrorEliminar] = useState(""); // motivo si el back no deja eliminar
+  const [eliminando, setEliminando] = useState(false);
+  const [pidiendoMotivo, setPidiendoMotivo] = useState(false); // muestra el campo de motivo
+  const [motivoEliminar, setMotivoEliminar] = useState("");
+  const [editando, setEditando] = useState(false); // ventana "Modificar evento" (RF-P1-07)
+  const [avisosEdicion, setAvisosEdicion] = useState([]); // avisos que devuelve el back al modificar
 
   // RF-P1-12 y RF-P1-13: el Jefe técnico no ve datos financieros
   const rol = obtenerUsuario()?.rol;
   const verFinanzas = rol === "DUENO" || rol === "CONTADOR";
-  const puedeCrear = rol === "DUENO"; // RF-P1-05: solo el Dueño agenda eventos
+  const puedeCrear = rol === "DUENO"; // RF-P1-04: solo el Dueño agenda eventos
+  const puedeEliminar = rol === "DUENO"; // RF-P1-08: solo el Dueño elimina eventos
+  const puedeModificar = rol === "DUENO"; // RF-P1-07: solo el Dueño modifica eventos
 
-  // Pedimos las coberturas y los clientes al back
+  // Pedimos los eventos al back
   async function cargarDatos() {
     try {
-      const [listaCoberturas, listaClientes] = await Promise.all([
-        listarCoberturas(),
-        listarClientes(),
-      ]);
-      setCoberturas(listaCoberturas);
-      setClientes(listaClientes);
+      setEventos(await listarEventos());
     } catch (err) {
       setError(err.message);
     } finally {
@@ -154,8 +169,57 @@ export default function Calendario() {
     setCreando(true);
   }
 
+  // Cierra el detalle y limpia lo de eliminar
+  function cerrarDetalle() {
+    setEventoAbierto(null);
+    setErrorEliminar("");
+    setPidiendoMotivo(false);
+    setMotivoEliminar("");
+    setAvisosEdicion([]);
+  }
+
+  function cancelarEliminar() {
+    setPidiendoMotivo(false);
+    setMotivoEliminar("");
+    setErrorEliminar("");
+  }
+
+  async function manejarEliminar() {
+    if (!motivoEliminar.trim()) {
+      setErrorEliminar("Debes indicar el motivo de la eliminación");
+      return;
+    }
+
+    setErrorEliminar("");
+    setEliminando(true);
+    try {
+      await eliminarEvento(eventoAbierto.id_evento, motivoEliminar.trim());
+      cerrarDetalle();
+      await cargarDatos(); // recarga el calendario sin el evento
+    } catch (err) {
+      setErrorEliminar(err.message);
+    } finally {
+      setEliminando(false);
+    }
+  }
+
+  // RF-P1-07: guarda los cambios y deja el detalle abierto con los datos nuevos
+  async function guardarEdicion(datos) {
+    const respuesta = await modificarEvento(eventoAbierto.id_evento, datos);
+    setEditando(false);
+    const lista = await listarEventos().catch(() => null);
+    if (lista) {
+      setEventos(lista);
+      setEventoAbierto(lista.find((c) => c.id_evento === eventoAbierto.id_evento) ?? null);
+    }
+    setAvisosEdicion(respuesta.advertencias ?? []);
+    // Llevamos el calendario a la nueva fecha del evento
+    const [a, m, d] = datos.fecha.split("-").map(Number);
+    setFechaBase(new Date(a, m - 1, d));
+  }
+
   async function guardarEvento(datos) {
-    await crearCobertura(datos);
+    await crearEvento(datos);
     setCreando(false);
     await cargarDatos();
     // Llevamos el calendario a la fecha del evento recién creado
@@ -163,28 +227,28 @@ export default function Calendario() {
     setFechaBase(new Date(a, m - 1, d));
   }
 
-  async function guardarCliente(datos) {
-    const nuevo = await crearCliente(datos);
-    await cargarDatos();
-    return nuevo; // el formulario lo deja seleccionado
-  }
-
   const anio = fechaBase.getFullYear();
   const mes = fechaBase.getMonth();
   const dias =
     vista === "mes" ? celdasDelMes(anio, mes) : diasDeSemana(fechaBase);
 
-  // Coberturas que caen dentro del periodo visible
+  // Eventos que caen dentro del periodo visible
   const claves = dias.map(clave);
+  // Direcciones ya usadas, para sugerirlas al crear un evento
+  const direcciones = useMemo(
+    () => [...new Set(eventos.map((c) => c.direccion).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
+    [eventos],
+  );
+
   const delPeriodo = useMemo(
     () =>
-      coberturas.filter((c) =>
+      eventos.filter((c) =>
         vista === "mes"
           ? claveDe(c).startsWith(`${anio}-${String(mes + 1).padStart(2, "0")}`)
           : claves.includes(claveDe(c)),
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [coberturas, vista, anio, mes, fechaBase],
+    [eventos, vista, anio, mes, fechaBase],
   );
 
   // Agrupadas por día y ordenadas por hora (aplicando el filtro de estado)
@@ -232,13 +296,36 @@ export default function Calendario() {
         </div>
         <div className="encabezado-botones">
           {puedeCrear && (
-            <button
-              type="button"
-              className="boton boton-principal"
-              onClick={() => abrirCrear()}
-            >
-              <Plus size={18} /> Nuevo evento
-            </button>
+            <>
+              <button
+                type="button"
+                className="boton boton-principal"
+                onClick={() => abrirCrear()}
+              >
+                <Plus size={18} /> Nuevo evento
+              </button>
+              <button
+                type="button"
+                className="boton boton-secundario"
+                onClick={() => setGestionandoClientes(true)}
+              >
+                <Users size={18} /> Clientes
+              </button>
+              <button
+                type="button"
+                className="boton boton-secundario"
+                onClick={() => setConsultandoPersonal(true)}
+              >
+                <UserCheck size={18} /> Personal disponible
+              </button>
+              <button
+                type="button"
+                className="boton boton-secundario"
+                onClick={() => setConfigurandoMargen(true)}
+              >
+                <Timer size={18} /> Margen de traslado
+              </button>
+            </>
           )}
           <div className="cal-selector">
             <button
@@ -310,7 +397,7 @@ export default function Calendario() {
         </div>
 
         {error && <div className="mensaje mensaje-error">{error}</div>}
-        {cargando && <p className="vacio">Cargando coberturas…</p>}
+        {cargando && <p className="vacio">Cargando eventos…</p>}
         {!cargando && !error && delPeriodo.length === 0 && (
           <p className="vacio">
             No hay transmisiones agendadas en este periodo.
@@ -378,7 +465,7 @@ export default function Calendario() {
       {/* Detalle del evento */}
       <Modal
         abierto={Boolean(e)}
-        onCerrar={() => setEventoAbierto(null)}
+        onCerrar={cerrarDetalle}
         titulo="Detalle de la transmisión"
       >
         {e && (
@@ -413,20 +500,30 @@ export default function Calendario() {
             {e.observaciones && (
               <p className="texto-tenue">{e.observaciones}</p>
             )}
-
-            {/* Estos bloques aparecen cuando el back los envía (Paso 5) */}
-            {e.asignaciones?.length > 0 && (
-              <div>
-                <span className="etiqueta">Trabajadores</span>
-                <div className="lista-roles">
-                  {e.asignaciones.map((a) => (
-                    <span key={a.id_asignacion} className="chip-rol">
-                      {a.trabajador?.nombre} · {a.rol?.nombre}
-                    </span>
+            {avisosEdicion.length > 0 && (
+              <div className="mensaje mensaje-aviso">
+                <strong>Evento modificado. Revisa lo siguiente:</strong>
+                <ul>
+                  {avisosEdicion.map((aviso) => (
+                    <li key={aviso}>{aviso}</li>
                   ))}
-                </div>
+                </ul>
               </div>
             )}
+
+            {/* Dotación del evento (RF-P3-01) */}
+            <PanelPersonal
+              evento={{
+                id_evento: e.id_evento,
+                estado: e.estado,
+                fecha: claveDe(e),
+                hora_inicio: horaDe(e.hora_inicio),
+                hora_termino: horaDe(e.hora_termino),
+              }}
+              puedeEditar={puedeCrear}
+              onCambio={cargarDatos}
+            />
+            {/* Estos bloques aparecen cuando el back los envía (Paso 5) */}
             {e.reservas_kit?.length > 0 && (
               <div>
                 <span className="etiqueta">Kits</span>
@@ -465,7 +562,83 @@ export default function Calendario() {
                 )}
               </div>
             )}
+            {errorEliminar && (
+              <div className="mensaje mensaje-error">{errorEliminar}</div>
+            )}
+            {puedeModificar && !pidiendoMotivo && e.estado !== "CERRADO" && (
+              <button
+                type="button"
+                className="boton boton-secundario"
+                onClick={() => {
+                  setAvisosEdicion([]);
+                  setEditando(true);
+                }}
+              >
+                <Pencil size={16} /> Modificar evento
+              </button>
+            )}
+            {puedeEliminar && !pidiendoMotivo && (
+              <button
+                type="button"
+                className="boton boton-peligro"
+                onClick={() => setPidiendoMotivo(true)}
+              >
+                <Trash2 size={16} /> Eliminar evento
+              </button>
+            )}
+            {puedeEliminar && pidiendoMotivo && (
+              <div className="cal-eliminar">
+                <div className="campo">
+                  <label htmlFor="motivo-eliminar">
+                    Motivo de la eliminación
+                  </label>
+                  <textarea
+                    id="motivo-eliminar"
+                    rows={3}
+                    maxLength={255}
+                    value={motivoEliminar}
+                    onChange={(ev) => setMotivoEliminar(ev.target.value)}
+                    placeholder="Ej: El cliente canceló el evento"
+                  />
+                </div>
+                <div className="cal-eliminar-botones">
+                  <button
+                    type="button"
+                    className="boton boton-secundario"
+                    onClick={cancelarEliminar}
+                    disabled={eliminando}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    className="boton boton-peligro"
+                    onClick={manejarEliminar}
+                    disabled={eliminando || !motivoEliminar.trim()}
+                  >
+                    <Trash2 size={16} />
+                    {eliminando ? "Eliminando…" : "Confirmar eliminación"}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
+        )}
+      </Modal>
+
+      {/* Modificar evento (RF-P1-07), hermano del detalle */}
+      <Modal
+        abierto={editando}
+        onCerrar={() => setEditando(false)}
+        titulo="Modificar evento"
+      >
+        {e && (
+          <FormularioEvento
+            evento={e}
+            direcciones={direcciones}
+            onGuardar={guardarEdicion}
+            onCancelar={() => setEditando(false)}
+          />
         )}
       </Modal>
 
@@ -476,12 +649,40 @@ export default function Calendario() {
         titulo="Nuevo evento"
       >
         <FormularioEvento
-          clientes={clientes}
           fechaInicial={fechaNueva}
+          direcciones={direcciones}
           onGuardar={guardarEvento}
           onCancelar={() => setCreando(false)}
-          onCrearCliente={guardarCliente}
         />
+      </Modal>
+
+      {/* Gestión de clientes (RF-P1-01) */}
+      <Modal
+        abierto={gestionandoClientes}
+        onCerrar={() => setGestionandoClientes(false)}
+        titulo="Clientes"
+        ancho="amplio"
+      >
+        <GestionClientes onCambio={cargarDatos} />
+      </Modal>
+
+      {/* Consulta de personal disponible (RF-P1-03) */}
+      <Modal
+        abierto={consultandoPersonal}
+        onCerrar={() => setConsultandoPersonal(false)}
+        titulo="Personal disponible"
+        ancho="amplio"
+      >
+        <ConsultaPersonal />
+      </Modal>
+
+      {/* Margen de traslado (RF-P3-02) */}
+      <Modal
+        abierto={configurandoMargen}
+        onCerrar={() => setConfigurandoMargen(false)}
+        titulo="Margen de traslado"
+      >
+        <MargenTraslado />
       </Modal>
     </div>
   );

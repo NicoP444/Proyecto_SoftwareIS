@@ -16,7 +16,7 @@ export async function postEvento(req, res) {
 
 export async function deleteEvento(req, res) {
   try {
-    await eliminarEvento(Number(req.params.id));
+    await eliminarEvento(Number(req.params.id), req.body.motivo);
     res.status(204).send();
   } catch (error) {
     res.status(400).json({ mensaje: error.message });

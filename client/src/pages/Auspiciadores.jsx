@@ -188,23 +188,18 @@ export default function Auspiciadores() {
     });
   };
 
+  // Corrección aquí: se reemplazó el fetch con localhost:3000 por modificarAuspiciador
   const confirmarCambioClasificacion = async (e) => {
     e.preventDefault();
     const { auspiciador, nuevoEstado, motivo } = modalClasificacion;
     const id = auspiciador.id_auspiciador || auspiciador.id;
 
     try {
-      const res = await fetch(`http://localhost:3000/api/auspiciadores/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...auspiciador,
-          clasificacion: nuevoEstado,
-          motivo_clasificacion: motivo
-        })
+      await modificarAuspiciador(id, {
+        ...auspiciador,
+        clasificacion: nuevoEstado,
+        motivo_clasificacion: motivo
       });
-
-      if (!res.ok) throw new Error('No se pudo actualizar');
 
       setMensaje(`Clasificación de ${auspiciador.nombre} cambiada a ${nuevoEstado}.`);
       setModalClasificacion({ abierto: false, auspiciador: null, nuevoEstado: '', motivo: '' });
@@ -877,7 +872,6 @@ export default function Auspiciadores() {
                                       flexDirection: 'column'
                                     }}
                                   >
-                                    {/* Registrar Pago si no es incobrable */}
                                     {!esIncobrable && (
                                       <button
                                         type="button"
@@ -902,7 +896,6 @@ export default function Auspiciadores() {
                                       </button>
                                     )}
 
-                                    {/* Ver motivo si es incobrable */}
                                     {esIncobrable && (
                                       <button
                                         type="button"
@@ -931,7 +924,6 @@ export default function Auspiciadores() {
                                       </button>
                                     )}
 
-                                    {/* Modificar Acuerdo */}
                                     <button
                                       type="button"
                                       onClick={() => {
@@ -954,7 +946,6 @@ export default function Auspiciadores() {
                                        Modificar Acuerdo
                                     </button>
 
-                                    {/* Declarar Incobrable si está vencido */}
                                     {esVencido && (
                                       <button
                                         type="button"
@@ -980,7 +971,6 @@ export default function Auspiciadores() {
                                       </button>
                                     )}
 
-                                    {/* Eliminar Acuerdo */}
                                     <button
                                       type="button"
                                       onClick={() => {
@@ -1019,7 +1009,6 @@ export default function Auspiciadores() {
             /* PESTAÑA 2: REPORTE DE AUSPICIADORES (RF-P4-08)           */
             /* ======================================================== */
             <div>
-              {/* Encabezado y Filtros temporales */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '15px', marginBottom: '20px' }}>
                 <div>
                   <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>
