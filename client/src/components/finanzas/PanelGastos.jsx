@@ -21,8 +21,8 @@ export default function PanelGastos({ idEvento, idContador, puedeEditar }) {
 
   const recargar = () => setVersion((v) => v + 1); // obligamos a que recargue la pagina
 
-  useEffect(() => { // trabajamos en paralelo. 
-    Promise.all([listarGastos(idEvento), listarRendiciones(idEvento)])
+  useEffect(() => { 
+    Promise.all([listarGastos(idEvento), listarRendiciones(idEvento)]) // ejecutamos en paralelo.
       .then(([g, r]) => {
         setGastos(g);
         setTrabajadores(r.rendiciones);
@@ -32,19 +32,19 @@ export default function PanelGastos({ idEvento, idContador, puedeEditar }) {
   }, [idEvento, version]);
 
   async function guardar(formData) {
-    formData.append('id_contador', idContador);
-    if (modal.gasto) {
+    formData.append('id_contador', idContador); // agregamos el id del contador que registra o modifica el gasto
+    if (modal.gasto){ // modal tiene un gasto, entonces estamos editando
       await modificarGasto(modal.gasto.id_gasto, formData);
-    } else {
+    } else{ // modal no tiene un gasto, entonces estamos creando
       formData.append('id_evento', idEvento);
       await crearGasto(formData);
     }
     setModal(null);
-    recargar();
+    recargar(); // llamamos a la funcion recargar para que se actualice la lista de gastoss
   }
 
   async function confirmarEliminar(e) {
-    e.preventDefault();
+    e.preventDefault(); // prevenimos que se recargue la pagina al enviar el formulario
     try {
       await eliminarGasto(eliminar.id_gasto, { id_contador: idContador, motivo });
       setEliminar(null);
@@ -59,6 +59,8 @@ export default function PanelGastos({ idEvento, idContador, puedeEditar }) {
       {error && <div className="fin-alerta">{error}</div>}
 
       <section className="fin-panel">
+
+        {/*Boton registrar gasto*/}
         <div className="fin-panel-cab">
           <strong className="fin-panel-titulo">Gastos del evento</strong>
           {puedeEditar && (
@@ -68,9 +70,13 @@ export default function PanelGastos({ idEvento, idContador, puedeEditar }) {
           )}
         </div>
 
+        {/*Lista de gastos, si no hay longitud, mostramos un mensaje*/}
         {gastos.length === 0 ? (
           <p className="fin-vacio">No hay gastos registrados para este evento</p>
-        ) : (
+        ) 
+        
+        : (
+          
           <div className="fin-grid">
             {gastos.map((g) => (
               <article key={g.id_gasto} className="fin-card">

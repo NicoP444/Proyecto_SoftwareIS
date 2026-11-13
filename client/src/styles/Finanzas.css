@@ -296,3 +296,17 @@
   cursor: pointer;
 }
 .fin-subtab.activa { background: var(--fin-azul); color: #fff; }
+
+
+/* ===== Cierre de la jornada ===== */
+.fin-check { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--fin-borde); }
+.fin-check svg { flex: none; }
+.fin-check strong { display: block; }
+.fin-check span { font-size: 13px; color: var(--fin-suave); }
+.fin-check-ok svg { color: var(--fin-verde); }
+.fin-check-aviso svg { color: var(--fin-naranja); }
+.fin-check-bloqueo svg { color: var(--fin-rojo); }
+
+.fin-resultado { margin-top: 16px; }
+.fin-linea { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
+.fin-linea-total { margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--fin-borde); font-size: 16px; font-weight: 700; }

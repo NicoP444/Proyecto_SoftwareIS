@@ -1,5 +1,7 @@
 import { API_URL } from './config.js';
 
+//coneccion del back-end
+
 // Devuelve el usuario que inició sesión (lo guardó el Login en el navegador)
 export function obtenerUsuario() {
   const guardado = localStorage.getItem('usuario');
