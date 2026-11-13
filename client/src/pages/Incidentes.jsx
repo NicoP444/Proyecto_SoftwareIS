@@ -506,6 +506,7 @@ export default function Incidentes() {
           </label>
           <textarea
             rows="3"
+            maxLength={255}
             placeholder="Detalla qué sucedió con el equipo..."
             value={formData.descripcion}
             onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}

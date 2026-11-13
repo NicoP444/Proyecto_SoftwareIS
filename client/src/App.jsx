@@ -10,7 +10,6 @@ import Clientes from "./pages/Clientes";
 import RegistrarAcuerdoPage from "./pages/RegistrarAcuerdo";
 import SalidaKits from "./pages/SalidaKits";
 import Plantilla from "./components/Plantilla"; 
-import HistorialEquipo from './pages/HistorialEquipo.jsx';
 import Calendario from "./pages/Calendario";
 import ResumenIncidentesEventoPage from './pages/ResumenIncidentesEventoPage.jsx';
 import Equipos from "./pages/Equipos";
@@ -76,15 +75,6 @@ export default function App() {
           element={
             <RutaProtegida>
               <Incidentes />
-            </RutaProtegida>
-          }
-        />
-
-        <Route
-          path="/equipos/historial"
-          element={
-            <RutaProtegida>
-              <HistorialEquipo />
             </RutaProtegida>
           }
         />

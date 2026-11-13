@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { consultarInventario } from '../services/consultarInventario.service.js';
+import { getHistorialEquipo } from '../services/historialEquipo.service.js';
 
 export default function ConsultarInventario() {
-  const navigate = useNavigate();
   const [datos, setDatos] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
@@ -12,6 +11,12 @@ export default function ConsultarInventario() {
   const [busqueda, setBusqueda] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('TODOS');
   const [kitSeleccionado, setKitSeleccionado] = useState(null);
+
+  // Estados para el Modal de Historial de Equipo (RF-P6-04)
+  const [modalHistorialAbierto, setModalHistorialAbierto] = useState(false);
+  const [cargandoHistorial, setCargandoHistorial] = useState(false);
+  const [errorHistorial, setErrorHistorial] = useState('');
+  const [datosHistorial, setDatosHistorial] = useState(null);
 
   useEffect(() => {
     cargarDatos();
@@ -31,6 +36,28 @@ export default function ConsultarInventario() {
     } finally {
       setCargando(false);
     }
+  };
+
+  const abrirModalHistorial = async (codigo) => {
+    setModalHistorialAbierto(true);
+    setCargandoHistorial(true);
+    setErrorHistorial('');
+    setDatosHistorial(null);
+
+    try {
+      const res = await getHistorialEquipo(codigo);
+      setDatosHistorial(res?.data || res);
+    } catch (err) {
+      setErrorHistorial(err.message || 'No se pudo cargar el historial del equipo.');
+    } finally {
+      setCargandoHistorial(false);
+    }
+  };
+
+  const cerrarModalHistorial = () => {
+    setModalHistorialAbierto(false);
+    setDatosHistorial(null);
+    setErrorHistorial('');
   };
 
   // Formateo de enums a texto profesional con tildes, Ñ y 'Retirado'
@@ -121,6 +148,58 @@ export default function ConsultarInventario() {
           }}
         />
         <span>{formatearEstadoTexto(estado)}</span>
+      </span>
+    );
+  };
+
+  const renderBadgeEventoHistorial = (tipo) => {
+    let bg = '#f1f5f9';
+    let text = '#475569';
+    let label = tipo;
+
+    switch (tipo) {
+      case 'COMPRA':
+        bg = '#dcfce7';
+        text = '#15803d';
+        label = 'Ingreso';
+        break;
+      case 'SALIDA':
+        bg = '#dbeafe';
+        text = '#1d4ed8';
+        label = 'Salida';
+        break;
+      case 'RETORNO':
+        bg = '#e0e7ff';
+        text = '#333c87';
+        label = 'Retorno';
+        break;
+      case 'INCIDENTE':
+        bg = '#fef3c7';
+        text = '#b45309';
+        label = 'Incidente';
+        break;
+      case 'BAJA':
+        bg = '#fee2e2';
+        text = '#dc2626';
+        label = 'Baja';
+        break;
+      default:
+        break;
+    }
+
+    return (
+      <span
+        style={{
+          display: 'inline-block',
+          padding: '0.22rem 0.65rem',
+          borderRadius: '9999px',
+          fontSize: '0.72rem',
+          fontWeight: '700',
+          backgroundColor: bg,
+          color: text,
+        }}
+      >
+        {label}
       </span>
     );
   };
@@ -228,10 +307,10 @@ export default function ConsultarInventario() {
         </div>
       </div>
 
-      {/* Contenedor tipo Tarjeta sin desbordamiento extraño */}
+      {/* Contenedor tipo Tarjeta */}
       <div style={{ backgroundColor: '#ffffff', borderRadius: '14px', border: '1px solid #eef2f6', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
         
-        {/* Pestañas de navegación SIN scrollbar molesta */}
+        {/* Pestañas de navegación */}
         <div style={{ display: 'flex', borderBottom: '1px solid #f1f5f9', padding: '0 1.5rem', backgroundColor: '#ffffff', overflow: 'hidden' }}>
           {[
             { id: 'kits', label: 'Kits y Asignaciones' },
@@ -298,9 +377,10 @@ export default function ConsultarInventario() {
                     </svg>
                     <input
                       type="text"
+                      maxLength={60}
                       placeholder="Buscar por código correlativo o nombre..."
                       value={busqueda}
-                      onChange={(e) => setBusqueda(e.target.value)}
+                      onChange={(e) => setBusqueda(e.target.value.slice(0, 60))}
                       style={{
                         width: '100%',
                         padding: '0.55rem 0.75rem 0.55rem 2.4rem',
@@ -358,13 +438,12 @@ export default function ConsultarInventario() {
               {tab === 'kits' && (
                 <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '1.5rem', alignItems: 'start' }}>
                   
-                  {/* Lista de Kits a la izquierda CON SCROLLBAR INTERNO */}
+                  {/* Lista de Kits a la izquierda */}
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <div style={{ fontSize: '0.8rem', fontWeight: '700', textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
                       Kits Registrados ({kitsFiltrados.length})
                     </div>
                     
-                    {/* Contenedor desplazable: altura máxima 420px con scroll suave */}
                     <div
                       style={{
                         display: 'flex',
@@ -476,6 +555,7 @@ export default function ConsultarInventario() {
                                   <th style={{ padding: '0.75rem 0.5rem' }}>EQUIPO / MODELO</th>
                                   <th style={{ padding: '0.75rem 0.5rem' }}>CATEGORÍA</th>
                                   <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>ESTADO</th>
+                                  <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>HISTORIAL</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -502,6 +582,25 @@ export default function ConsultarInventario() {
                                       <td style={{ padding: '0.85rem 0.5rem', textAlign: 'right' }}>
                                         {renderBadge(eq.estado)}
                                       </td>
+                                      <td style={{ padding: '0.85rem 0.5rem', textAlign: 'right' }}>
+                                        <button
+                                          type="button"
+                                          onClick={() => abrirModalHistorial(eq.codigo)}
+                                          style={{
+                                            padding: '0.35rem 0.7rem',
+                                            backgroundColor: '#f1f5f9',
+                                            color: '#333c87',
+                                            border: '1px solid #cbd5e1',
+                                            borderRadius: '6px',
+                                            fontSize: '0.78rem',
+                                            fontWeight: '600',
+                                            cursor: 'pointer',
+                                            whiteSpace: 'nowrap',
+                                          }}
+                                        >
+                                          Ver historial
+                                        </button>
+                                      </td>
                                     </tr>
                                   );
                                 })}
@@ -526,7 +625,6 @@ export default function ConsultarInventario() {
                     </h3>
                   </div>
 
-                  {/* Tabla con scroll vertical de hasta 460px */}
                   <div style={{ overflowX: 'auto', maxHeight: '460px', overflowY: 'auto', border: '1px solid #f1f5f9', borderRadius: '8px' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
                       <thead>
@@ -536,12 +634,13 @@ export default function ConsultarInventario() {
                           <th style={{ padding: '0.75rem 0.5rem' }}>CATEGORÍA</th>
                           <th style={{ padding: '0.75rem 0.5rem' }}>VALOR COMPRA</th>
                           <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>ESTADO</th>
+                          <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>HISTORIAL</th>
                         </tr>
                       </thead>
                       <tbody>
                         {repuestosFiltrados.length === 0 ? (
                           <tr>
-                            <td colSpan="5" style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
+                            <td colSpan="6" style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
                               No hay repuestos que coincidan con la búsqueda.
                             </td>
                           </tr>
@@ -570,6 +669,25 @@ export default function ConsultarInventario() {
                                 <td style={{ padding: '0.85rem 0.5rem', textAlign: 'right' }}>
                                   {renderBadge(rep.estado)}
                                 </td>
+                                <td style={{ padding: '0.85rem 0.5rem', textAlign: 'right' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => abrirModalHistorial(rep.codigo)}
+                                    style={{
+                                      padding: '0.35rem 0.7rem',
+                                      backgroundColor: '#f1f5f9',
+                                      color: '#333c87',
+                                      border: '1px solid #cbd5e1',
+                                      borderRadius: '6px',
+                                      fontSize: '0.78rem',
+                                      fontWeight: '600',
+                                      cursor: 'pointer',
+                                      whiteSpace: 'nowrap',
+                                    }}
+                                  >
+                                    Ver historial
+                                  </button>
+                                </td>
                               </tr>
                             );
                           })
@@ -580,17 +698,15 @@ export default function ConsultarInventario() {
                 </div>
               )}
 
-              {/* SECCIÓN 3: BÚSQUEDA GLOBAL DE EQUIPOS */}
+              {/* SECCIÓN 3: CATÁLOGO DE EQUIPOS */}
               {tab === 'equipos' && (
                 <div>
                   <div style={{ marginBottom: '1rem' }}>
                     <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.15rem', fontWeight: '700', color: '#0f172a' }}>
                       Catálogo de Equipos
                     </h3>
-                    
                   </div>
 
-                  {/* Tabla con scroll vertical de hasta 460px */}
                   <div style={{ overflowX: 'auto', maxHeight: '460px', overflowY: 'auto', border: '1px solid #f1f5f9', borderRadius: '8px' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
                       <thead>
@@ -600,12 +716,13 @@ export default function ConsultarInventario() {
                           <th style={{ padding: '0.75rem 0.5rem' }}>CATEGORÍA</th>
                           <th style={{ padding: '0.75rem 0.5rem' }}>KIT ASIGNADO</th>
                           <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>ESTADO</th>
+                          <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>ACCIONES</th>
                         </tr>
                       </thead>
                       <tbody>
                         {todosEquiposFiltrados.length === 0 ? (
                           <tr>
-                            <td colSpan="5" style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
+                            <td colSpan="6" style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
                               No se encontraron equipos registrados.
                             </td>
                           </tr>
@@ -629,6 +746,28 @@ export default function ConsultarInventario() {
                                 </td>
                                 <td style={{ padding: '0.85rem 0.5rem', textAlign: 'right' }}>
                                   {renderBadge(eq.estado)}
+                                </td>
+                                <td style={{ padding: '0.85rem 0.5rem', textAlign: 'right' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => abrirModalHistorial(eq.codigo)}
+                                    style={{
+                                      padding: '0.4rem 0.75rem',
+                                      backgroundColor: '#333c87',
+                                      color: '#ffffff',
+                                      border: 'none',
+                                      borderRadius: '6px',
+                                      fontSize: '0.8rem',
+                                      fontWeight: '600',
+                                      cursor: 'pointer',
+                                      whiteSpace: 'nowrap',
+                                      transition: 'background-color 0.15s ease',
+                                    }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#272e6b')}
+                                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#333c87')}
+                                  >
+                                    Ver historial
+                                  </button>
                                 </td>
                               </tr>
                             );
@@ -688,6 +827,157 @@ export default function ConsultarInventario() {
           )}
         </div>
       </div>
+
+      {/* MODAL DE HISTORIAL DE EQUIPO (MISMO ESTILO QUE RETORNO DE KITS) */}
+      {modalHistorialAbierto && (
+        <div
+          onClick={cerrarModalHistorial}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(2px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '1rem',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '14px',
+              maxWidth: '750px',
+              width: '100%',
+              maxHeight: '88vh',
+              overflowY: 'auto',
+              padding: '1.75rem',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            }}
+          >
+            {cargandoHistorial ? (
+              <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b', fontSize: '0.95rem' }}>
+                Cargando historial y trazabilidad del equipo...
+              </div>
+            ) : errorHistorial ? (
+              <div>
+                <div style={{ padding: '1rem', backgroundColor: '#fee2e2', color: '#991b1b', borderRadius: '8px', marginBottom: '1.25rem', fontSize: '0.9rem' }}>
+                  {errorHistorial}
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <button
+                    type="button"
+                    onClick={cerrarModalHistorial}
+                    style={{
+                      padding: '0.55rem 1.2rem',
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '6px',
+                      color: '#475569',
+                      fontSize: '0.88rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              </div>
+            ) : datosHistorial ? (
+              <>
+                {/* Encabezado del Modal */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.85rem', marginBottom: '1.25rem' }}>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '800', color: '#0f172a' }}>
+                      Historial del Equipo: {datosHistorial.equipo?.nombre}
+                    </h3>
+                    <span style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                      Código: <strong>{datosHistorial.equipo?.codigo}</strong> • Categoría: {datosHistorial.equipo?.categoria}
+                      {(datosHistorial.equipo?.marca || datosHistorial.equipo?.modelo) && (
+                        <> • Modelo: <strong>{[datosHistorial.equipo.marca, datosHistorial.equipo.modelo].filter(Boolean).join(' ')}</strong></>
+                      )}
+                    </span>
+                  </div>
+                  {renderBadge(datosHistorial.equipo?.estado_actual)}
+                </div>
+
+                {/* Línea de tiempo */}
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <h4 style={{ margin: '0 0 0.85rem 0', fontSize: '0.82rem', fontWeight: '700', textTransform: 'uppercase', color: '#475569', letterSpacing: '0.04em' }}>
+                    Trazabilidad y Eventos Cronológicos ({datosHistorial.historial?.length || 0})
+                  </h4>
+
+                  {!datosHistorial.historial || datosHistorial.historial.length === 0 ? (
+                    <div style={{ padding: '1.5rem', textAlign: 'center', backgroundColor: '#f8fafc', borderRadius: '8px', color: '#94a3b8', fontSize: '0.88rem', border: '1px solid #e2e8f0' }}>
+                      Este equipo aún no registra movimientos en su historial.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '420px', overflowY: 'auto', paddingRight: '4px' }}>
+                      {datosHistorial.historial.map((item, idx) => (
+                        <div
+                          key={idx}
+                          style={{
+                            padding: '0.95rem 1.1rem',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '8px',
+                            backgroundColor: '#f8fafc',
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                            {renderBadgeEventoHistorial(item.tipo)}
+                            <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: '600' }}>
+                              {new Date(item.fecha).toLocaleString('es-CL')}
+                            </span>
+                          </div>
+                          <p style={{ margin: '0.35rem 0', fontSize: '0.9rem', fontWeight: '600', color: '#0f172a' }}>
+                            {item.descripcion}
+                          </p>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', fontSize: '0.8rem', color: '#64748b', marginTop: '0.3rem' }}>
+                            {item.evento && <span><strong>Evento:</strong> {item.evento}</span>}
+                            {item.responsable && <span><strong>Responsable:</strong> {item.responsable}</span>}
+                            {item.detalle?.observacion && <span><strong>Obs:</strong> {item.detalle.observacion}</span>}
+                            {item.detalle?.costo_asociado !== undefined && (
+                              <span><strong>Costo:</strong> ${Number(item.detalle.costo_asociado).toLocaleString('es-CL')}</span>
+                            )}
+                            {item.detalle?.valor_compra !== undefined && (
+                              <span><strong>Valor adquisición:</strong> ${Number(item.detalle.valor_compra).toLocaleString('es-CL')}</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Pie del Modal */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #f1f5f9', paddingTop: '1rem' }}>
+                  <button
+                    type="button"
+                    onClick={cerrarModalHistorial}
+                    style={{
+                      padding: '0.55rem 1.25rem',
+                      backgroundColor: '#333c87',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '0.88rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              </>
+            ) : null}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

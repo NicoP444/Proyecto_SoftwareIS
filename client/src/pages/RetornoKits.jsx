@@ -270,6 +270,7 @@ export default function RetornoKits() {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                         <input
                           type="text"
+                          maxLength={255}
                           placeholder="Observación técnica del estado o entrega..."
                           value={eq.observacion}
                           onChange={(e) => handleEstadoChange(eq.codigo, 'observacion', e.target.value)}
