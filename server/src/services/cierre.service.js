@@ -1,28 +1,14 @@
 import prisma from '../config/prisma.js';
 import { ValidationError, NotFoundError } from '../utils/errores.js';
+import { calcularRentabilidad } from './rentabilidad.service.js';
 
-const suma = (r, campo) => r._sum[campo] ?? 0;
+
 
 // Pagos del cliente + aportes cumplidos − remuneraciones − gastos − pérdidas de inventario
-const calcularResultado = async (db, id_evento) => {
-  const pagos = await db.pagoCliente.aggregate({ _sum: { monto: true }, where: { id_evento } });
-  const aportes = await db.cumplimientoAporte.aggregate({ _sum: { monto_recibido: true }, where: { acuerdo: { id_evento } } });
-  const remuneraciones = await db.asignacionPersonal.aggregate({ _sum: { remuneracion: true }, where: { id_evento } });
-  const gastos = await db.gastoEvento.aggregate({ _sum: { monto: true }, where: { asignacion: { id_evento } } });
-  const perdidas = await db.incidente.aggregate({ _sum: { valor: true }, where: { id_evento } });
 
-  const ingresos = suma(pagos, 'monto') + suma(aportes, 'monto_recibido');
-  const costos = suma(remuneraciones, 'remuneracion') + suma(gastos, 'monto') + suma(perdidas, 'valor');
 
-  return {
-    ingresos,
-    remuneraciones: suma(remuneraciones, 'remuneracion'),
-    gastos: suma(gastos, 'monto'),
-    perdidas_inventario: suma(perdidas, 'valor'),
-    resultado: ingresos - costos,
-    tipo: ingresos - costos < 0 ? 'PERDIDA' : 'GANANCIA',
-  };
-};
+
+
 
 // Qué impide cerrar (bloqueos) y qué conviene avisar (advertencias)
 const revisar = async (db, id_evento) => {
@@ -64,7 +50,7 @@ export const revisarCierre = async (id_evento) => {
     puede_cerrar: bloqueos.length === 0,
     sin_porcentaje: sinPorcentaje,
     advertencias,
-    resultado: await calcularResultado(prisma, id_evento),
+    resultado: await calcularRentabilidad(id_evento),
   };
 };
 
@@ -80,7 +66,7 @@ export const cerrarJornada = (id_evento, id_dueno, confirmar) =>
     // Con advertencias, solo se cierra si el Dueño confirma
     if(advertencias.length > 0 && !confirmar) return { cerrado: false, advertencias };
 
-    const resultado = await calcularResultado(tx, id_evento);
+    const resultado = await calcularRentabilidad(id_evento, tx);
     await tx.evento.update({
       where: { id_evento },
       data: { estado: 'CERRADO', fecha_cierre: new Date(), rentabilidad_final: resultado.resultado },
