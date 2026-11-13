@@ -1,12 +1,14 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutGrid, Calendar, Package, User, Star, DollarSign, LogOut } from 'lucide-react';
+import { LayoutGrid, Calendar, Package, Wrench, AlertTriangle, User, Star, DollarSign, LogOut } from 'lucide-react';
 import '../styles/MenuLateral.css';
 
 // Opciones del menú. Para agregar un módulo nuevo, se agrega una línea aquí.
 const OPCIONES = [
   { ruta: '/home', texto: 'Panel Principal', icono: LayoutGrid },
   { ruta: '/calendario', texto: 'Calendario', icono: Calendar },
-  { ruta: '/equipos', texto: 'Inventario', icono: Package },
+  { ruta: '/consulta-inventario', texto: 'Inventario', icono: Package },
+  { ruta: '/equipos', texto: 'Gestión de Equipos', icono: Wrench },
+  { ruta: '/salida-kits?tab=incidentes', texto: 'Incidentes', icono: AlertTriangle },
   { ruta: '/trabajadores', texto: 'Personal', icono: User },
   { ruta: '/auspiciadores', texto: 'Auspiciadores', icono: Star },
   { ruta: '/finanzas', texto: 'Finanzas', icono: DollarSign },

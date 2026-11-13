@@ -1,8 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { getAlertasKitsSinRetorno } from "../services/alertaKits.service";
-import { listarEventosConfirmados } from "../services/marcarEvento.service.js";
-import BotonMarcarRealizado from "../components/evento/BotonMarcarRealizado.jsx";
+import AlertasKitsSinRetorno from "../components/equipos/AlertasKitsSinRetorno.jsx";
+import EventosPendientesCierre from "../components/evento/EventosPendientesCierre.jsx";
 import "../styles/Home.css";
 
 // Íconos
@@ -80,7 +78,9 @@ const ICONOS = {
 
 const MODULOS = [
   { ruta: "/calendario", titulo: "Calendario", icono: "calendario" },
-  { ruta: "/equipos", titulo: "Inventario", icono: "inventario" },
+  { ruta: "/consulta-inventario", titulo: "Inventario", icono: "inventario" },
+  { ruta: "/equipos", titulo: "Gestión de Equipos", icono: "inventario" },
+  { ruta: "/salida-kits?tab=incidentes", titulo: "Incidentes", icono: "incidentes" },
   { ruta: "/trabajadores", titulo: "Personal", icono: "personal" },
   { ruta: "/auspiciadores", titulo: "Auspiciadores", icono: "auspiciadores" },
   { ruta: "/finanzas", titulo: "Finanzas", icono: "finanzas" },
@@ -127,37 +127,6 @@ export default function Home() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const usuario = JSON.parse(localStorage.getItem("usuario") || "{}");
-
-  // Alertas de kits
-  const [alertasKits, setAlertasKits] = useState([]);
-  const [cargandoAlertas, setCargandoAlertas] = useState(true);
-
-  useEffect(() => {
-    getAlertasKitsSinRetorno()
-      .then((datos) => setAlertasKits(datos))
-      .catch((err) => console.error("Error al cargar alertas:", err))
-      .finally(() => setCargandoAlertas(false));
-  }, []);
-
-  // Eventos confirmados por finalizar (datos ya filtrados desde el backend)
-  const [eventosConfirmados, setEventosConfirmados] = useState([]);
-  const [cargandoConfirmados, setCargandoConfirmados] = useState(true);
-
-  const cargarEventosConfirmados = () => {
-    setCargandoConfirmados(true);
-    listarEventosConfirmados()
-      .then((res) => {
-        const lista = res?.data || res || [];
-        // Se cortan a 3 elementos únicamente para la tarjeta compacta del Home
-        setEventosConfirmados(lista.slice(0, 3));
-      })
-      .catch((err) => console.error("Error al cargar eventos:", err))
-      .finally(() => setCargandoConfirmados(false));
-  };
-
-  useEffect(() => {
-    cargarEventosConfirmados();
-  }, []);
 
   const nombre =
     [usuario.nombre, usuario.apellido].filter(Boolean).join(" ") || "Usuario";
@@ -241,132 +210,11 @@ export default function Home() {
           ))}
         </section>
 
-        {/* Alertas recientes (RF-P6-05) */}
-        <section className="panel">
-          <div className="panel-head">
-            <h3>
-              <Icono>{ICONOS.incidentes}</Icono>
-              Alertas de kits sin retorno (+24h)
-            </h3>
-            <button
-              className="panel-link"
-              onClick={() => navigate("/salida-kits?tab=revision")}
-            >
-              Registrar Retornos →
-            </button>
-          </div>
+        {/* Alertas recientes */}
+        <AlertasKitsSinRetorno />
 
-          {cargandoAlertas ? (
-            <div style={{ padding: "1rem", color: "#6b7280" }}>Buscando alertas...</div>
-          ) : alertasKits.length === 0 ? (
-            <EstadoVacio texto="No hay alertas registradas" />
-          ) : (
-            /* Contenedor con altura máxima calculada para 3 tarjetas y scroll con la rueda */
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "0.8rem",
-                marginTop: "0.5rem",
-                maxHeight: "330px", // Espacio exacto para 3 tarjetas
-                overflowY: "auto",  // Activa el desplazamiento con ruedita
-                paddingRight: "6px",
-              }}
-            >
-              {alertasKits.map((alerta) => (
-                <div
-                  key={alerta.id_kit}
-                  style={{
-                    padding: "0.9rem 1.1rem",
-                    backgroundColor: "#fef2f2",
-                    border: "1px solid #f87171",
-                    borderRadius: "8px",
-                    flexShrink: 0, // Evita que las tarjetas se aplasten
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-                    <strong style={{ color: "#991b1b", fontSize: "1rem" }}>{alerta.nombre_kit}</strong>
-                    <span
-                      style={{
-                        backgroundColor: "#dc2626",
-                        color: "#fff",
-                        fontSize: "0.75rem",
-                        fontWeight: "bold",
-                        padding: "0.15rem 0.5rem",
-                        borderRadius: "4px",
-                      }}
-                    >
-                      +{alerta.horas_retraso}h sin retornar
-                    </span>
-                  </div>
-                  <p style={{ margin: "0.3rem 0 0", fontSize: "0.88rem", color: "#4b5563" }}>
-                    <strong>Evento:</strong> {alerta.tipo_evento} ({alerta.direccion}) |{" "}
-                    <strong>Responsable:</strong> {alerta.responsable}
-                    {alerta.telefono_responsable && ` (WhatsApp: ${alerta.telefono_responsable})`}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* Eventos por Finalizar (RF-P7-01) */}
-        <section className="panel" style={{ marginTop: '1.5rem' }}>
-          <div className="panel-head">
-            <h3>
-              <Icono>{ICONOS.calendario}</Icono>
-              Eventos Pendientes de Cierre
-            </h3>
-            <button
-              className="panel-link"
-              onClick={() => navigate("/marcar-evento")}
-            >
-              Ver todos →
-            </button>
-          </div>
-
-          {cargandoConfirmados ? (
-            <div style={{ padding: "1rem", color: "#6b7280" }}>Cargando eventos...</div>
-          ) : eventosConfirmados.length === 0 ? (
-            <EstadoVacio texto="No hay eventos confirmados pendientes de cierre" />
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.8rem", marginTop: "0.5rem" }}>
-              {eventosConfirmados.map((ev) => (
-                <div
-                  key={ev.id_evento}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "0.9rem 1.2rem",
-                    backgroundColor: "#ffffff",
-                    border: "1px solid #e5e7eb",
-                    borderRadius: "8px",
-                  }}
-                >
-                  <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-                      <strong style={{ color: "#111827", fontSize: "0.95rem" }}>
-                        #{ev.id_evento} {ev.tipo}
-                      </strong>
-                      <span style={{ fontSize: "0.8rem", color: "#6b7280" }}>
-                        {new Date(ev.fecha).toLocaleDateString('es-CL', { timeZone: 'UTC' })}
-                      </span>
-                    </div>
-                    <p style={{ margin: "0.25rem 0 0", fontSize: "0.85rem", color: "#4b5563" }}>
-                      Cliente: {ev.cliente?.nombre || 'General'} | Término: {new Date(ev.hora_termino).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </p>
-                  </div>
-
-                  <BotonMarcarRealizado
-                    evento={ev}
-                    onEventoActualizado={cargarEventosConfirmados}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+        {/* Eventos por Finalizar */}
+        <EventosPendientesCierre />
 
         {/* Transmisiones y auspiciadores */}
         <section className="panels-row">

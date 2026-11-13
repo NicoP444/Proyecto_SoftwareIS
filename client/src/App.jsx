@@ -16,6 +16,7 @@ import ResumenIncidentesEventoPage from './pages/ResumenIncidentesEventoPage.jsx
 import Equipos from "./pages/Equipos";
 import ConsultaInventario from './pages/ConsultarInventario.jsx';
 import MarcarEventoRealizado from './pages/MarcarEventoRealizado.jsx';
+import ConsultarInventario from './pages/ConsultarInventario.jsx';
 
 // Componente para proteger rutas privadas
 function RutaProtegida({ children }) {
@@ -49,6 +50,7 @@ export default function App() {
           <Route path="/equipos" element={<Equipos />} />
           <Route path="/salida-kits" element={<SalidaKits />} />
           <Route path="/marcar-evento" element={<MarcarEventoRealizado />} />
+          <Route path="/consulta-inventario" element={<ConsultarInventario />} />
         </Route>
 
         <Route

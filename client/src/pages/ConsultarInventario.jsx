@@ -202,29 +202,6 @@ export default function ConsultarInventario() {
             Inventario General
           </h1>
         </div>
-        <button
-          type="button"
-          onClick={() => navigate('/home')}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            padding: '0.55rem 1.1rem',
-            backgroundColor: '#333c87',
-            color: '#ffffff',
-            border: 'none',
-            borderRadius: '6px',
-            fontSize: '0.88rem',
-            fontWeight: '600',
-            cursor: 'pointer',
-            boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-            transition: 'background-color 0.15s ease',
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#272e6b')}
-          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#333c87')}
-        >
-          ← Volver al inicio
-        </button>
       </div>
 
       {/* Indicadores métricos KPI */}
@@ -503,15 +480,21 @@ export default function ConsultarInventario() {
                               </thead>
                               <tbody>
                                 {kitSeleccionado.equipos?.map((eq) => {
-                                  const tieneMarcaModelo = Boolean(eq.marca || eq.modelo);
+                                  const marcaModelo = [eq.marca, eq.modelo].filter(Boolean).join(' ');
+                                  const debeMostrarDetalle = Boolean(
+                                    marcaModelo && !eq.nombre.toLowerCase().includes(marcaModelo.toLowerCase())
+                                  );
+
                                   return (
                                     <tr key={eq.codigo} style={{ borderBottom: '1px solid #f8fafc' }}>
-                                      <td style={{ padding: '0.85rem 0.5rem', fontWeight: '700', color: '#0f172a' }}>{eq.codigo}</td>
+                                      <td style={{ padding: '0.85rem 0.5rem', fontWeight: '700', color: '#0f172a' }}>
+                                        {eq.codigo}
+                                      </td>
                                       <td style={{ padding: '0.85rem 0.5rem', color: '#1e293b' }}>
                                         {eq.nombre}
-                                        {tieneMarcaModelo && (
+                                        {debeMostrarDetalle && (
                                           <span style={{ color: '#64748b', fontSize: '0.82rem', marginLeft: '6px' }}>
-                                            ({[eq.marca, eq.modelo].filter(Boolean).join(' ')})
+                                            ({marcaModelo})
                                           </span>
                                         )}
                                       </td>
@@ -551,7 +534,6 @@ export default function ConsultarInventario() {
                           <th style={{ padding: '0.75rem 0.5rem' }}>CÓDIGO</th>
                           <th style={{ padding: '0.75rem 0.5rem' }}>EQUIPO</th>
                           <th style={{ padding: '0.75rem 0.5rem' }}>CATEGORÍA</th>
-                          <th style={{ padding: '0.75rem 0.5rem' }}>MARCA / MODELO</th>
                           <th style={{ padding: '0.75rem 0.5rem' }}>VALOR COMPRA</th>
                           <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>ESTADO</th>
                         </tr>
@@ -559,21 +541,29 @@ export default function ConsultarInventario() {
                       <tbody>
                         {repuestosFiltrados.length === 0 ? (
                           <tr>
-                            <td colSpan="6" style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
+                            <td colSpan="5" style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
                               No hay repuestos que coincidan con la búsqueda.
                             </td>
                           </tr>
                         ) : (
                           repuestosFiltrados.map((rep) => {
                             const marcaModelo = [rep.marca, rep.modelo].filter(Boolean).join(' ');
+                            const debeMostrarDetalle = Boolean(
+                              marcaModelo && !rep.nombre.toLowerCase().includes(marcaModelo.toLowerCase())
+                            );
+
                             return (
                               <tr key={rep.codigo} style={{ borderBottom: '1px solid #f8fafc' }}>
                                 <td style={{ padding: '0.85rem 0.5rem', fontWeight: '700', color: '#0f172a' }}>{rep.codigo}</td>
-                                <td style={{ padding: '0.85rem 0.5rem', color: '#1e293b' }}>{rep.nombre}</td>
-                                <td style={{ padding: '0.85rem 0.5rem', color: '#64748b' }}>{rep.categoria}</td>
-                                <td style={{ padding: '0.85rem 0.5rem', color: '#64748b' }}>
-                                  {marcaModelo || '—'}
+                                <td style={{ padding: '0.85rem 0.5rem', color: '#1e293b' }}>
+                                  {rep.nombre}
+                                  {debeMostrarDetalle && (
+                                    <span style={{ color: '#64748b', fontSize: '0.82rem', marginLeft: '6px' }}>
+                                      ({marcaModelo})
+                                    </span>
+                                  )}
                                 </td>
+                                <td style={{ padding: '0.85rem 0.5rem', color: '#64748b' }}>{rep.categoria}</td>
                                 <td style={{ padding: '0.85rem 0.5rem', fontWeight: '600', color: '#0f172a' }}>
                                   ${Number(rep.valor_compra || 0).toLocaleString('es-CL')}
                                 </td>
