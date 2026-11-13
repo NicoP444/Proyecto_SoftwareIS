@@ -14,9 +14,6 @@ export const registrarSalidaKit = async (req, res) => {
       });
     }
 
-    // Si tu middleware guarda el usuario en req.user usa ese id, sino el enviado en body o 1 por defecto
-    const jefeId = req.user?.id_jefe || id_jefe || 1;
-
     const salida = await registrarSalidaKitService({
       id_reserva,
       id_asignacion,

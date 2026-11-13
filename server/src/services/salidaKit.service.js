@@ -25,6 +25,15 @@ export const registrarSalidaKitService = async ({ id_reserva, id_asignacion, id_
     throw new Error('El kit ya figura actualmente con estado "EN_TERRENO"');
   }
 
+  // Validar que la asignación exista y pertenezca al mismo evento de la reserva
+  const asignacion = await prisma.asignacionPersonal.findUnique({
+    where: { id_asignacion: Number(id_asignacion) },
+  });
+
+  if (!asignacion || asignacion.id_evento !== reserva.id_evento) {
+    throw new Error('El trabajador seleccionado no está asignado a este evento');
+  }
+
   // 2. Transacción atómica: se registra la salida y se pasa el kit a EN_TERRENO
   const resultado = await prisma.$transaction(async (tx) => {
     const nuevaSalida = await tx.salidaKit.create({
@@ -47,6 +56,8 @@ export const registrarSalidaKitService = async ({ id_reserva, id_asignacion, id_
   return resultado;
 };
 
+
+
 /**
  * Consulta auxiliar para el frontend:
  * Obtiene los kits reservados para un evento, con su estado y las personas asignadas
@@ -55,7 +66,11 @@ export const obtenerKitsYPersonalPorEventoService = async (id_evento) => {
   const reservas = await prisma.reservaKit.findMany({
     where: { id_evento: Number(id_evento) },
     include: {
-      kit: true,
+      kit: {
+        include: {
+          equipos: true,
+        },
+      },
       salida: {
         include: {
           responsable: {
