@@ -120,7 +120,16 @@ export default function RetornoKits() {
           No hay kits en terreno pendientes de retorno en este momento.
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', maxHeight: '460px', overflowY: 'auto' }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.85rem',
+            maxHeight: '380px',
+            overflowY: 'auto',
+            paddingRight: '6px',
+          }}
+        >
           {salidas.map((salida) => (
             <div
               key={salida.id_salida}
@@ -133,6 +142,7 @@ export default function RetornoKits() {
                 borderRadius: '10px',
                 backgroundColor: '#ffffff',
                 boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                flexShrink: 0,
               }}
             >
               <div>
@@ -140,7 +150,7 @@ export default function RetornoKits() {
                   {salida.reserva?.kit?.nombre}
                 </strong>
                 <div style={{ fontSize: '0.85rem', color: '#475569', marginTop: '4px' }}>
-                  <strong>Evento:</strong> {salida.reserva?.evento?.nombre_evento || `#${salida.reserva?.id_evento}`}
+                  <strong>Evento:</strong> {salida.reserva?.evento?.tipo || `#${salida.reserva?.id_evento}`}
                 </div>
                 <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
                   <strong>Responsable:</strong> {salida.responsable?.trabajador?.nombre || 'No asignado'}

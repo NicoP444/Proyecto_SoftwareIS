@@ -6,12 +6,16 @@ import {
   obtenerEventos, 
   obtenerTrabajadores 
 } from '../services/incidente.service.js';
+import { obtenerKitsPorEvento } from '../services/salidaKit.service.js';
 
 export default function Incidentes() {
   const [incidentes, setIncidentes] = useState([]);
   const [equipos, setEquipos] = useState([]);
   const [eventos, setEventos] = useState([]);
   const [trabajadores, setTrabajadores] = useState([]);
+
+  const [equiposDelEvento, setEquiposDelEvento] = useState([]);
+  const [responsableAutoDetectado, setResponsableAutoDetectado] = useState(false);
 
   const [formData, setFormData] = useState({
     codigo: '',
@@ -65,10 +69,61 @@ export default function Incidentes() {
     }
   };
 
+  const handleEventoChange = async (idEvento) => {
+    setFormData((prev) => ({ ...prev, id_evento: idEvento, codigo: '', id_trabajador: '' }));
+    setEquipoSeleccionado(null);
+    setResponsableAutoDetectado(false);
+
+    if (!idEvento) {
+      setEquiposDelEvento([]);
+      return;
+    }
+
+    try {
+      const res = await obtenerKitsPorEvento(idEvento);
+      const data = res?.data || res;
+      const reservas = data?.reservas || [];
+
+      const listaFiltrada = [];
+      reservas.forEach((r) => {
+        const respTrabajador = r.salida?.responsable?.trabajador || null;
+        const nombreKit = r.kit?.nombre || 'Kit';
+        (r.kit?.equipos || []).forEach((eq) => {
+          listaFiltrada.push({
+            ...eq,
+            nombreKit,
+            trabajadorResponsable: respTrabajador,
+          });
+        });
+      });
+
+      setEquiposDelEvento(listaFiltrada);
+    } catch (error) {
+      console.error('Error al filtrar equipos del evento:', error);
+      setEquiposDelEvento([]);
+    }
+  };
+
   const handleEquipoChange = (codigo) => {
-    const eq = equipos.find((e) => e.codigo === codigo);
+    const listaActual = formData.id_evento ? equiposDelEvento : equipos;
+    const eq = listaActual.find((e) => e.codigo === codigo);
     setEquipoSeleccionado(eq || null);
-    setFormData((prev) => ({ ...prev, codigo }));
+
+    if (eq?.trabajadorResponsable) {
+      setFormData((prev) => ({
+        ...prev,
+        codigo,
+        id_trabajador: String(eq.trabajadorResponsable.id_trabajador),
+      }));
+      setResponsableAutoDetectado(true);
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        codigo,
+        id_trabajador: formData.id_evento ? '' : prev.id_trabajador,
+      }));
+      setResponsableAutoDetectado(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -101,6 +156,8 @@ export default function Incidentes() {
         costo_reparacion: '',
       });
       setEquipoSeleccionado(null);
+      setEquiposDelEvento([]);
+      setResponsableAutoDetectado(false);
 
       cargarDatos();
     } catch (error) {
@@ -177,6 +234,8 @@ export default function Incidentes() {
     );
   };
 
+  const listaEquiposMostrados = formData.id_evento ? equiposDelEvento : equipos;
+
   return (
     <div>
       <div style={{ marginBottom: '1.25rem' }}>
@@ -203,7 +262,7 @@ export default function Incidentes() {
       )}
 
       {/* Formulario de registro */}
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', backgroundColor: '#ffffff', padding: '1.25rem', border: '1px solid #e2e8f0', borderRadius: '10px', marginBottom: '2rem' }}>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', backgroundColor: '#ffffff', padding: '1.25rem', border: '1px solid #e2e8f0', borderRadius: '10px', marginBottom: '1.75rem' }}>
         {/* Fila 1: Tipo y Evento */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
           <div>
@@ -239,7 +298,7 @@ export default function Incidentes() {
             {eventos.length > 0 ? (
               <select
                 value={formData.id_evento}
-                onChange={(e) => setFormData({ ...formData, id_evento: e.target.value })}
+                onChange={(e) => handleEventoChange(e.target.value)}
                 style={{
                   width: '100%',
                   padding: '0.6rem 0.85rem',
@@ -256,7 +315,7 @@ export default function Incidentes() {
                 <option value="">-- Sin evento / Incidente en Bodega --</option>
                 {eventos.map((ev) => (
                   <option key={ev.id_evento} value={ev.id_evento}>
-                    Evento #{ev.id_evento} - {ev.tipo || ev.nombre || 'Transmisión'}
+                    Evento #{ev.id_evento} - {ev.tipo || 'Transmisión'}
                   </option>
                 ))}
               </select>
@@ -265,7 +324,7 @@ export default function Incidentes() {
                 type="number"
                 placeholder="ID del Evento (opcional)"
                 value={formData.id_evento}
-                onChange={(e) => setFormData({ ...formData, id_evento: e.target.value })}
+                onChange={(e) => handleEventoChange(e.target.value)}
                 style={{
                   width: '100%',
                   padding: '0.6rem 0.85rem',
@@ -288,7 +347,7 @@ export default function Incidentes() {
             <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               Equipo Afectado
             </label>
-            {equipos.length > 0 ? (
+            {equipos.length > 0 || formData.id_evento ? (
               <select
                 value={formData.codigo}
                 onChange={(e) => handleEquipoChange(e.target.value)}
@@ -306,10 +365,14 @@ export default function Incidentes() {
                   cursor: 'pointer',
                 }}
               >
-                <option value="">-- Selecciona un equipo --</option>
-                {equipos.map((eq) => (
+                <option value="">
+                  {formData.id_evento && listaEquiposMostrados.length === 0
+                    ? '-- Este evento no tiene equipos en kits reservados --'
+                    : '-- Selecciona un equipo --'}
+                </option>
+                {listaEquiposMostrados.map((eq) => (
                   <option key={eq.codigo} value={eq.codigo}>
-                    {eq.codigo} - {eq.nombre}
+                    {eq.codigo} - {eq.nombre}{eq.nombreKit ? ` (${eq.nombreKit})` : ''}
                   </option>
                 ))}
               </select>
@@ -339,10 +402,13 @@ export default function Incidentes() {
             <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               Trabajador Responsable
             </label>
-            {trabajadores.length > 0 ? (
+            {trabajadores.length > 0 || equipoSeleccionado?.trabajadorResponsable ? (
               <select
                 value={formData.id_trabajador}
-                onChange={(e) => setFormData({ ...formData, id_trabajador: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, id_trabajador: e.target.value });
+                  setResponsableAutoDetectado(false);
+                }}
                 style={{
                   width: '100%',
                   padding: '0.6rem 0.85rem',
@@ -357,6 +423,14 @@ export default function Incidentes() {
                 }}
               >
                 <option value="">-- Ninguno / Bodega / No identificado --</option>
+                {equipoSeleccionado?.trabajadorResponsable &&
+                  !trabajadores.some(
+                    (t) => String(t.id_trabajador) === String(equipoSeleccionado.trabajadorResponsable.id_trabajador)
+                  ) && (
+                    <option value={equipoSeleccionado.trabajadorResponsable.id_trabajador}>
+                      {equipoSeleccionado.trabajadorResponsable.nombre}
+                    </option>
+                  )}
                 {trabajadores.map((t) => (
                   <option key={t.id_trabajador} value={t.id_trabajador}>
                     {t.nombre}
@@ -366,7 +440,7 @@ export default function Incidentes() {
             ) : (
               <input
                 type="text"
-                placeholder="Nombre del trabajador..."
+                placeholder="ID del trabajador (opcional)..."
                 value={formData.id_trabajador}
                 onChange={(e) => setFormData({ ...formData, id_trabajador: e.target.value })}
                 style={{
@@ -381,6 +455,11 @@ export default function Incidentes() {
                   outline: 'none',
                 }}
               />
+            )}
+            {responsableAutoDetectado && (
+              <span style={{ fontSize: '0.78rem', color: '#15803d', marginTop: '4px', display: 'block', fontWeight: '500' }}>
+                ✓ Asignado automáticamente según salida de {equipoSeleccionado?.nombreKit}
+              </span>
             )}
           </div>
         </div>
@@ -479,7 +558,7 @@ export default function Incidentes() {
           </h3>
         </div>
 
-        <div style={{ overflowX: 'auto', maxHeight: '460px', overflowY: 'auto', border: '1px solid #f1f5f9', borderRadius: '10px' }}>
+        <div style={{ overflowX: 'auto', maxHeight: '280px', overflowY: 'auto', border: '1px solid #f1f5f9', borderRadius: '10px' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.75rem', fontWeight: '700', letterSpacing: '0.05em', position: 'sticky', top: 0, backgroundColor: '#ffffff', zIndex: 1 }}>

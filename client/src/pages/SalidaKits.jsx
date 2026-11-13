@@ -24,15 +24,17 @@ export default function SalidaKits() {
   const [cargando, setCargando] = useState(false);
   const [searchParams] = useSearchParams();
   
-  const [tabActiva, setTabActiva] = useState(() => {
-    return searchParams.get('tab') === 'revision' ? 'retorno' : 'salida';
+const [tabActiva, setTabActiva] = useState(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'revision') return 'retorno';
+    if (tab === 'incidentes') return 'incidentes';
+    return 'salida';
   });
 
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab === 'revision') {
-      setTabActiva('retorno');
-    }
+    if (tab === 'revision') setTabActiva('retorno');
+    if (tab === 'incidentes') setTabActiva('incidentes');
   }, [searchParams]);
 
   useEffect(() => {
@@ -97,14 +99,14 @@ export default function SalidaKits() {
     const q = busqueda.toLowerCase();
     return eventosActivos.filter((ev) => 
       ev.id_evento?.toString().includes(q) ||
-      (ev.tipo && ev.tipo.toLowerCase().includes(q)) ||
-      (ev.nombre && ev.nombre.toLowerCase().includes(q))
+      (ev.tipo && ev.tipo.toLowerCase().includes(q))
     );
   }, [eventosActivos, busqueda]);
 
   const manejarCambioEvento = async (e) => {
     const id = typeof e === 'object' && e.target ? e.target.value : e;
     setIdEventoSeleccionado(id);
+    setResponsables({});
     setMensaje({ tipo: '', texto: '' });
     if (!id) {
       setReservas([]);
@@ -230,33 +232,19 @@ export default function SalidaKits() {
             Control de Salidas y Retornos
           </h1>
         </div>
-        <button
-          type="button"
-          onClick={() => navigate('/home')}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            padding: '0.55rem 1.1rem',
-            backgroundColor: '#333c87',
-            color: '#ffffff',
-            border: 'none',
-            borderRadius: '6px',
-            fontSize: '0.88rem',
-            fontWeight: '600',
-            cursor: 'pointer',
-            boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-            transition: 'background-color 0.15s ease',
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#272e6b')}
-          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#333c87')}
-        >
-          ← Volver al inicio
-        </button>
       </div>
 
-      {/* Contenedor tipo Tarjeta */}
-      <div style={{ backgroundColor: '#ffffff', borderRadius: '14px', border: '1px solid #eef2f6', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
+      {/* Contenedor tipo Tarjeta con altura mínima pareja entre pestañas */}
+      <div
+        style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '14px',
+          border: '1px solid #eef2f6',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+          overflow: 'hidden',
+          minHeight: '540px',
+        }}
+      >
         
         {/* Barra de pestañas */}
         <div style={{ display: 'flex', borderBottom: '1px solid #f1f5f9', padding: '0 1.5rem', backgroundColor: '#ffffff', overflow: 'hidden' }}>
@@ -320,7 +308,7 @@ export default function SalidaKits() {
                   </label>
                   <input
                     type="text"
-                    placeholder="Buscar evento por nombre o ID..."
+                    placeholder="Buscar evento por tipo o ID..."
                     value={busqueda}
                     onChange={(e) => setBusqueda(e.target.value)}
                     style={{
@@ -360,7 +348,7 @@ export default function SalidaKits() {
                     <option value="">-- Selecciona un evento para despacho --</option>
                     {eventosFiltrados.map((ev) => (
                       <option key={ev.id_evento} value={ev.id_evento}>
-                        {`Evento #${ev.id_evento} - ${ev.tipo || ev.nombre || 'Transmisión'} (${new Date(ev.fecha).toLocaleDateString()})`}
+                        {`Evento #${ev.id_evento} - ${ev.tipo || 'Transmisión'} (${new Date(ev.fecha).toLocaleDateString()})`}
                       </option>
                     ))}
                   </select>
@@ -384,7 +372,16 @@ export default function SalidaKits() {
                       No hay kits reservados para este evento.
                     </div>
                   ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.75rem',
+                        maxHeight: '340px',
+                        overflowY: 'auto',
+                        paddingRight: '6px',
+                      }}
+                    >
                       {reservas.map((reserva) => {
                         const yaSalio = Boolean(reserva.salida || reserva.kit?.estado === 'EN_TERRENO');
                         const estaIncompleto = reserva.kit?.estado === 'INCOMPLETO';
@@ -401,6 +398,7 @@ export default function SalidaKits() {
                               borderRadius: '10px',
                               backgroundColor: estaIncompleto ? '#fff1f2' : '#ffffff',
                               transition: 'all 0.15s ease',
+                              flexShrink: 0,
                             }}
                           >
                             <div>
@@ -444,6 +442,7 @@ export default function SalidaKits() {
                                   <select
                                     value={responsables[reserva.id_reserva] || ''}
                                     onChange={(e) => manejarCambioResponsable(reserva.id_reserva, e.target.value)}
+                                    disabled={personal.length === 0}
                                     style={{
                                       padding: '0.5rem 0.75rem',
                                       borderRadius: '6px',
@@ -454,14 +453,17 @@ export default function SalidaKits() {
                                       outline: 'none',
                                     }}
                                   >
-                                    <option value="">-- Asignar Responsable --</option>
+                                    <option value="">
+                                      {personal.length === 0
+                                        ? '-- Sin personal asignado al evento --'
+                                        : '-- Asignar Responsable --'}
+                                    </option>
                                     {personal.map((asig) => (
                                       <option key={asig.id_asignacion} value={asig.id_asignacion}>
-                                        {asig.trabajador.nombre} ({asig.rol?.nombre_rol || 'Personal'})
+                                        {asig.trabajador?.nombre} ({asig.rol?.nombre_rol || 'Personal'})
                                       </option>
                                     ))}
                                   </select>
-
                                   <button
                                     type="button"
                                     onClick={() => handleRegistrarSalida(reserva.id_reserva)}
@@ -533,7 +535,7 @@ export default function SalidaKits() {
                             alignItems: 'center',
                           }}
                         >
-                          <span style={{ color: '#0f172a' }}><strong>Evento #{ev.id_evento}</strong> — {ev.tipo || ev.nombre || 'Transmisión'}</span>
+                          <span style={{ color: '#0f172a' }}><strong>Evento #{ev.id_evento}</strong> — {ev.tipo || 'Transmisión'}</span>
                           <span style={{ color: '#64748b' }}>{new Date(ev.fecha).toLocaleDateString()}</span>
                         </div>
                       ))}
