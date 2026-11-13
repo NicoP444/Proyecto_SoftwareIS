@@ -7,12 +7,7 @@ import {
 export const registrarSalidaKit = async (req, res) => {
   try {
     const { id_reserva, id_asignacion, id_jefe, fecha_hora_salida } = req.body;
-
-    if (!id_reserva || !id_asignacion) {
-      return res.status(400).json({
-        message: 'id_reserva e id_asignacion son campos obligatorios',
-      });
-    }
+    const jefeId = req.user?.id_jefe || id_jefe || 1;
 
     const salida = await registrarSalidaKitService({
       id_reserva,

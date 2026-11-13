@@ -1,9 +1,13 @@
 import { Router } from 'express';
-import { 
-  obtenerEventosConReservas, 
-  obtenerKitsPorEvento, 
-  registrarSalidaKit 
+import {
+  obtenerEventosConReservas,
+  obtenerKitsPorEvento,
+  registrarSalidaKit,
 } from '../controllers/salidaKit.controller.js';
+import {
+  registrarSalidaKitMiddleware,
+  listarKitsEventoSalidaMiddleware,
+} from '../middlewares/salidaKit.middleware.js';
 
 const router = Router();
 
@@ -11,7 +15,7 @@ const router = Router();
 router.get('/eventos', obtenerEventosConReservas);
 
 // Las otras rutas de tu módulo
-router.get('/evento/:id_evento', obtenerKitsPorEvento);
-router.post('/', registrarSalidaKit);
+router.get('/evento/:id_evento', listarKitsEventoSalidaMiddleware, obtenerKitsPorEvento);
+router.post('/', registrarSalidaKitMiddleware, registrarSalidaKit);
 
 export default router;
