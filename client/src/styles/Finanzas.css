@@ -321,3 +321,15 @@
 /* ===== Rentabilidad: sello de ganancia o pérdida ===== */
 .fin-estado-ganancia { color: var(--fin-verde); }
 .fin-estado-perdida { color: var(--fin-rojo); }
+
+/* ===== Cascarón de Finanzas: pestañas por persona ===== */
+.fin-pestanas {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--fin-borde);
+}
+.fin-pestanas .fin-tab { margin-bottom: -1px; padding-bottom: 12px; }
+
+
+.fin-form input[readonly] { background: #f8fafc; color: var(--fin-suave); cursor: default; }

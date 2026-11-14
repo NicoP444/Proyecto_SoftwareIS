@@ -1,17 +1,18 @@
 import { useState } from 'react';
 import FinanzasEventos from '../components/finanzas/FinanzaEvento.jsx';
 // Cada persona agrega aquí su import cuando su archivo exista:
-// import RentabilidadMes from '../components/finanzas/RentabilidadMes'; // Persona 2 (pendiente)
-// import PagosCliente from '../components/finanzas/PagosCliente';       // Persona 1
-// import CierreMensual from '../components/finanzas/CierreMensual';     // Persona 4
+//import PagosCliente from '../components/finanzas/PagosCliente';       // Persona 1
+//import CierreMensual from '../components/finanzas/CierreMensual';     // Persona 4
 import '../styles/Finanzas.css';
+
+import RentabilidadMes from '../components/finanzas/RentabilidadMes';
 
 // Cada persona agrega UNA línea aquí con su pestaña
 const PESTANAS = [
   { id: 'eventos', texto: 'Eventos', componente: FinanzasEventos }, // Persona 2 (P7)
-  // { id: 'rentabilidad', texto: 'Rentabilidad', componente: RentabilidadMes },   // Persona 2 (pendiente)
-  // { id: 'pagos-cliente', texto: 'Pagos del cliente', componente: PagosCliente }, // Persona 1 (RF-P1-10)
-  // { id: 'mensual', texto: 'Cierre mensual', componente: CierreMensual },        // Persona 4 (P8)
+  { id: 'rentabilidad', texto: 'Rentabilidad', componente: RentabilidadMes },   // Persona 2 (pendiente)
+  //{ id: 'pagos-cliente', texto: 'Pagos del cliente', componente: PagosCliente }, // Persona 1 (RF-P1-10)
+  //{ id: 'mensual', texto: 'Cierre mensual', componente: CierreMensual },        // Persona 4 (P8)
 ];
 
 export default function Finanzas() {
