@@ -28,6 +28,7 @@ import FormularioEvento from "../components/calendario/FormularioEvento";
 import GestionClientes from "../components/calendario/GestionClientes";
 import PanelPersonal from "../components/calendario/PanelPersonal";
 import ConvocatoriaEvento from "../components/calendario/ConvocatoriaEvento";
+import ViabilidadEvento from "../components/calendario/ViabilidadEvento";
 import ConsultaPersonal from "../components/calendario/ConsultaPersonal";
 import MargenTraslado from "../components/calendario/MargenTraslado";
 import { obtenerUsuario } from "../services/http.js";
@@ -529,6 +530,13 @@ export default function Calendario() {
               puedeEditar={puedeCrear}
               onCambio={cargarDatos}
             />
+            {/* Resultado estimado (RF-P1-06): solo Dueño y Contador */}
+            {verFinanzas && (
+              <ViabilidadEvento
+                idEvento={e.id_evento}
+                puedeEditar={puedeCrear}
+              />
+            )}
             {/* Texto de convocatoria para WhatsApp (RF-P3-03): solo el Dueño */}
             {puedeCrear && (
               <ConvocatoriaEvento
