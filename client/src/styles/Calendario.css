@@ -227,3 +227,12 @@ button.cal-mas { flex-shrink: 0; padding: 0; border: 0; background: none; text-a
 .cal-acciones .boton { flex: 1; min-width: 160px; }
 .cal-acciones .cal-eliminar { width: 100%; }
 .cal-detalle .boton-peligro { align-self: auto; }
+
+/* Pagos del cliente */
+.pagos-barra { position: relative; height: 10px; overflow: hidden; border: 1px solid var(--borde); border-radius: 999px; background: var(--fondo); }
+.pagos-barra-relleno { height: 100%; border-radius: 999px; background: var(--verde); transition: width 0.3s; }
+.pagos-marca { position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; background: var(--texto-suave); }
+.pagos-lista { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.pagos-lista li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border: 1px solid var(--borde); border-radius: 8px; background: var(--fondo); font-size: 0.8rem; }
+.pagos-lista small { display: block; font-size: 0.7rem; color: var(--texto-tenue); }
+.pagos-form { display: flex; flex-direction: column; gap: 10px; padding-top: 10px; border-top: 1px dashed var(--borde); }
