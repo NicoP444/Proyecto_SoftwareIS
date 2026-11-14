@@ -223,14 +223,13 @@ const [tabActiva, setTabActiva] = useState(() => {
   };
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1.5rem', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+    <div>
       
       {/* Cabecera superior unificada */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+      <div className="encabezado">
         <div>
-          <h1 style={{ fontSize: '1.65rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
-            Control de Salidas y Retornos
-          </h1>
+          <h1>Control de Salidas y Retornos</h1>
+          <p>Despacho de kits, revisión de retornos e incidentes técnicos</p>
         </div>
       </div>
 

@@ -52,38 +52,36 @@ export default function MarcarEventoRealizado() {
   };
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1.5rem', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+    <div>
       
       {/* Cabecera superior unificada */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+      <div className="encabezado">
         <div>
-          <h1 style={{ fontSize: '1.65rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
-            Eventos Pendientes de Cierre
-          </h1>
+          <h1>Eventos Pendientes de Cierre</h1>
+          <p>Marca como realizados los eventos cuya transmisión ya finalizó</p>
         </div>
-        <button
-          type="button"
-          onClick={() => navigate('/home')}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            padding: '0.55rem 1.1rem',
-            backgroundColor: '#333c87',
-            color: '#ffffff',
-            border: 'none',
-            borderRadius: '6px',
-            fontSize: '0.88rem',
-            fontWeight: '600',
-            cursor: 'pointer',
-            boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-            transition: 'background-color 0.15s ease',
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#272e6b')}
-          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#333c87')}
-        >
-          ← Volver al inicio
-        </button>
+        <div className="encabezado-botones">
+          <button
+            type="button"
+            onClick={() => navigate('/home')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              height: '36px',
+              padding: '0 16px',
+              backgroundColor: '#333c87',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: 'pointer',
+            }}
+          >
+            ← Volver al inicio
+          </button>
+        </div>
       </div>
 
       {/* Tarjeta contenedora institucional */}

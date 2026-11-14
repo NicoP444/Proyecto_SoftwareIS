@@ -20,6 +20,13 @@ import remuneracionRoutes from './remumeracion.routes.js'; // nico
 import marcarEventoRoutes from './marcarEvento.routes.js';
 import inventarioRoutes from './consultarInventario.routes.js';
 import cierreRoutes from './cierre.routes.js'; // nico
+import gastosFijosRoutes from './gastosFijos.routes.js';
+import perdidasInventarioRoutes from './perdidasInventario.routes.js';
+import resumenInventarioRoutes from './resumenInventario.routes.js';
+import resumenMensualRoutes from './resumenMensual.routes.js';
+import cierreMesRoutes from './cierreMes.routes.js';
+import corregirMesCerradoRoutes from './corregirMesCerrado.routes.js';
+
 import rentabilidadRoutes from './rentabilidad.routes.js'; // nico
 import pagoRemuneracionRoutes from './pagoRemuneracion.routes.js'// nico
 import historialTrabajadorRoutes from './historialTrabajador.routes.js'; // nico
@@ -49,5 +56,11 @@ router.use('/equipos', equipoRoutes);
 router.use('/eventos-realizados', marcarEventoRoutes);
 router.use('/inventario', inventarioRoutes);
 router.use('/cierre-jornada', cierreRoutes);//nico
+router.use('/gastos-fijos', gastosFijosRoutes);
+router.use('/perdidas-inventario', perdidasInventarioRoutes);
+router.use('/resumen-inventario', resumenInventarioRoutes);
+router.use('/resumen-mensual', resumenMensualRoutes);
+router.use('/cierre-mes', cierreMesRoutes);
+router.use('/corregir-mes', corregirMesCerradoRoutes);
 
 export default router;
