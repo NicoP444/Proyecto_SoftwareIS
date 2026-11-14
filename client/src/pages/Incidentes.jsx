@@ -3,8 +3,7 @@ import {
   registrarIncidente, 
   obtenerIncidentes, 
   obtenerEquipos, 
-  obtenerEventos, 
-  obtenerTrabajadores 
+  obtenerEventos 
 } from '../services/incidente.service.js';
 import { obtenerKitsPorEvento } from '../services/salidaKit.service.js';
 
@@ -12,10 +11,13 @@ export default function Incidentes() {
   const [incidentes, setIncidentes] = useState([]);
   const [equipos, setEquipos] = useState([]);
   const [eventos, setEventos] = useState([]);
-  const [trabajadores, setTrabajadores] = useState([]);
 
   const [equiposDelEvento, setEquiposDelEvento] = useState([]);
-  const [responsableAutoDetectado, setResponsableAutoDetectado] = useState(false);
+  const [nombreResponsable, setNombreResponsable] = useState('');
+
+  // Estados para buscar y filtrar Eventos
+  const [busquedaEvento, setBusquedaEvento] = useState('');
+  const [mostrarListaEventos, setMostrarListaEventos] = useState(false);
 
   const [formData, setFormData] = useState({
     codigo: '',
@@ -56,23 +58,17 @@ export default function Incidentes() {
       } catch (e) {
         console.warn('Endpoint /eventos pendiente');
       }
-
-      try {
-        const resTrabajadores = await obtenerTrabajadores();
-        const listaTrab = resTrabajadores?.data || resTrabajadores || [];
-        setTrabajadores(Array.isArray(listaTrab) ? listaTrab : []);
-      } catch (e) {
-        console.warn('Endpoint /trabajadores pendiente');
-      }
     } catch (err) {
       console.error(err);
     }
   };
 
-  const handleEventoChange = async (idEvento) => {
+  const handleEventoChange = async (idEvento, etiquetaEvento = '') => {
     setFormData((prev) => ({ ...prev, id_evento: idEvento, codigo: '', id_trabajador: '' }));
+    setBusquedaEvento(etiquetaEvento);
+    setMostrarListaEventos(false);
     setEquipoSeleccionado(null);
-    setResponsableAutoDetectado(false);
+    setNombreResponsable('');
 
     if (!idEvento) {
       setEquiposDelEvento([]);
@@ -109,33 +105,42 @@ export default function Incidentes() {
     const eq = listaActual.find((e) => e.codigo === codigo);
     setEquipoSeleccionado(eq || null);
 
-    if (eq?.trabajadorResponsable) {
+    if (formData.id_evento && eq?.trabajadorResponsable) {
       setFormData((prev) => ({
         ...prev,
         codigo,
         id_trabajador: String(eq.trabajadorResponsable.id_trabajador),
       }));
-      setResponsableAutoDetectado(true);
+      setNombreResponsable(eq.trabajadorResponsable.nombre || '');
     } else {
       setFormData((prev) => ({
         ...prev,
         codigo,
-        id_trabajador: formData.id_evento ? '' : prev.id_trabajador,
+        id_trabajador: '',
       }));
-      setResponsableAutoDetectado(false);
+      setNombreResponsable('');
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setCargando(true);
     setMensaje(null);
+
+    if (busquedaEvento.trim() !== '' && !formData.id_evento) {
+      setMensaje({
+        tipo: 'error',
+        texto: 'El evento ingresado no es válido. Selecciónalo de la lista o déjalo vacío para Bodega.',
+      });
+      return;
+    }
+
+    setCargando(true);
 
     try {
       const payload = {
         ...formData,
         id_evento: formData.id_evento ? Number(formData.id_evento) : null,
-        id_trabajador: formData.id_trabajador ? Number(formData.id_trabajador) : null,
+        id_trabajador: formData.id_evento && formData.id_trabajador ? Number(formData.id_trabajador) : null,
         costo_reparacion: formData.tipo === 'DANO' ? Number(formData.costo_reparacion) : undefined,
       };
 
@@ -155,22 +160,23 @@ export default function Incidentes() {
         id_trabajador: '',
         costo_reparacion: '',
       });
+      setBusquedaEvento('');
+      setMostrarListaEventos(false);
       setEquipoSeleccionado(null);
       setEquiposDelEvento([]);
-      setResponsableAutoDetectado(false);
+      setNombreResponsable('');
 
       cargarDatos();
     } catch (error) {
       setMensaje({
         tipo: 'error',
-        texto: error.response?.data?.message || 'Error al intentar registrar el incidente en el sistema.',
+        texto: error.response?.data?.message || error.message || 'Error al intentar registrar el incidente en el sistema.',
       });
     } finally {
       setCargando(false);
     }
   };
 
-  // Badge institucional para incidentes (110px de ancho fijo)
   const renderBadgeIncidente = (tipo) => {
     let bg = '#fee2e2';
     let text = '#dc2626';
@@ -235,6 +241,22 @@ export default function Incidentes() {
   };
 
   const listaEquiposMostrados = formData.id_evento ? equiposDelEvento : equipos;
+  const hayEvento = Boolean(formData.id_evento);
+
+  const textoResponsable = !hayEvento
+    ? 'No aplica (Incidente en Bodega)'
+    : nombreResponsable
+      ? nombreResponsable
+      : formData.codigo
+        ? 'Sin salida de kit registrada (en bodega)'
+        : 'Se asigna automáticamente al elegir equipo';
+
+  const eventosFiltrados = eventos.filter((ev) => {
+    const q = busquedaEvento.trim().toLowerCase();
+    if (!q) return true;
+    const textoCompleto = `evento #${ev.id_evento} - ${ev.tipo || 'transmisión'}`.toLowerCase();
+    return textoCompleto.includes(q) || String(ev.id_evento) === q.replace('#', '');
+  });
 
   return (
     <div>
@@ -291,57 +313,136 @@ export default function Incidentes() {
             </select>
           </div>
 
-          <div>
+          {/* Buscador con scroll interno para Evento Asociado */}
+          <div style={{ position: 'relative' }}>
             <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               Evento Asociado
             </label>
-            {eventos.length > 0 ? (
-              <select
-                value={formData.id_evento}
-                onChange={(e) => handleEventoChange(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '0.6rem 0.85rem',
-                  borderRadius: '8px',
-                  border: '1px solid #e2e8f0',
-                  backgroundColor: '#ffffff',
-                  fontSize: '0.88rem',
-                  color: '#0f172a',
-                  boxSizing: 'border-box',
-                  outline: 'none',
-                  cursor: 'pointer',
-                }}
-              >
-                <option value="">-- Sin evento / Incidente en Bodega --</option>
-                {eventos.map((ev) => (
-                  <option key={ev.id_evento} value={ev.id_evento}>
-                    Evento #{ev.id_evento} - {ev.tipo || 'Transmisión'}
-                  </option>
-                ))}
-              </select>
-            ) : (
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
               <input
-                type="number"
-                placeholder="ID del Evento (opcional)"
-                value={formData.id_evento}
-                onChange={(e) => handleEventoChange(e.target.value)}
+                type="text"
+                value={busquedaEvento}
+                onFocus={() => setMostrarListaEventos(true)}
+                onBlur={() => setTimeout(() => setMostrarListaEventos(false), 150)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setBusquedaEvento(val);
+                  if (formData.id_evento) {
+                    setFormData((prev) => ({ ...prev, id_evento: '', codigo: '', id_trabajador: '' }));
+                    setEquipoSeleccionado(null);
+                    setEquiposDelEvento([]);
+                    setNombreResponsable('');
+                  }
+                  setMostrarListaEventos(true);
+                }}
+                placeholder="-- Sin evento / Incidente en Bodega (Buscar...) --"
                 style={{
                   width: '100%',
-                  padding: '0.6rem 0.85rem',
+                  padding: '0.6rem 2.2rem 0.6rem 0.85rem',
                   borderRadius: '8px',
-                  border: '1px solid #e2e8f0',
-                  backgroundColor: '#f8fafc',
+                  border: `1px solid ${
+                    busquedaEvento.trim() && !formData.id_evento ? '#f59e0b' : '#e2e8f0'
+                  }`,
+                  backgroundColor: '#ffffff',
                   fontSize: '0.88rem',
                   color: '#0f172a',
                   boxSizing: 'border-box',
                   outline: 'none',
                 }}
               />
+              {busquedaEvento && (
+                <button
+                  type="button"
+                  onClick={() => handleEventoChange('', '')}
+                  title="Volver a Incidente en Bodega"
+                  style={{
+                    position: 'absolute',
+                    right: '8px',
+                    background: 'none',
+                    border: 'none',
+                    color: '#64748b',
+                    cursor: 'pointer',
+                    fontWeight: '700',
+                    fontSize: '0.95rem',
+                  }}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {mostrarListaEventos && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  marginTop: '4px',
+                  maxHeight: '210px',
+                  overflowY: 'auto',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '8px',
+                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                  zIndex: 25,
+                }}
+              >
+                <div
+                  onMouseDown={() => handleEventoChange('', '')}
+                  style={{
+                    padding: '0.6rem 0.85rem',
+                    fontSize: '0.86rem',
+                    cursor: 'pointer',
+                    borderBottom: '1px solid #e2e8f0',
+                    backgroundColor: !formData.id_evento ? '#f8fafc' : '#ffffff',
+                    color: '#475569',
+                    fontWeight: '600',
+                  }}
+                >
+                  -- Sin evento / Incidente en Bodega --
+                </div>
+
+                {eventosFiltrados.length === 0 ? (
+                  <div style={{ padding: '0.65rem 0.85rem', fontSize: '0.84rem', color: '#991b1b' }}>
+                    No se encontraron eventos con "{busquedaEvento}"
+                  </div>
+                ) : (
+                  eventosFiltrados.map((ev) => {
+                    const etiqueta = `Evento #${ev.id_evento} - ${ev.tipo || 'Transmisión'}`;
+                    const seleccionado = String(formData.id_evento) === String(ev.id_evento);
+                    return (
+                      <div
+                        key={ev.id_evento}
+                        onMouseDown={() => handleEventoChange(String(ev.id_evento), etiqueta)}
+                        style={{
+                          padding: '0.6rem 0.85rem',
+                          fontSize: '0.86rem',
+                          cursor: 'pointer',
+                          borderBottom: '1px solid #f1f5f9',
+                          backgroundColor: seleccionado ? '#eef2ff' : '#ffffff',
+                          color: '#0f172a',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <span style={{ fontWeight: seleccionado ? '700' : '500' }}>{etiqueta}</span>
+                        {ev.fecha && (
+                          <span style={{ fontSize: '0.75rem', color: '#64748b', marginLeft: '8px', whiteSpace: 'nowrap' }}>
+                            {new Date(ev.fecha).toLocaleDateString('es-CL', { timeZone: 'UTC' })}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             )}
           </div>
         </div>
 
-        {/* Fila 2: Equipo y Responsable */}
+        {/* Fila 2: Equipo y Responsable (100% automático y bloqueado a edición manual) */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
           <div>
             <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
@@ -402,61 +503,26 @@ export default function Incidentes() {
             <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               Trabajador Responsable
             </label>
-            {trabajadores.length > 0 || equipoSeleccionado?.trabajadorResponsable ? (
-              <select
-                value={formData.id_trabajador}
-                onChange={(e) => {
-                  setFormData({ ...formData, id_trabajador: e.target.value });
-                  setResponsableAutoDetectado(false);
-                }}
-                style={{
-                  width: '100%',
-                  padding: '0.6rem 0.85rem',
-                  borderRadius: '8px',
-                  border: '1px solid #e2e8f0',
-                  backgroundColor: '#ffffff',
-                  fontSize: '0.88rem',
-                  color: '#0f172a',
-                  boxSizing: 'border-box',
-                  outline: 'none',
-                  cursor: 'pointer',
-                }}
-              >
-                <option value="">-- Ninguno / Bodega / No identificado --</option>
-                {equipoSeleccionado?.trabajadorResponsable &&
-                  !trabajadores.some(
-                    (t) => String(t.id_trabajador) === String(equipoSeleccionado.trabajadorResponsable.id_trabajador)
-                  ) && (
-                    <option value={equipoSeleccionado.trabajadorResponsable.id_trabajador}>
-                      {equipoSeleccionado.trabajadorResponsable.nombre}
-                    </option>
-                  )}
-                {trabajadores.map((t) => (
-                  <option key={t.id_trabajador} value={t.id_trabajador}>
-                    {t.nombre}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <input
-                type="text"
-                placeholder="ID del trabajador (opcional)..."
-                value={formData.id_trabajador}
-                onChange={(e) => setFormData({ ...formData, id_trabajador: e.target.value })}
-                style={{
-                  width: '100%',
-                  padding: '0.6rem 0.85rem',
-                  borderRadius: '8px',
-                  border: '1px solid #e2e8f0',
-                  backgroundColor: '#f8fafc',
-                  fontSize: '0.88rem',
-                  color: '#0f172a',
-                  boxSizing: 'border-box',
-                  outline: 'none',
-                }}
-              />
-            )}
-            {responsableAutoDetectado && (
+            <input
+              type="text"
+              disabled
+              readOnly
+              value={textoResponsable}
+              style={{
+                width: '100%',
+                padding: '0.6rem 0.85rem',
+                borderRadius: '8px',
+                border: `1px solid ${nombreResponsable ? '#bbf7d0' : '#e2e8f0'}`,
+                backgroundColor: nombreResponsable ? '#f0fdf4' : '#f1f5f9',
+                fontSize: '0.88rem',
+                fontWeight: nombreResponsable ? '600' : '400',
+                color: nombreResponsable ? '#15803d' : '#64748b',
+                cursor: 'not-allowed',
+                boxSizing: 'border-box',
+                outline: 'none',
+              }}
+            />
+            {nombreResponsable && (
               <span style={{ fontSize: '0.78rem', color: '#15803d', marginTop: '4px', display: 'block', fontWeight: '500' }}>
                 ✓ Asignado automáticamente según salida de {equipoSeleccionado?.nombreKit}
               </span>
