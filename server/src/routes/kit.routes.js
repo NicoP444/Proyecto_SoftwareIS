@@ -4,6 +4,7 @@ import { crearKitMiddleware } from '../middlewares/kit.middleware.js';
 
 const router = Router();
 
+router.get('/', kitController.listar);
 router.post('/', crearKitMiddleware, kitController.crear);
 
 export default router;

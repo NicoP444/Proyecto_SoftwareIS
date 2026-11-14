@@ -2,6 +2,15 @@ import { kitService } from '../services/kit.service.js';
 import { manejarError } from '../utils/errores.js';
 
 export const kitController = {
+  async listar(req, res) {
+    try {
+      const kits = await kitService.listar();
+      return res.status(200).json(kits);
+    } catch (error) {
+      return manejarError(res, error);
+    }
+  },
+
   async crear(req, res) {
     try {
       const kit = await kitService.crear(req.body);
