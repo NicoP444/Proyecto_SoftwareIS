@@ -8,6 +8,8 @@ import routes from './routes/index.js'; //gene
 import clienteRoutes from './routes/cliente.routes.js'; //jorge
 import asignacionRoutes from './routes/asignacion.routes.js'; //jorge
 import configuracionRoutes from './routes/configuracion.routes.js'; //jorge
+import viabilidadRoutes from './routes/viabilidad.routes.js'; //jorge
+import pagoClienteRoutes from './routes/pagoCliente.routes.js'; //jorge
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -34,7 +36,8 @@ app.use('/uploads', express.static('uploads')); // Para servir archivos subidos 
 app.use('/api/clientes', clienteRoutes);
 app.use('/api', asignacionRoutes); // personal disponible y asignación de personal a eventos
 app.use('/api/configuracion', configuracionRoutes); // margen de traslado
-
+app.use('/api/viabilidad', viabilidadRoutes); //viabilidad económica
+app.use('/api/pagos-cliente', pagoClienteRoutes); //pagos del cliente
 
 // Comentar, cuando esta en el server....
 //app.get('/', (req, res) => {
