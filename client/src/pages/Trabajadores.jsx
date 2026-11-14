@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, Search, Tags, Users, UserCheck, UserMinus, UserX } from 'lucide-react';
 import Modal from '../components/Modal';
+import HistorialTrabajador from '../components/historialTrabajador';
 import TarjetaTrabajador from '../components/trabajadores/TarjetaTrabajador';
 import FichaTrabajador from '../components/trabajadores/FichaTrabajador';
 import FormularioTrabajador from '../components/trabajadores/FormularioTrabajador';
@@ -186,13 +187,20 @@ export default function Trabajadores() {
       {/* Ventanas */}
       <Modal abierto={Boolean(trabajadorAbierto)} onCerrar={() => setIdAbierto(null)} titulo="Ficha del trabajador" ancho="amplio">
         {trabajadorAbierto && (
-          <FichaTrabajador
-            trabajador={trabajadorAbierto}
-            roles={roles}
-            onCambio={alCambiar}
-            onCrearRol={() => setRolEditando(null)}
-            onEditarRol={setRolEditando}
-          />
+          <>
+            {/* RF-P7-11: historial de eventos, remuneración y pagos (solo lo ven Dueño y Contador) */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+              <HistorialTrabajador trabajador={trabajadorAbierto} />
+            </div>
+
+            <FichaTrabajador
+              trabajador={trabajadorAbierto}
+              roles={roles}
+              onCambio={alCambiar}
+              onCrearRol={() => setRolEditando(null)}
+              onEditarRol={setRolEditando}
+            />
+          </>
         )}
       </Modal>
 
