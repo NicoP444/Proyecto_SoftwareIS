@@ -330,8 +330,6 @@ model Disponibilidad {
   nro_bloque    Int
   fecha_inicio  DateTime @db.Date // fecha de inicio del bloque de disponibilidad 
   fecha_termino DateTime @db.Date // fecha de término del bloque de disponibilidad
-  hora_inicio   DateTime @db.Time(6) 
-  hora_termino  DateTime @db.Time(6)
   id_dueno      Int
 
   trabajador Trabajador @relation(fields: [id_trabajador], references: [id_trabajador], onDelete: Cascade)

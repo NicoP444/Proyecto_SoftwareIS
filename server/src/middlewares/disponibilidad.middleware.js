@@ -3,7 +3,7 @@ import { validarId, validarBody, camposObligatorios, validarDueno } from './vali
 export const crearDisponibilidadMiddleware = [
   validarId,
   validarBody,
-  camposObligatorios('id_dueno', 'fecha_inicio', 'fecha_termino', 'hora_inicio', 'hora_termino'),
+  camposObligatorios('id_dueno', 'fecha_inicio', 'fecha_termino'),
   validarDueno,
 ];
 
@@ -15,6 +15,12 @@ export const listarDisponibilidadMiddleware = [
 export const actualizarDisponibilidadMiddleware = [
   validarId,
   validarBody,
-  camposObligatorios('id_dueno', 'fecha_inicio', 'fecha_termino', 'hora_inicio', 'hora_termino'),
+  camposObligatorios('id_dueno', 'fecha_inicio', 'fecha_termino'),
   validarDueno,
+];
+
+// Agregamos este nuevo bloque
+export const eliminarDisponibilidadMiddleware = [
+  validarId,
+  //validarDueno,
 ];
