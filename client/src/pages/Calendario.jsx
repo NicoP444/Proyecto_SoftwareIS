@@ -29,6 +29,7 @@ import GestionClientes from "../components/calendario/GestionClientes";
 import PanelPersonal from "../components/calendario/PanelPersonal";
 import ConvocatoriaEvento from "../components/calendario/ConvocatoriaEvento";
 import ViabilidadEvento from "../components/calendario/ViabilidadEvento";
+import PagosEvento from "../components/calendario/PagosEvento";
 import ConsultaPersonal from "../components/calendario/ConsultaPersonal";
 import MargenTraslado from "../components/calendario/MargenTraslado";
 import { obtenerUsuario } from "../services/http.js";
@@ -220,6 +221,17 @@ export default function Calendario() {
     // Llevamos el calendario a la nueva fecha del evento
     const [a, m, d] = datos.fecha.split("-").map(Number);
     setFechaBase(new Date(a, m - 1, d));
+  }
+
+  // Después de registrar un pago: recarga el calendario y deja el detalle con el estado nuevo
+  async function refrescarDetalle() {
+    const lista = await listarEventos().catch(() => null);
+    if (lista) {
+      setEventos(lista);
+      setEventoAbierto(
+        lista.find((c) => c.id_evento === eventoAbierto.id_evento) ?? null,
+      );
+    }
   }
 
   async function guardarEvento(datos) {
@@ -632,6 +644,15 @@ export default function Calendario() {
                       <ViabilidadEvento
                         idEvento={e.id_evento}
                         puedeEditar={puedeCrear}
+                      />
+                    </section>
+                  )}
+                  {verFinanzas && (
+                    <section className="cal-bloque">
+                      <PagosEvento
+                        idEvento={e.id_evento}
+                        puedeRegistrar={rol === "CONTADOR"}
+                        onCambio={refrescarDetalle}
                       />
                     </section>
                   )}
