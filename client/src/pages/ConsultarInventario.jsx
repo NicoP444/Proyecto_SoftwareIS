@@ -272,14 +272,13 @@ export default function ConsultarInventario() {
   }, [datos, busqueda, filtroEstado]);
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1.5rem', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+    <div>
       
       {/* Cabecera superior */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+      <div className="encabezado">
         <div>
-          <h1 style={{ fontSize: '1.65rem', fontWeight: '800', color: '#0f172a', margin: '0 0 0.25rem 0' }}>
-            Inventario General
-          </h1>
+          <h1>Inventario General</h1>
+          <p>Disponibilidad de kits, repuestos en bodega y balance de equipos</p>
         </div>
       </div>
 
