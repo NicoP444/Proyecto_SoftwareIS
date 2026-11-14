@@ -30,6 +30,7 @@ import corregirMesCerradoRoutes from './corregirMesCerrado.routes.js';
 import rentabilidadRoutes from './rentabilidad.routes.js'; // nico
 import pagoRemuneracionRoutes from './pagoRemuneracion.routes.js'// nico
 import historialTrabajadorRoutes from './historialTrabajador.routes.js'; // nico
+import kitRoutes from './kit.routes.js';
 const router = Router();
 
 // Aquí le decimos al servidor que use tus rutas
@@ -62,5 +63,6 @@ router.use('/resumen-inventario', resumenInventarioRoutes);
 router.use('/resumen-mensual', resumenMensualRoutes);
 router.use('/cierre-mes', cierreMesRoutes);
 router.use('/corregir-mes', corregirMesCerradoRoutes);
+router.use('/kits', kitRoutes);
 
 export default router;
