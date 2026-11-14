@@ -1,0 +1,16 @@
+import { kitService } from '../services/kit.service.js';
+import { manejarError } from '../utils/errores.js';
+
+export const kitController = {
+  async crear(req, res) {
+    try {
+      const kit = await kitService.crear(req.body);
+      return res.status(201).json({
+        mensaje: 'Kit creado exitosamente',
+        data: kit,
+      });
+    } catch (error) {
+      return manejarError(res, error);
+    }
+  },
+};
