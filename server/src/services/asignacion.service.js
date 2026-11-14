@@ -28,14 +28,10 @@ const normalizar = (texto) =>
 const mismaDireccion = (a, b) => normalizar(a) === normalizar(b);
 
 // ¿Algún bloque de disponibilidad del trabajador cubre toda la franja del evento?
-const cubreFranja = (bloques, fecha, horaIni, horaFin) =>
-  bloques.some(
-    (b) =>
-      aFecha(b.fecha_inicio) <= fecha &&
-      aFecha(b.fecha_termino) >= fecha &&
-      aHora(b.hora_inicio) <= horaIni &&
-      aHora(b.hora_termino) >= horaFin,
-  );
+// ¿Algún bloque de disponibilidad del trabajador cubre la fecha del evento?
+// La disponibilidad se define solo por rango de fechas (fecha_inicio – fecha_termino), sin horas.
+const cubreFecha = (bloques, fecha) =>
+  bloques.some((b) => aFecha(b.fecha_inicio) <= fecha && aFecha(b.fecha_termino) >= fecha);
 
 // Valida fecha y horas que vienen por la URL (RF-P1-03)
 const validarFranja = ({ fecha, hora_inicio, hora_termino }) => {
@@ -84,7 +80,7 @@ export const listarPersonalDisponible = async ({ id_dueno, fecha, hora_inicio, h
       const ocupado = t.asignaciones.some((a) =>
         seTraslapan(hora_inicio, hora_termino, aHora(a.evento.hora_inicio), aHora(a.evento.hora_termino)),
       );
-      return !ocupado && cubreFranja(t.disponibilidades, fecha, hora_inicio, hora_termino);
+      return !ocupado && cubreFecha(t.disponibilidades, fecha);
     })
     .map((t) => ({
       id_trabajador: t.id_trabajador,
@@ -131,7 +127,7 @@ export const listarPersonalConEstado = async ({ id_dueno, fecha, hora_inicio, ho
       if (choque) {
         estado_franja = 'OCUPADO';
         detalle = `En "${choque.evento.tipo}" (${aHora(choque.evento.hora_inicio)}–${aHora(choque.evento.hora_termino)})`;
-      } else if (!cubreFranja(t.disponibilidades, fecha, hora_inicio, hora_termino)) {
+      } else if (!cubreFecha(t.disponibilidades, fecha)) {
         estado_franja = 'SIN_DISPONIBILIDAD';
       } else {
         estado_franja = 'DISPONIBLE';
@@ -226,9 +222,9 @@ export const asignarTrabajador = async (id_evento, { id_trabajador, id_rol, id_d
 
   const advertencias = [];
 
-  // Fuera de su disponibilidad: se permite, pero se avisa
-  if (!cubreFranja(trabajador.disponibilidades, aFecha(evento.fecha), horaIni, horaFin)) {
-    advertencias.push(`${trabajador.nombre} queda fuera de su disponibilidad registrada para ese día y horario`);
+    // Fuera de su disponibilidad (rango de fechas): se permite, pero se avisa
+  if (!cubreFecha(trabajador.disponibilidades, aFecha(evento.fecha))) {
+    advertencias.push(`${trabajador.nombre} queda fuera de su disponibilidad registrada para esa fecha`);
   }
 
   // Margen de traslado (RF-P3-02): otro evento el mismo día en otra dirección, con poco tiempo entre ambos
