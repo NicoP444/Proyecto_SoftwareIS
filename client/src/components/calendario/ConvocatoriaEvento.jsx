@@ -48,10 +48,10 @@ function armarTexto(evento, asignaciones) {
   );
 
   return [
-    `📢 Convocatoria: ${evento.tipo}`,
-    `📅 ${fechaLarga(evento.fecha)}`,
-    `🕐 ${evento.hora_inicio} – ${evento.hora_termino}`,
-    `📍 ${evento.direccion}`,
+    ` Convocatoria: ${evento.tipo}`,
+    ` ${fechaLarga(evento.fecha)}`,
+    ` ${evento.hora_inicio} – ${evento.hora_termino}`,
+    ` ${evento.direccion}`,
     "",
     "Equipo convocado:",
     ...lineasEquipo,
