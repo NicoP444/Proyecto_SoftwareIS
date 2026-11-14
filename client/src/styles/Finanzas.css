@@ -103,8 +103,9 @@
   left: 14px;
   transform: translateY(-50%);
   color: var(--fin-suave);
+  pointer-events: none;
 }
-.fin-busqueda input { padding-left: 40px; }
+.finanzas .fin-busqueda input:not([type='file']) { padding-left: 40px; }
 .fin-filtro { width: 250px; }
 
 /* ---------- Campos de formulario ---------- */
@@ -310,3 +311,13 @@
 .fin-resultado { margin-top: 16px; }
 .fin-linea { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
 .fin-linea-total { margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--fin-borde); font-size: 16px; font-weight: 700; }
+/* ===== Remuneraciones: campo del porcentaje y botón "Sugerido" ===== */
+.fin-pct-campo { display: flex; align-items: center; gap: 8px; }
+.fin-pct-campo input { text-align: right; }
+.fin-pct-campo span { font-weight: 600; color: var(--fin-suave); }
+.finanzas input:disabled { background: #f8fafc; color: var(--fin-suave); }
+.fin-enlace-boton { border: 0; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+
+/* ===== Rentabilidad: sello de ganancia o pérdida ===== */
+.fin-estado-ganancia { color: var(--fin-verde); }
+.fin-estado-perdida { color: var(--fin-rojo); }
