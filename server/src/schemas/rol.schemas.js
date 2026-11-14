@@ -16,7 +16,7 @@ export const ValidarPorcentaje = (porcentaje) => {
 
     const numero = Number(limpio);
     
-    if (numero < 0 || numero > 100) {
+    if (numero < 0 || numero > 30) {
         throw new ValidationError('El porcentaje debe estar entre 0 y 100', 'porcentaje_referencial');
     }
     return Number(numero.toFixed(2));
@@ -43,7 +43,7 @@ export const ValidarNombreRol = (nombre) => {
     return limpio; 
 };
 
-export const VerificarDuplicado = async (nombre) => {
+export const VerificarDuplicado = async (nombre, id_rol = null) => {
     
     if (!nombre || nombre === '') {
         throw new ValidationError('El nombre del rol es obligatorio', 'nombre');
@@ -52,8 +52,12 @@ export const VerificarDuplicado = async (nombre) => {
         throw new ValidationError('El nombre del rol debe ser una cadena de texto', 'nombre');
     }
     
-    const existe = await prisma.rolTrabajo.findUnique({
-        where: { nombre: nombre }
+    // Buscamos si el nombre ya existe excluyendo el id actual si estamos actualizando
+    const existe = await prisma.rolTrabajo.findFirst({
+        where: { 
+            nombre: nombre,
+            ...(id_rol ? { id_rol: { not: Number(id_rol) } } : {})
+        }
     });
 
     if (existe) {
