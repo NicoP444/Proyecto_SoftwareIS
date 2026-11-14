@@ -104,17 +104,22 @@ export default function ConvocatoriaEvento({ evento }) {
 
   return (
     <div>
-      <span className="etiqueta">Convocatoria</span>
+      <span className="etiqueta">Convocatoria para WhatsApp</span>
+      <p className="texto-tenue">
+        Genera un texto con la fecha, la hora, la dirección y el equipo por rol.
+      </p>
 
-      <button
-        type="button"
-        className="boton boton-secundario"
-        onClick={generar}
-        disabled={cargando}
-      >
-        <MessageCircle size={16} />{" "}
-        {cargando ? "Generando..." : "Generar convocatoria"}
-      </button>
+      <div className="convo-acciones">
+        <button
+          type="button"
+          className="boton boton-secundario"
+          onClick={generar}
+          disabled={cargando}
+        >
+          <MessageCircle size={16} />{" "}
+          {cargando ? "Generando..." : "Generar convocatoria"}
+        </button>
+      </div>
 
       {error && <div className="mensaje mensaje-aviso">{error}</div>}
 
@@ -122,25 +127,27 @@ export default function ConvocatoriaEvento({ evento }) {
         <>
           <textarea
             ref={areaRef}
+            className="convo-texto"
             value={texto}
             onChange={(ev) => {
               setTexto(ev.target.value);
               setCopiado(false);
             }}
             rows={9}
-            style={{ width: "100%", marginTop: 8 }}
           />
-          <button
-            type="button"
-            className="boton boton-secundario"
-            onClick={copiar}
-          >
-            <Copy size={16} /> Copiar texto
-          </button>
+          <div className="convo-acciones">
+            <button
+              type="button"
+              className="boton boton-principal"
+              onClick={copiar}
+            >
+              <Copy size={16} /> Copiar texto
+            </button>
+          </div>
           {copiado && (
-            <p className="texto-tenue">
+            <div className="mensaje mensaje-exito">
               Texto copiado. Ya puedes pegarlo en WhatsApp.
-            </p>
+            </div>
           )}
         </>
       )}

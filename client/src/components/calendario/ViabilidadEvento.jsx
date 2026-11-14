@@ -52,52 +52,58 @@ export default function ViabilidadEvento({ idEvento, puedeEditar }) {
 
   const positivo = datos.tipo === "POSITIVO";
   const Icono = positivo ? TrendingUp : TrendingDown;
-  const color = positivo ? "#1a7f37" : "#c0392b";
   const cambioPendiente = String(datos.gastos_estimados) !== String(gastos);
 
   return (
     <div>
       <span className="etiqueta">Viabilidad económica (estimada)</span>
 
-      <p className="texto-pequeno">
-        Precio acordado: {plata(datos.precio_acordado)}
-      </p>
-      <p className="texto-pequeno">
-        + Aportes comprometidos: {plata(datos.aportes_comprometidos)}
-      </p>
-      <p className="texto-pequeno">
-        − Remuneraciones estimadas: {plata(datos.remuneraciones_estimadas)}
-      </p>
+      <dl className="viab-lista">
+        <div className="viab-fila">
+          <dt>Precio acordado</dt>
+          <dd>{plata(datos.precio_acordado)}</dd>
+        </div>
+        <div className="viab-fila">
+          <dt>+ Aportes comprometidos</dt>
+          <dd>{plata(datos.aportes_comprometidos)}</dd>
+        </div>
+        <div className="viab-fila">
+          <dt>− Remuneraciones estimadas</dt>
+          <dd>{plata(datos.remuneraciones_estimadas)}</dd>
+        </div>
+        <div className="viab-fila">
+          <dt>− Gastos estimados</dt>
+          <dd>
+            {puedeEditar ? (
+              <span className="viab-gastos">
+                <input
+                  type="number"
+                  min="0"
+                  value={gastos}
+                  onChange={(ev) => setGastos(ev.target.value)}
+                />
+                <button
+                  type="button"
+                  className="boton boton-secundario"
+                  onClick={guardar}
+                  disabled={guardando || !cambioPendiente}
+                >
+                  {guardando ? "Guardando..." : "Guardar"}
+                </button>
+              </span>
+            ) : (
+              plata(datos.gastos_estimados)
+            )}
+          </dd>
+        </div>
+      </dl>
 
-      <p className="texto-pequeno">
-        − Gastos estimados:{" "}
-        {puedeEditar ? (
-          <>
-            <input
-              type="number"
-              min="0"
-              value={gastos}
-              onChange={(ev) => setGastos(ev.target.value)}
-              style={{ width: 120 }}
-            />{" "}
-            <button
-              type="button"
-              className="boton boton-secundario"
-              onClick={guardar}
-              disabled={guardando || !cambioPendiente}
-            >
-              {guardando ? "Guardando..." : "Guardar"}
-            </button>
-          </>
-        ) : (
-          plata(datos.gastos_estimados)
-        )}
-      </p>
-
-      <p style={{ color, fontWeight: 600 }}>
-        <Icono size={16} /> Resultado estimado: {plata(datos.resultado)} (
-        {positivo ? "positivo" : "negativo"})
-      </p>
+      <div className={`viab-resultado ${positivo ? "positivo" : "negativo"}`}>
+        <span>
+          <Icono size={18} /> Resultado {positivo ? "positivo" : "negativo"}
+        </span>
+        <strong>{plata(datos.resultado)}</strong>
+      </div>
 
       {error && <div className="mensaje mensaje-error">{error}</div>}
     </div>

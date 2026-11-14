@@ -181,3 +181,49 @@ button.cal-mas { flex-shrink: 0; padding: 0; border: 0; background: none; text-a
 
 /* Aviso naranjo: se asignó, pero hay algo que revisar */
 .mensaje-aviso { background: rgba(240, 138, 60, 0.12); color: #b45f12; }
+
+/* ---------- Detalle del evento: ventana más ancha y ordenada ---------- */
+.modal-detalle { max-width: 880px; }
+
+.cal-detalle { gap: 16px; }
+.cal-detalle .cal-tarjeta-cabecera h3 { font-size: 1.15rem; }
+.cal-detalle .chip-cal { padding: 3px 10px; font-size: 0.72rem; }
+
+/* Tarjetitas con los datos principales */
+.cal-datos { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.cal-dato { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--borde); border-radius: 10px; background: var(--fondo); }
+.cal-dato-icono { display: grid; place-items: center; flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; background: var(--primario-suave); color: var(--primario); }
+.cal-dato-icono svg { width: 17px; height: 17px; }
+.cal-dato small { display: block; font-size: 0.65rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--texto-tenue); }
+.cal-dato strong { display: block; font-size: 0.85rem; font-weight: 600; color: var(--texto); word-break: break-word; }
+
+.cal-nota { margin: 0; padding: 10px 12px; border-left: 3px solid var(--borde); border-radius: 4px; background: var(--fondo); font-size: 0.8rem; color: var(--texto-suave); }
+
+/* Dos columnas de bloques (en celular pasan a una) */
+.cal-columnas { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; align-items: start; }
+.cal-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.cal-bloque { display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid var(--borde); border-radius: var(--radio); background: var(--blanco); }
+.cal-bloque > div { display: flex; flex-direction: column; gap: 10px; }
+
+/* Viabilidad económica (RF-P1-06) */
+.viab-lista { display: flex; flex-direction: column; margin: 0; }
+.viab-fila { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px dashed var(--borde); font-size: 0.82rem; }
+.viab-fila dt { color: var(--texto-suave); }
+.viab-fila dd { margin: 0; font-weight: 600; color: var(--texto); }
+.viab-gastos { display: flex; align-items: center; gap: 6px; }
+.viab-gastos input { width: 110px; height: 32px; padding: 0 8px; border: 1px solid var(--borde); border-radius: 8px; text-align: right; }
+.viab-gastos .boton { height: 32px; padding: 0 12px; }
+.viab-resultado { --color: var(--verde); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; padding: 12px 14px; border-radius: 10px; color: var(--color); background: color-mix(in srgb, var(--color) 12%, white); }
+.viab-resultado.negativo { --color: var(--rojo); }
+.viab-resultado span { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 600; }
+.viab-resultado strong { font-size: 1.3rem; }
+
+/* Convocatoria (RF-P3-03) */
+.convo-texto { width: 100%; padding: 10px 12px; border: 1px solid var(--borde); border-radius: 8px; background: var(--fondo); font-size: 0.8rem; line-height: 1.5; resize: vertical; }
+.convo-acciones { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Botones de acción al final del detalle */
+.cal-acciones { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 14px; border-top: 1px solid var(--borde); }
+.cal-acciones .boton { flex: 1; min-width: 160px; }
+.cal-acciones .cal-eliminar { width: 100%; }
+.cal-detalle .boton-peligro { align-self: auto; }
