@@ -25,15 +25,10 @@ const normalizar = (texto) =>
     .trim();
 const mismaDireccion = (a, b) => normalizar(a) === normalizar(b);
 
-// ¿Algún bloque de disponibilidad del trabajador cubre toda la franja del evento?
-const cubreFranja = (bloques, fecha, horaIni, horaFin) =>
-  bloques.some(
-    (b) =>
-      aFecha(b.fecha_inicio) <= fecha &&
-      aFecha(b.fecha_termino) >= fecha &&
-      aHora(b.hora_inicio) <= horaIni &&
-      aHora(b.hora_termino) >= horaFin,
-  );
+// ¿Algún bloque de disponibilidad del trabajador cubre la fecha del evento?
+// La disponibilidad se define solo por rango de fechas, sin horas.
+const cubreFecha = (bloques, fecha) =>
+  bloques.some((b) => aFecha(b.fecha_inicio) <= fecha && aFecha(b.fecha_termino) >= fecha);
 
 // ---------- Agenda: la fecha y las horas deben existir y tener sentido ----------
 export function validarFormatoAgenda({ fecha, hora_inicio, hora_termino }) {
@@ -178,9 +173,9 @@ export async function validarAgendaEvento(evento, nueva, id_dueno) {
       );
     }
 
-    // Fuera de su disponibilidad registrada: se permite, pero se avisa
-    if (!cubreFranja(a.trabajador.disponibilidades, nueva.fecha, nueva.hora_inicio, nueva.hora_termino)) {
-      advertencias.push(`${nombre} queda fuera de su disponibilidad registrada para ese día y horario`);
+        // Fuera de su disponibilidad registrada (rango de fechas): se permite, pero se avisa
+    if (!cubreFecha(a.trabajador.disponibilidades, nueva.fecha)) {
+      advertencias.push(`${nombre} queda fuera de su disponibilidad registrada para esa fecha`);
     }
 
     // Margen de traslado: otro evento ese día en otra dirección con poco tiempo entre ambos
