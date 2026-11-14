@@ -8,7 +8,7 @@ import PanelRemuneraciones from './PanelRemuneraciones';
 import PanelRentabilidad from './PanelRentabilidad';
 import PanelCierre from './PanelCierre';
 import { formatearFecha } from './formato';
-import PanelPagos from './PanelPagos.jsx';
+import PanelPagos from './panelPagos.jsx';
 
 //vista principal de finanzas, con pestañas para cada panel y buscador de evento
 
