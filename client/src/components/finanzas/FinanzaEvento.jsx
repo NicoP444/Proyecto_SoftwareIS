@@ -6,9 +6,9 @@ import PanelGastos from './PanelGastos';
 import PanelRendiciones from './PanelRendiciones';
 import PanelRemuneraciones from './PanelRemuneraciones';
 import PanelRentabilidad from './PanelRentabilidad';
+import PanelPagos from './PanelPagos';
 import PanelCierre from './PanelCierre';
 import { formatearFecha } from './formato';
-import PanelPagos from './panelPagos.jsx';
 
 //vista principal de finanzas, con pestañas para cada panel y buscador de evento
 
@@ -52,20 +52,33 @@ export default function FinanzasEventos() {
   // El evento elegido es el que coincide exactamente con el texto del buscador
   const evento = eventos.find((ev) => etiqueta(ev) === texto);
   const idEvento = evento ? String(evento.id_evento) : '';
-  const puedeContador = esContador && evento?.estado !== 'CERRADO';
+  const cerrado = evento?.estado === 'CERRADO';
+  const puedeContador = esContador && !cerrado;
+
+  // Un solo aviso, siempre arriba: primero lo del cierre de la jornada y, si no, lo del rol
+  const avisoCierre = !cerrado
+    ? ''
+    : vista === 'cierre'
+      ? 'La jornada está cerrada: remuneraciones y rentabilidad quedaron fijas.'
+      : vista === 'remuneraciones'
+        ? 'La jornada está cerrada: los porcentajes ya no pueden cambiarse.'
+        : vista === 'gastos' || vista === 'rendiciones'
+          ? 'Este evento está cerrado: los gastos y las rendiciones son solo de lectura.'
+          : '';
+
+  const avisoRol =
+    (vista === 'gastos' || vista === 'rendiciones' || vista === 'pagos') && !esContador
+      ? 'Inicia sesión como Contador para registrar o modificar.'
+      : (vista === 'remuneraciones' || vista === 'cierre') && !esDueno
+        ? 'Solo el Dueño define los porcentajes y cierra la jornada.'
+        : '';
+
+  const aviso = avisoCierre || avisoRol;
 
   return (
     <>
       {error && <div className="fin-alerta">{error}</div>}
-      {(vista === 'gastos' || vista === 'rendiciones') && !esContador && (
-        <div className="fin-alerta fin-alerta-info">Inicia sesión como Contador para registrar o modificar.</div>
-      )}
-      {(vista === 'remuneraciones' || vista === 'cierre') && !esDueno && (
-        <div className="fin-alerta fin-alerta-info">Solo el Dueño define los porcentajes y cierra la jornada.</div>
-      )}
-      {(vista === 'gastos' || vista === 'rendiciones' || vista === 'pagos') && !esContador && (
-        <div className="fin-alerta fin-alerta-info">Inicia sesión como Contador para registrar o modificar.</div>
-      )}
+      {aviso && <div className="fin-alerta fin-alerta-info">{aviso}</div>}
 
       <section className="fin-filtros fin-filtros-evento">
         <div className="fin-busqueda">

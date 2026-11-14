@@ -38,11 +38,6 @@ export default function PanelCierre({ idEvento, idDueno, puedeEditar, onCerrado 
   return (
     <>
       {error && <div className="fin-alerta">{error}</div>}
-      {cerrado && (
-        <div className="fin-alerta fin-alerta-info">
-          La jornada está cerrada: remuneraciones y rentabilidad quedaron fijas.
-        </div>
-      )}
 
       {datos && (
         <section className="fin-panel">
@@ -89,16 +84,18 @@ export default function PanelCierre({ idEvento, idDueno, puedeEditar, onCerrado 
             );
           })}
 
-          <div className="fin-resultado">
-            <div className="fin-linea"><span>Ingresos (pagos del cliente y aportes)</span><span>{clp(r.ingresos)}</span></div>
-            <div className="fin-linea"><span>Remuneraciones</span><span>− {clp(r.remuneraciones)}</span></div>
-            <div className="fin-linea"><span>Gastos del evento</span><span>− {clp(r.gastos)}</span></div>
-            <div className="fin-linea"><span>Pérdidas de inventario</span><span>− {clp(r.perdidas_inventario)}</span></div>
-            <div className="fin-linea fin-linea-total">
-              <span>Resultado ({r.tipo === 'GANANCIA' ? 'ganancia' : 'pérdida'})</span>
-              <span>{clp(r.resultado)}</span>
+          {r && (
+            <div className="fin-resultado">
+              <div className="fin-linea"><span>Ingresos (pagos del cliente y aportes)</span><span>{clp(r.ingresos)}</span></div>
+              <div className="fin-linea"><span>Remuneraciones</span><span>− {clp(r.remuneraciones)}</span></div>
+              <div className="fin-linea"><span>Gastos del evento</span><span>− {clp(r.gastos)}</span></div>
+              <div className="fin-linea"><span>Pérdidas de inventario</span><span>− {clp(r.perdidas_inventario)}</span></div>
+              <div className="fin-linea fin-linea-total">
+                <span>Resultado ({r.tipo === 'GANANCIA' ? 'ganancia' : 'pérdida'})</span>
+                <span>{clp(r.resultado)}</span>
+              </div>
             </div>
-          </div>
+          )}
         </section>
       )}
 

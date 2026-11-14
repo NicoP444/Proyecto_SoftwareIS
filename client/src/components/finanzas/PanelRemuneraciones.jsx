@@ -1,15 +1,21 @@
 import { useEffect, useState } from 'react';
 import { Check } from 'lucide-react';
-import { clp } from './formato.js';
+import { clp } from './formato';
 import { listarRemuneraciones, definirPorcentaje } from '../../services/remuneracion.service.js';
 
+// Igual que el back: porcentaje × precio, redondeado al peso
+const calcularMonto = (porcentaje, precio) =>
+  Math.floor((Math.round(porcentaje * 100) * precio + 5000) / 10000);
 
-//seccion remuneraciones...
-
+// Texto escrito -> número (acepta coma decimal); null si está vacío o no es un número
+const leer = (texto) => {
+  const t = String(texto).trim().replace(',', '.');
+  return t === '' || Number.isNaN(Number(t)) ? null : Number(t);
+};
 
 export default function PanelRemuneraciones({ idEvento, idDueno, puedeEditar }) {
   const [datos, setDatos] = useState(null);
-  const [escrito, setEscrito] = useState({}); // porcentaje que el Dueño va escribiendo, por asignación
+  const [escrito, setEscrito] = useState({}); // lo que el Dueño cambió, por asignación
   const [error, setError] = useState('');
   const [version, setVersion] = useState(0);
 
@@ -22,12 +28,32 @@ export default function PanelRemuneraciones({ idEvento, idDueno, puedeEditar }) 
       .catch((e) => setError(e.message));
   }, [idEvento, version]);
 
-  async function guardar(a) {
+  const precio = datos?.precio_acordado ?? 0;
+  const editable = puedeEditar && datos?.editable;
+
+  // Lo que se muestra de cada trabajador: lo que escribió, lo ya guardado o, si no hay nada, el porcentaje del rol
+  const filas = (datos?.asignaciones ?? []).map((a) => {
+    const cambiado = escrito[a.id_asignacion] !== undefined;
+    const texto = String(escrito[a.id_asignacion] ?? a.porcentaje ?? a.porcentaje_referencial ?? '');
+    return {
+      ...a,
+      texto,
+      valor: leer(texto),
+      sugerido: !cambiado && a.porcentaje === null && a.porcentaje_referencial !== null, // aún sin guardar
+      pendiente: cambiado || (a.porcentaje === null && a.porcentaje_referencial !== null),
+    };
+  });
+
+  // Resumen con lo que se ve en pantalla
+  const porcentajeRepartido = Math.round(filas.reduce((s, f) => s + (f.valor ?? 0), 0) * 100) / 100;
+  const montoRepartido = filas.reduce((s, f) => s + (f.valor === null ? 0 : calcularMonto(f.valor, precio)), 0);
+
+  async function guardar(f) {
     try {
-      await definirPorcentaje(a.id_asignacion, { id_dueno: idDueno, porcentaje: escrito[a.id_asignacion] });
+      await definirPorcentaje(f.id_asignacion, { id_dueno: idDueno, porcentaje: f.valor });
       setEscrito((e) => {
         const copia = { ...e };
-        delete copia[a.id_asignacion];
+        delete copia[f.id_asignacion];
         return copia;
       });
       setVersion((v) => v + 1);
@@ -36,65 +62,59 @@ export default function PanelRemuneraciones({ idEvento, idDueno, puedeEditar }) 
     }
   }
 
-  const editable = puedeEditar && datos?.editable;
-
   return (
     <>
       {error && <div className="fin-alerta">{error}</div>}
-      {datos && !datos.editable && (
-        <div className="fin-alerta fin-alerta-info">
-          Los porcentajes se definen con el evento Realizado y antes de cerrar la jornada.
-        </div>
-      )}
 
       {datos && (
         <section className="fin-panel">
           <div className="fin-panel-cab">
-            <strong className="fin-panel-titulo">Porcentajes del evento · {clp(datos.precio_acordado)}</strong>
+            <strong className="fin-panel-titulo">Porcentajes del evento · {clp(precio)}</strong>
             <span className="fin-contador">
-              Queda para la empresa: {clp(datos.resumen.queda_empresa_monto)} ({datos.resumen.queda_empresa_porcentaje}%)
+              Queda para la empresa: {clp(precio - montoRepartido)} ({Math.round((100 - porcentajeRepartido) * 100) / 100}%)
             </span>
           </div>
 
-          {datos.asignaciones.length === 0 ? (
+          {filas.length === 0 ? (
             <p className="fin-vacio">Este evento no tiene trabajadores asignados</p>
           ) : (
             <div className="fin-grid">
-              {datos.asignaciones.map((a) => (
-                <article key={a.id_asignacion} className="fin-card">
+              {filas.map((f) => (
+                <article key={f.id_asignacion} className="fin-card">
                   <div className="fin-card-cab">
-                    <span className="fin-avatar">{a.trabajador.charAt(0).toUpperCase()}</span>
+                    <span className="fin-avatar">{f.trabajador.charAt(0).toUpperCase()}</span>
                     <div className="fin-card-titulo">
-                      <strong>{a.trabajador}</strong>
-                      <span className="fin-sub">{a.rol}</span>
+                      <strong>{f.trabajador}</strong>
+                      <span className="fin-sub">{f.rol}</span>
                     </div>
-                    <span className="fin-monto">{a.remuneracion === null ? '—' : clp(a.remuneracion)}</span>
+                    <span className="fin-monto">{f.valor === null ? '—' : clp(calcularMonto(f.valor, precio))}</span>
                   </div>
 
                   <div className="fin-campo">
-                    <label htmlFor={`pct-${a.id_asignacion}`}>Porcentaje del precio</label>
+                    <label htmlFor={`pct-${f.id_asignacion}`}>Porcentaje del precio</label>
                     <div className="fin-pct-campo">
                       <input
-                        id={`pct-${a.id_asignacion}`}
+                        id={`pct-${f.id_asignacion}`}
                         type="text"
                         inputMode="decimal"
                         disabled={!editable}
-                        value={escrito[a.id_asignacion] ?? a.porcentaje ?? ''}
-                        onChange={(e) => setEscrito({ ...escrito, [a.id_asignacion]: e.target.value })}
+                        value={f.texto}
+                        onChange={(e) => setEscrito({ ...escrito, [f.id_asignacion]: e.target.value })}
                       />
-                      
+                      <span>%</span>
                     </div>
+                    {f.sugerido && <span className="fin-pct-ayuda">Sugerido por el rol · aún sin guardar</span>}
                   </div>
 
                   {editable && (
                     <div className="fin-card-pie">
-                      {a.porcentaje_referencial !== null ? (
+                      {f.porcentaje_referencial !== null && f.texto !== String(f.porcentaje_referencial) ? (
                         <button
                           type="button"
                           className="fin-enlace fin-enlace-boton"
-                          onClick={() => setEscrito({ ...escrito, [a.id_asignacion]: String(a.porcentaje_referencial) })}
+                          onClick={() => setEscrito({ ...escrito, [f.id_asignacion]: String(f.porcentaje_referencial) })}
                         >
-                          Sugerido: {a.porcentaje_referencial}%
+                          Sugerido: {f.porcentaje_referencial}%
                         </button>
                       ) : (
                         <span />
@@ -102,8 +122,8 @@ export default function PanelRemuneraciones({ idEvento, idDueno, puedeEditar }) 
                       <button
                         type="button"
                         className="fin-btn fin-btn-primario fin-btn-chico"
-                        disabled={escrito[a.id_asignacion] === undefined}
-                        onClick={() => guardar(a)}
+                        disabled={!f.pendiente || f.valor === null}
+                        onClick={() => guardar(f)}
                       >
                         <Check size={15} /> Guardar
                       </button>

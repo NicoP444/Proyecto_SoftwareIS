@@ -21,6 +21,16 @@ const fechaDate = (valor) => {
   return fecha;
 };
 
+// RF-P7-02: el gasto se registra con la fecha de hoy (hora de Chile)
+const fechaDeHoy = (valor) => {
+  const fecha = fechaDate(valor);
+  const hoy = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Santiago' });
+  if(String(valor) !== hoy){
+    throw new ValidationError('El gasto solo se puede registrar con la fecha de hoy', 'fecha');
+  }
+  return fecha;
+};
+
 const texto = (valor, campo, max) => {
   if(valor === undefined || valor === null) return null;
   const t = String(valor).trim();
@@ -65,7 +75,7 @@ export const validarCrearGasto = (body, file) => {
     id_trabajador: entero(body.id_trabajador, 'id_trabajador'),
     tipo_gasto,
     monto: entero(body.monto, 'monto'),
-    fecha: fechaDate(body.fecha),
+    fecha: fechaDeHoy(body.fecha),
     descripcion,
     ...origenDestino(tipo_gasto, body),
     evidencia: `uploads/evidencias/${file.filename}`,
