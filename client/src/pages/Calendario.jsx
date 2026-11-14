@@ -27,6 +27,7 @@ import {
 import FormularioEvento from "../components/calendario/FormularioEvento";
 import GestionClientes from "../components/calendario/GestionClientes";
 import PanelPersonal from "../components/calendario/PanelPersonal";
+import ConvocatoriaEvento from "../components/calendario/ConvocatoriaEvento";
 import ConsultaPersonal from "../components/calendario/ConsultaPersonal";
 import MargenTraslado from "../components/calendario/MargenTraslado";
 import { obtenerUsuario } from "../services/http.js";
@@ -210,7 +211,9 @@ export default function Calendario() {
     const lista = await listarEventos().catch(() => null);
     if (lista) {
       setEventos(lista);
-      setEventoAbierto(lista.find((c) => c.id_evento === eventoAbierto.id_evento) ?? null);
+      setEventoAbierto(
+        lista.find((c) => c.id_evento === eventoAbierto.id_evento) ?? null,
+      );
     }
     setAvisosEdicion(respuesta.advertencias ?? []);
     // Llevamos el calendario a la nueva fecha del evento
@@ -236,7 +239,10 @@ export default function Calendario() {
   const claves = dias.map(clave);
   // Direcciones ya usadas, para sugerirlas al crear un evento
   const direcciones = useMemo(
-    () => [...new Set(eventos.map((c) => c.direccion).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
+    () =>
+      [...new Set(eventos.map((c) => c.direccion).filter(Boolean))].sort(
+        (a, b) => a.localeCompare(b),
+      ),
     [eventos],
   );
 
@@ -523,6 +529,19 @@ export default function Calendario() {
               puedeEditar={puedeCrear}
               onCambio={cargarDatos}
             />
+            {/* Texto de convocatoria para WhatsApp (RF-P3-03): solo el Dueño */}
+            {puedeCrear && (
+              <ConvocatoriaEvento
+                evento={{
+                  id_evento: e.id_evento,
+                  tipo: e.tipo,
+                  fecha: claveDe(e),
+                  hora_inicio: horaDe(e.hora_inicio),
+                  hora_termino: horaDe(e.hora_termino),
+                  direccion: e.direccion,
+                }}
+              />
+            )}
             {/* Estos bloques aparecen cuando el back los envía (Paso 5) */}
             {e.reservas_kit?.length > 0 && (
               <div>
