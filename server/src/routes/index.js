@@ -22,6 +22,7 @@ import inventarioRoutes from './consultarInventario.routes.js';
 import cierreRoutes from './cierre.routes.js'; // nico
 import rentabilidadRoutes from './rentabilidad.routes.js'; // nico
 import pagoRemuneracionRoutes from './pagoRemuneracion.routes.js'// nico
+import historialTrabajadorRoutes from './historialTrabajador.routes.js'; // nico
 const router = Router();
 
 // Aquí le decimos al servidor que use tus rutas
@@ -39,6 +40,7 @@ router.use('/equipos-historial', historialEquipoRoutes);
 router.use('/alertas', alertaKitsRoutes);
 router.use('/rentabilidad', rentabilidadRoutes);//nico
 router.use('/pagos-remuneracion', pagoRemuneracionRoutes);// nico
+router.use('/historial-trabajador', historialTrabajadorRoutes);//nico
 router.use('/', desempenaRoutes);// nico
 router.use('/eventos', eventoRoutes);
 router.use('/rendiciones', rendicionRoutes);// nico
