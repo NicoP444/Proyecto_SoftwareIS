@@ -8,6 +8,7 @@ import PanelRemuneraciones from './PanelRemuneraciones';
 import PanelRentabilidad from './PanelRentabilidad';
 import PanelCierre from './PanelCierre';
 import { formatearFecha } from './formato';
+import PanelPagos from './PanelPagos.jsx';
 
 //vista principal de finanzas, con pestañas para cada panel y buscador de evento
 
@@ -16,6 +17,7 @@ const VISTAS = [
   { id: 'rendiciones', texto: 'Rendiciones' },
   { id: 'remuneraciones', texto: 'Remuneraciones' },
   { id: 'rentabilidad', texto: 'Rentabilidad' },
+  { id: 'pagos', texto: 'Pagos' },
   { id: 'cierre', texto: 'Cierre' },
 ];
 
@@ -60,6 +62,9 @@ export default function FinanzasEventos() {
       )}
       {(vista === 'remuneraciones' || vista === 'cierre') && !esDueno && (
         <div className="fin-alerta fin-alerta-info">Solo el Dueño define los porcentajes y cierra la jornada.</div>
+      )}
+      {(vista === 'gastos' || vista === 'rendiciones' || vista === 'pagos') && !esContador && (
+        <div className="fin-alerta fin-alerta-info">Inicia sesión como Contador para registrar o modificar.</div>
       )}
 
       <section className="fin-filtros fin-filtros-evento">
@@ -111,6 +116,9 @@ export default function FinanzasEventos() {
       )}
       {idEvento && vista === 'rentabilidad' && (
         <PanelRentabilidad key={idEvento} idEvento={idEvento} />
+      )}
+      {idEvento && vista === 'pagos' && (
+        <PanelPagos key={idEvento} idEvento={idEvento} idContador={usuario.id} puedeEditar={esContador} />
       )}
       {idEvento && vista === 'cierre' && (
         <PanelCierre
