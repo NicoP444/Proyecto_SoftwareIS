@@ -20,6 +20,10 @@ import remuneracionRoutes from './remumeracion.routes.js'; // nico
 import marcarEventoRoutes from './marcarEvento.routes.js';
 import inventarioRoutes from './consultarInventario.routes.js';
 import cierreRoutes from './cierre.routes.js'; // nico
+import gastosFijosRoutes from './gastosFijos.routes.js';
+import perdidasInventarioRoutes from './perdidasInventario.routes.js';
+import resumenInventarioRoutes from './resumenInventario.routes.js';
+
 const router = Router();
 
 // Aquí le decimos al servidor que use tus rutas
@@ -44,5 +48,8 @@ router.use('/equipos', equipoRoutes);
 router.use('/eventos-realizados', marcarEventoRoutes);
 router.use('/inventario', inventarioRoutes);
 router.use('/cierre-jornada', cierreRoutes);//nico
+router.use('/gastos-fijos', gastosFijosRoutes);
+router.use('/perdidas-inventario', perdidasInventarioRoutes);
+router.use('/resumen-inventario', resumenInventarioRoutes);
 
 export default router;
