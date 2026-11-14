@@ -173,7 +173,7 @@ export async function validarAgendaEvento(evento, nueva, id_dueno) {
       );
     }
 
-        // Fuera de su disponibilidad registrada (rango de fechas): se permite, pero se avisa
+    // Fuera de su disponibilidad registrada (rango de fechas): se permite, pero se avisa
     if (!cubreFecha(a.trabajador.disponibilidades, nueva.fecha)) {
       advertencias.push(`${nombre} queda fuera de su disponibilidad registrada para esa fecha`);
     }

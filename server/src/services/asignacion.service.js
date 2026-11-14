@@ -27,7 +27,6 @@ const normalizar = (texto) =>
 // Dos eventos están en el mismo lugar si la dirección normalizada es igual
 const mismaDireccion = (a, b) => normalizar(a) === normalizar(b);
 
-// ¿Algún bloque de disponibilidad del trabajador cubre toda la franja del evento?
 // ¿Algún bloque de disponibilidad del trabajador cubre la fecha del evento?
 // La disponibilidad se define solo por rango de fechas (fecha_inicio – fecha_termino), sin horas.
 const cubreFecha = (bloques, fecha) =>
@@ -222,7 +221,7 @@ export const asignarTrabajador = async (id_evento, { id_trabajador, id_rol, id_d
 
   const advertencias = [];
 
-    // Fuera de su disponibilidad (rango de fechas): se permite, pero se avisa
+  // Fuera de su disponibilidad (rango de fechas): se permite, pero se avisa
   if (!cubreFecha(trabajador.disponibilidades, aFecha(evento.fecha))) {
     advertencias.push(`${trabajador.nombre} queda fuera de su disponibilidad registrada para esa fecha`);
   }
