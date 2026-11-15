@@ -55,7 +55,6 @@
 .cal-evento small { display: block; overflow: hidden; text-overflow: ellipsis; color: var(--texto-suave); }
 
 /* En la vista mes el chip es de una sola línea (el cliente se ve en Semana y en el detalle) */
-.cal-grilla.mes .cal-evento small { display: none; }
 
 button.cal-mas { flex-shrink: 0; padding: 0; border: 0; background: none; text-align: left; font-size: 0.65rem; color: var(--primario); cursor: pointer; }
 

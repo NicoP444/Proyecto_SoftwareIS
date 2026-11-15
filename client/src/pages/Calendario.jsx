@@ -449,14 +449,17 @@ export default function Calendario() {
                   <span className="cal-numero">{fecha.getDate()}</span>
                   {!fuera &&
                     lista.slice(0, limite).map((c) => (
-                      <button
+                                            <button
                         key={c.id_evento}
                         type="button"
                         className={`cal-evento ${ESTADOS[c.estado]?.clase ?? "cerrado"}`}
+                        title={`${c.tipo} · ${c.cliente?.nombre ?? ""} · ${c.direccion} · ${ESTADOS[c.estado]?.texto ?? c.estado}`}
                         onClick={() => setEventoAbierto(c)}
                       >
                         <b>{horaDe(c.hora_inicio)}</b> {c.tipo}
-                        <small>{c.cliente?.nombre}</small>
+                        <small>
+                          {c.cliente?.nombre} · {c.direccion}
+                        </small>
                       </button>
                     ))}
                   {!fuera && lista.length > limite && (
