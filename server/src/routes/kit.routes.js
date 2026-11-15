@@ -7,5 +7,6 @@ const router = Router();
 router.get('/', kitController.listar);
 router.post('/', crearKitMiddleware, kitController.crear);
 router.put('/:id', actualizarKitMiddleware, kitController.actualizar);
+router.delete('/:id', kitController.eliminar);
 
 export default router;

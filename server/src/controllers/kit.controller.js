@@ -34,4 +34,13 @@ export const kitController = {
       return manejarError(res, error);
     }
   },
+
+  async eliminar(req, res) {
+    try {
+      const resultado = await kitService.eliminar(req.params.id);
+      return res.status(200).json(resultado);
+    } catch (error) {
+      return manejarError(res, error);
+    }
+  },
 };
