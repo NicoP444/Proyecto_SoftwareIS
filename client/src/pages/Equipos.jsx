@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
   FaPlus, FaVideo, FaSlidersH, FaMicrophone, FaDesktop, 
-  FaExclamationTriangle, FaBoxOpen, FaCheckCircle 
+  FaExclamationTriangle, FaBoxOpen, FaCheckCircle, FaTrash 
 } from 'react-icons/fa';
 import {
   obtenerEquipos,
@@ -44,12 +44,12 @@ export default function Equipos() {
   const [nivelKit, setNivelKit] = useState('BASICO');
   const [recargoPct, setRecargoPct] = useState(0);
 
-  // Selección independiente por categoría para CREAR (incluyendo OTRO)
+  // Selección por categoría para CREAR (con soporte para adicionales)
   const [camaraSeleccionada, setCamaraSeleccionada] = useState('');
   const [tripodeSeleccionado, setTripodeSeleccionado] = useState('');
   const [microfonoSeleccionado, setMicrofonoSeleccionado] = useState('');
   const [switchSeleccionado, setSwitchSeleccionado] = useState('');
-  const [otroSeleccionado, setOtroSeleccionado] = useState('');
+  const [equiposAdicionalesCrear, setEquiposAdicionalesCrear] = useState([]);
 
   const [errorKit, setErrorKit] = useState('');
   const [loadingKit, setLoadingKit] = useState(false);
@@ -63,7 +63,7 @@ export default function Equipos() {
   const [tripodeEdit, setTripodeEdit] = useState('');
   const [microfonoEdit, setMicrofonoEdit] = useState('');
   const [switchEdit, setSwitchEdit] = useState('');
-  const [otroEdit, setOtroEdit] = useState('');
+  const [equiposAdicionalesEditar, setEquiposAdicionalesEditar] = useState([]);
   const [errorEditKit, setErrorEditKit] = useState('');
   const [loadingEditKit, setLoadingEditKit] = useState(false);
 
@@ -178,7 +178,7 @@ export default function Equipos() {
         tripodeSeleccionado,
         microfonoSeleccionado,
         switchSeleccionado,
-        otroSeleccionado
+        ...equiposAdicionalesCrear
       ].filter(Boolean);
 
       const payload = {
@@ -199,7 +199,7 @@ export default function Equipos() {
       setTripodeSeleccionado('');
       setMicrofonoSeleccionado('');
       setSwitchSeleccionado('');
-      setOtroSeleccionado('');
+      setEquiposAdicionalesCrear([]);
       
       await cargarDatos();
     } catch (err) {
@@ -217,17 +217,23 @@ export default function Equipos() {
     setRecargoEditPct(kit.recargo_pct);
     setErrorEditKit('');
 
-    const camara = kit.equipos?.find(e => e.categoria === 'CAMARA')?.codigo || '';
-    const tripode = kit.equipos?.find(e => e.categoria === 'TRIPODE')?.codigo || '';
-    const microfono = kit.equipos?.find(e => e.categoria === 'MICROFONO')?.codigo || '';
-    const sw = kit.equipos?.find(e => e.categoria === 'SWITCH_VIDEO')?.codigo || '';
-    const otro = kit.equipos?.find(e => e.categoria === 'OTRO')?.codigo || '';
+    const equiposKit = kit.equipos || [];
+    const camara = equiposKit.find(e => e.categoria === 'CAMARA')?.codigo || '';
+    const tripode = equiposKit.find(e => e.categoria === 'TRIPODE')?.codigo || '';
+    const microfono = equiposKit.find(e => e.categoria === 'MICROFONO')?.codigo || '';
+    const sw = equiposKit.find(e => e.categoria === 'SWITCH_VIDEO')?.codigo || '';
+
+    // Los demás equipos que sobren se van a adicionales
+    const principales = [camara, tripode, microfono, sw].filter(Boolean);
+    const adicionales = equiposKit
+      .map(e => e.codigo)
+      .filter(codigo => !principales.includes(codigo));
 
     setCamaraEdit(camara);
     setTripodeEdit(tripode);
     setMicrofonoEdit(microfono);
     setSwitchEdit(sw);
-    setOtroEdit(otro);
+    setEquiposAdicionalesEditar(adicionales);
   };
 
   const handleSubmitModificarKit = async (e) => {
@@ -236,7 +242,13 @@ export default function Equipos() {
     setLoadingEditKit(true);
 
     try {
-      const equiposArray = [camaraEdit, tripodeEdit, microfonoEdit, switchEdit, otroEdit].filter(Boolean);
+      const equiposArray = [
+        camaraEdit, 
+        tripodeEdit, 
+        microfonoEdit, 
+        switchEdit, 
+        ...equiposAdicionalesEditar
+      ].filter(Boolean);
 
       const payload = {
         nombre: nombreEditKit,
@@ -279,16 +291,14 @@ export default function Equipos() {
   const tripodesDisponibles = equiposDisponiblesParaKit.filter(eq => eq.categoria?.toUpperCase() === 'TRIPODE');
   const microfonosDisponibles = equiposDisponiblesParaKit.filter(eq => eq.categoria?.toUpperCase() === 'MICROFONO');
   const switchesDisponibles = equiposDisponiblesParaKit.filter(eq => eq.categoria?.toUpperCase() === 'SWITCH_VIDEO');
-  const otrosDisponibles = equiposDisponiblesParaKit.filter(eq => eq.categoria?.toUpperCase() === 'OTRO');
 
   // Helper para MODIFICAR kit (permite equipos libres o los que ya pertenecen a este kit)
-  const obtenerEquiposParaEdicion = (categoria) => {
+  const obtenerEquiposParaEdicion = () => {
     return listaEquipos.filter(eq => {
-      const esCategoria = eq.categoria?.toUpperCase() === categoria;
       const esOperativo = eq.estado?.toUpperCase() === 'OPERATIVO';
       const estaLibre = !eq.id_kit && !eq.kit;
       const perteneceAEsteKit = kitEditando?.equipos?.some(e => e.codigo === eq.codigo);
-      return esCategoria && esOperativo && (estaLibre || perteneceAEsteKit);
+      return esOperativo && (estaLibre || perteneceAEsteKit);
     });
   };
 
@@ -749,7 +759,7 @@ export default function Equipos() {
           <div style={{ backgroundColor: '#ffffff', borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '640px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
             <h2 style={{ marginTop: 0, marginBottom: '6px', fontSize: '18px', color: '#1e293b' }}>Crear Nuevo Kit</h2>
             <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748b' }}>
-              Selecciona obligatoriamente 1 equipo operativo de cada categoría requerida.
+              Selecciona los equipos base obligatorios y añade más equipos adicionales si lo necesitas.
             </p>
 
             {errorKit && (
@@ -801,10 +811,9 @@ export default function Equipos() {
                 </div>
               </div>
 
-              {/* APARTADOS POR CATEGORÍA (INCLUYENDO OTRO) */}
+              {/* 4 SELECTORES PRINCIPALES OBLIGATORIOS */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 
-                {/* 1. CÁMARA */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Cámara (Obligatorio):</label>
                   <select
@@ -815,14 +824,11 @@ export default function Equipos() {
                   >
                     <option value="">-- Seleccione Cámara --</option>
                     {camerasDisponibles.map(eq => (
-                      <option key={eq.codigo} value={eq.codigo}>
-                        {eq.codigo} - {eq.nombre}
-                      </option>
+                      <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
                     ))}
                   </select>
                 </div>
 
-                {/* 2. TRÍPODE */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Trípode (Obligatorio):</label>
                   <select
@@ -833,14 +839,11 @@ export default function Equipos() {
                   >
                     <option value="">-- Seleccione Trípode --</option>
                     {tripodesDisponibles.map(eq => (
-                      <option key={eq.codigo} value={eq.codigo}>
-                        {eq.codigo} - {eq.nombre}
-                      </option>
+                      <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
                     ))}
                   </select>
                 </div>
 
-                {/* 3. MICRÓFONO */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Micrófono (Obligatorio):</label>
                   <select
@@ -851,14 +854,11 @@ export default function Equipos() {
                   >
                     <option value="">-- Seleccione Micrófono --</option>
                     {microfonosDisponibles.map(eq => (
-                      <option key={eq.codigo} value={eq.codigo}>
-                        {eq.codigo} - {eq.nombre}
-                      </option>
+                      <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
                     ))}
                   </select>
                 </div>
 
-                {/* 4. SWITCH DE VIDEO */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Switch de video (Obligatorio):</label>
                   <select
@@ -869,30 +869,69 @@ export default function Equipos() {
                   >
                     <option value="">-- Seleccione Switch --</option>
                     {switchesDisponibles.map(eq => (
-                      <option key={eq.codigo} value={eq.codigo}>
-                        {eq.codigo} - {eq.nombre}
-                      </option>
+                      <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
                     ))}
                   </select>
                 </div>
 
-                {/* 5. OTRO (Opcional) */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', gridColumn: '1 / -1' }}>
-                  <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Otro equipo (Opcional):</label>
-                  <select
-                    value={otroSeleccionado}
-                    onChange={(e) => setOtroSeleccionado(e.target.value)}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
+              </div>
+
+              {/* EQUIPOS ADICIONALES (PARA AGREGAR MÁS DE CUALQUIER COSA) */}
+              <div style={{ marginTop: '6px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>Equipos Adicionales (Opcional - Más cámaras, luces, etc.):</label>
+                  <button
+                    type="button"
+                    onClick={() => setEquiposAdicionalesCrear([...equiposAdicionalesCrear, ''])}
+                    style={{ padding: '4px 10px', backgroundColor: '#e0f2fe', color: '#0369a1', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}
                   >
-                    <option value="">-- Seleccione Otro (Opcional) --</option>
-                    {otrosDisponibles.map(eq => (
-                      <option key={eq.codigo} value={eq.codigo}>
-                        {eq.codigo} - {eq.nombre}
-                      </option>
-                    ))}
-                  </select>
+                    + Añadir equipo
+                  </button>
                 </div>
 
+                {equiposAdicionalesCrear.map((codigoAdicional, index) => {
+                  // Filtrar los ya seleccionados para no repetirlos
+                  const codigosYaUsados = [
+                    camaraSeleccionada, 
+                    tripodeSeleccionado, 
+                    microfonoSeleccionado, 
+                    switchSeleccionado, 
+                    ...equiposAdicionalesCrear
+                  ];
+                  const disponiblesExtra = equiposDisponiblesParaKit.filter(
+                    eq => !codigosYaUsados.includes(eq.codigo) || eq.codigo === codigoAdicional
+                  );
+
+                  return (
+                    <div key={index} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
+                      <select
+                        value={codigoAdicional}
+                        onChange={(e) => {
+                          const nuevos = [...equiposAdicionalesCrear];
+                          nuevos[index] = e.target.value;
+                          setEquiposAdicionalesCrear(nuevos);
+                        }}
+                        required
+                        style={{ flex: 1, padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: '#ffffff' }}
+                      >
+                        <option value="">-- Seleccionar equipo adicional --</option>
+                        {disponiblesExtra.map(eq => (
+                          <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre} ({eq.categoria})</option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nuevos = equiposAdicionalesCrear.filter((_, i) => i !== index);
+                          setEquiposAdicionalesCrear(nuevos);
+                        }}
+                        style={{ padding: '8px 10px', backgroundColor: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
+                      >
+                        <FaTrash />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid #f1f5f9', paddingTop: '14px' }}>
@@ -919,7 +958,7 @@ export default function Equipos() {
       {/* ================= MODAL MODIFICAR KIT (RF-P5-05) ================= */}
       {kitEditando && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
-          <div style={{ backgroundColor: '#ffffff', borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '640px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
+          <div style={{ backgroundColor: '#ffffff', borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '700px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
             <h2 style={{ marginTop: 0, marginBottom: '6px', fontSize: '18px', color: '#1e293b' }}>Modificar Kit: {kitEditando.nombre}</h2>
             <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748b' }}>
               Actualiza la información o los equipos del kit.
@@ -990,7 +1029,7 @@ export default function Equipos() {
                     style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: kitEditando.estado === 'EN_TERRENO' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
                   >
                     <option value="">-- Seleccione Cámara --</option>
-                    {obtenerEquiposParaEdicion('CAMARA').map(eq => (
+                    {obtenerEquiposParaEdicion().filter(eq => eq.categoria === 'CAMARA' || eq.codigo === camaraEdit).map(eq => (
                       <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
                     ))}
                   </select>
@@ -1006,7 +1045,7 @@ export default function Equipos() {
                     style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: kitEditando.estado === 'EN_TERRENO' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
                   >
                     <option value="">-- Seleccione Trípode --</option>
-                    {obtenerEquiposParaEdicion('TRIPODE').map(eq => (
+                    {obtenerEquiposParaEdicion().filter(eq => eq.categoria === 'TRIPODE' || eq.codigo === tripodeEdit).map(eq => (
                       <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
                     ))}
                   </select>
@@ -1022,7 +1061,7 @@ export default function Equipos() {
                     style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: kitEditando.estado === 'EN_TERRENO' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
                   >
                     <option value="">-- Seleccione Micrófono --</option>
-                    {obtenerEquiposParaEdicion('MICROFONO').map(eq => (
+                    {obtenerEquiposParaEdicion().filter(eq => eq.categoria === 'MICROFONO' || eq.codigo === microfonoEdit).map(eq => (
                       <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
                     ))}
                   </select>
@@ -1038,26 +1077,67 @@ export default function Equipos() {
                     style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: kitEditando.estado === 'EN_TERRENO' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
                   >
                     <option value="">-- Seleccione Switch --</option>
-                    {obtenerEquiposParaEdicion('SWITCH_VIDEO').map(eq => (
+                    {obtenerEquiposParaEdicion().filter(eq => eq.categoria === 'SWITCH_VIDEO' || eq.codigo === switchEdit).map(eq => (
                       <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
                     ))}
                   </select>
+                </div>
+              </div>
+
+              {/* ADICIONALES EN EDICIÓN */}
+              <div style={{ marginTop: '6px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>Equipos Adicionales:</label>
+                  {kitEditando.estado !== 'EN_TERRENO' && (
+                    <button
+                      type="button"
+                      onClick={() => setEquiposAdicionalesEditar([...equiposAdicionalesEditar, ''])}
+                      style={{ padding: '4px 10px', backgroundColor: '#e0f2fe', color: '#0369a1', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}
+                    >
+                      + Añadir equipo
+                    </button>
+                  )}
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', gridColumn: '1 / -1' }}>
-                  <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Otro equipo (Opcional):</label>
-                  <select
-                    value={otroEdit}
-                    onChange={(e) => setOtroEdit(e.target.value)}
-                    disabled={kitEditando.estado === 'EN_TERRENO'}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: kitEditando.estado === 'EN_TERRENO' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
-                  >
-                    <option value="">-- Seleccione Otro (Opcional) --</option>
-                    {obtenerEquiposParaEdicion('OTRO').map(eq => (
-                      <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
-                    ))}
-                  </select>
-                </div>
+                {equiposAdicionalesEditar.map((codigoAdicional, index) => {
+                  const codigosUsados = [camaraEdit, tripodeEdit, microfonoEdit, switchEdit, ...equiposAdicionalesEditar];
+                  const disponiblesExtra = obtenerEquiposParaEdicion().filter(
+                    eq => !codigosUsados.includes(eq.codigo) || eq.codigo === codigoAdicional
+                  );
+
+                  return (
+                    <div key={index} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
+                      <select
+                        value={codigoAdicional}
+                        disabled={kitEditando.estado === 'EN_TERRENO'}
+                        onChange={(e) => {
+                          const nuevos = [...equiposAdicionalesEditar];
+                          nuevos[index] = e.target.value;
+                          setEquiposAdicionalesEditar(nuevos);
+                        }}
+                        required
+                        style={{ flex: 1, padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: '#ffffff' }}
+                      >
+                        <option value="">-- Seleccionar equipo adicional --</option>
+                        {disponiblesExtra.map(eq => (
+                          <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre} ({eq.categoria})</option>
+                        ))}
+                      </select>
+                      {kitEditando.estado !== 'EN_TERRENO' && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const nuevos = equiposAdicionalesEditar.filter((_, i) => i !== index);
+                            setEquiposAdicionalesEditar(nuevos);
+                          }}
+                          style={{ padding: '8px 10px', backgroundColor: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
+                        >
+                          <FaTrash />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid #f1f5f9', paddingTop: '14px' }}>
@@ -1070,8 +1150,8 @@ export default function Equipos() {
                 </button>
                 <button
                   type="submit"
-                  disabled={loadingEditKit}
-                  style={{ padding: '8px 20px', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
+                  disabled={loadingEditKit || kitEditando.estado === 'EN_TERRENO'}
+                  style={{ padding: '8px 20px', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: kitEditando.estado === 'EN_TERRENO' ? 'not-allowed' : 'pointer', fontSize: '14px' }}
                 >
                   {loadingEditKit ? 'Guardando...' : 'Guardar Cambios'}
                 </button>
