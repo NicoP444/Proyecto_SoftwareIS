@@ -31,7 +31,7 @@ export default function Equipos() {
   const [guardandoEquipo, setGuardandoEquipo] = useState(false);
   const [errorEquipo, setErrorEquipo] = useState('');
   const [exitoEquipo, setExitoEquipo] = useState('');
-  const [exitoEditarEquipo, setExitoEditarEquipo] = useState('');
+  const [exitoBaja, setExitoBaja] = useState('');
   const [exitoKit, setExitoKit] = useState('');
   const [exitoCrearKit, setExitoCrearKit] = useState('');
   const [exitoModificarKit, setExitoModificarKit] = useState('');
@@ -150,7 +150,6 @@ export default function Equipos() {
 
   const guardarEdicion = async (e) => {
     e.preventDefault();
-    setExitoEditarEquipo('');
     try {
       await actualizarEquipo(equipoEditando.codigo, {
         nombre: equipoEditando.nombre,
@@ -160,12 +159,8 @@ export default function Equipos() {
         fecha_compra: equipoEditando.fecha_compra,
         valor_compra: Number(equipoEditando.valor_compra)
       });
-      setExitoEditarEquipo('Equipo modificado correctamente en el inventario');
+      setEquipoEditando(null);
       await cargarDatos();
-      setTimeout(() => {
-        setEquipoEditando(null);
-        setExitoEditarEquipo('');
-      }, 1200);
     } catch (error) {
       alert(error.message || 'Error al actualizar el equipo.');
     }
@@ -179,12 +174,18 @@ export default function Equipos() {
     }
     try {
       const resp = await darDeBajaEquipo(equipoBaja.codigo, motivoBaja);
+      let mensajeExito = 'Equipo dado de baja correctamente';
       if (resp?.sinHistorial && window.confirm('Deseas eliminarlo definitivamente?')) {
         await eliminarEquipo(equipoBaja.codigo);
+        mensajeExito = 'Equipo eliminado definitivamente del inventario';
       }
       setEquipoBaja(null);
       setMotivoBaja('');
+      setExitoBaja(mensajeExito);
       await cargarDatos();
+      setTimeout(() => {
+        setExitoBaja('');
+      }, 1500);
     } catch (error) {
       alert(error.message || 'Error al procesar la baja.');
     }
@@ -539,7 +540,7 @@ export default function Equipos() {
                   boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
                 }}
               >
-                <option value="TODOS">🔍 Todas las categorías</option>
+                <option value="TODOS">Todas las categorías</option>
                 <option value="CAMARA">Cámara</option>
                 <option value="TRIPODE">Trípode</option>
                 <option value="MICROFONO">Micrófono</option>
@@ -875,17 +876,38 @@ export default function Equipos() {
         </div>
       )}
 
+      {/* ================= MODAL DAR DE BAJA / ELIMINAR EQUIPO ================= */}
       {equipoBaja && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-          <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '24px', width: '90%', maxWidth: '460px' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
+          <div style={{ backgroundColor: '#ffffff', borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '460px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', boxSizing: 'border-box' }}>
             <h2 style={{ marginTop: 0, marginBottom: '6px', fontSize: '18px', color: '#991b1b' }}>Dar de baja: {equipoBaja.codigo}</h2>
             <form onSubmit={confirmarBaja} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <textarea rows="3" value={motivoBaja} onChange={(e) => setMotivoBaja(e.target.value)} placeholder="Motivo de la baja..." required style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+              <textarea 
+                rows="3" 
+                value={motivoBaja} 
+                onChange={(e) => setMotivoBaja(e.target.value)} 
+                placeholder="Motivo de la baja..." 
+                required 
+                style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }} 
+              />
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                <button type="button" onClick={() => setEquipoBaja(null)} style={{ padding: '8px 16px', backgroundColor: '#e2e8f0', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Cancelar</button>
-                <button type="submit" style={{ padding: '8px 18px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Confirmar Baja</button>
+                <button type="button" onClick={() => setEquipoBaja(null)} style={{ padding: '8px 16px', backgroundColor: '#e2e8f0', color: '#334155', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>Cancelar</button>
+                <button type="submit" style={{ padding: '8px 18px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>Confirmar Baja</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL ÉXITO BAJA / ELIMINAR EQUIPO ================= */}
+      {exitoBaja && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
+          <div style={{ backgroundColor: '#ffffff', borderRadius: '20px', padding: '32px', width: '100%', maxWidth: '480px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', textAlign: 'center', boxSizing: 'border-box' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+              <FaCheckCircle style={{ fontSize: '56px', color: '#166534' }} />
+              <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>¡Operación Exitosa!</h2>
+              <p style={{ margin: 0, fontSize: '15px', color: '#166534', fontWeight: '600' }}>{exitoBaja}</p>
+            </div>
           </div>
         </div>
       )}
