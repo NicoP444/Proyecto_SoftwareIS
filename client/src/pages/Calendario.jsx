@@ -146,6 +146,7 @@ export default function Calendario() {
   const [editando, setEditando] = useState(false); // ventana "Modificar evento" (RF-P1-07)
   const [avisosEdicion, setAvisosEdicion] = useState([]); // avisos que devuelve el back al modificar
   const [versionFin, setVersionFin] = useState(0); // sube para que el detalle financiero se vuelva a pedir
+    const [diaAbierto, setDiaAbierto] = useState(null); // día ("2026-11-05") cuya lista completa se muestra
 
   // RF-P1-12 y RF-P1-13: el Jefe técnico no ve datos financieros
   const rol = obtenerUsuario()?.rol;
@@ -457,19 +458,15 @@ export default function Calendario() {
                         onClick={() => setEventoAbierto(c)}
                       >
                         <b>{horaDe(c.hora_inicio)}</b> {c.tipo}
-                        <small>
-                          {c.cliente?.nombre} · {c.direccion}
-                        </small>
+                        <small>{c.cliente?.nombre}</small>
+                        <small>{c.direccion}</small>
                       </button>
                     ))}
-                  {!fuera && lista.length > limite && (
+                    {!fuera && lista.length > limite && (
                     <button
                       type="button"
                       className="cal-mas"
-                      onClick={() => {
-                        setVista("semana");
-                        setFechaBase(fecha);
-                      }}
+                      onClick={() => setDiaAbierto(k)}
                     >
                       +{lista.length - limite} más
                     </button>
@@ -808,6 +805,49 @@ export default function Calendario() {
         titulo="Margen de traslado"
       >
         <MargenTraslado />
+      </Modal>
+            {/* Todos los eventos de un día (cuando no caben en la celda del mes) */}
+      <Modal
+        abierto={Boolean(diaAbierto)}
+        onCerrar={() => setDiaAbierto(null)}
+        titulo={`Eventos del ${diaAbierto ? diaAbierto.split("-").reverse().join("/") : ""}`}
+      >
+        <div className="cal-dia-lista">
+          {(porDia[diaAbierto] ?? []).map((c) => (
+            <button
+              key={c.id_evento}
+              type="button"
+              className={`cal-evento ${ESTADOS[c.estado]?.clase ?? "cerrado"}`}
+              onClick={() => {
+                setDiaAbierto(null);
+                setEventoAbierto(c);
+              }}
+            >
+              <b>
+                {horaDe(c.hora_inicio)} – {horaDe(c.hora_termino)}
+              </b>{" "}
+              {c.tipo}
+              <small>{c.cliente?.nombre}</small>
+              <small>{c.direccion}</small>
+              <small>{ESTADOS[c.estado]?.texto ?? c.estado}</small>
+            </button>
+          ))}
+        </div>
+        {puedeCrear && (
+          <div className="cal-acciones">
+            <button
+              type="button"
+              className="boton boton-secundario"
+              onClick={() => {
+                const dia = diaAbierto;
+                setDiaAbierto(null);
+                abrirCrear(dia);
+              }}
+            >
+              <Plus size={16} /> Agendar otro evento este día
+            </button>
+          </div>
+        )}
       </Modal>
     </div>
   );

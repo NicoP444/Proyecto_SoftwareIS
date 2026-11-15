@@ -53,6 +53,9 @@
 .cal-evento { --color: var(--primario); flex-shrink: 0; width: 100%; padding: 2px 6px; overflow: hidden; text-align: left; text-overflow: ellipsis; white-space: nowrap; font-size: 0.68rem; color: var(--texto); background: color-mix(in srgb, var(--color) 12%, white); border: 0; border-left: 3px solid var(--color); border-radius: 4px; cursor: pointer; }
 .cal-evento:hover { background: color-mix(in srgb, var(--color) 22%, white); }
 .cal-evento small { display: block; overflow: hidden; text-overflow: ellipsis; color: var(--texto-suave); }
+/* En la semana las celdas son altas: el texto baja de línea y se ve completo */
+.cal-grilla.semana .cal-evento,
+.cal-grilla.semana .cal-evento small { white-space: normal; overflow-wrap: anywhere; }
 
 /* En la vista mes el chip es de una sola línea (el cliente se ve en Semana y en el detalle) */
 
@@ -235,3 +238,9 @@ button.cal-mas { flex-shrink: 0; padding: 0; border: 0; background: none; text-a
 .pagos-lista li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border: 1px solid var(--borde); border-radius: 8px; background: var(--fondo); font-size: 0.8rem; }
 .pagos-lista small { display: block; font-size: 0.7rem; color: var(--texto-tenue); }
 .pagos-form { display: flex; flex-direction: column; gap: 10px; padding-top: 10px; border-top: 1px dashed var(--borde); }
+
+/* Lista de todos los eventos de un día */
+.cal-dia-lista { display: flex; flex-direction: column; gap: 8px; max-height: 60vh; overflow-y: auto; }
+.cal-dia-lista .cal-evento,
+.cal-dia-lista .cal-evento small { white-space: normal; overflow-wrap: anywhere; }
+.cal-dia-lista .cal-evento { padding: 8px 10px; font-size: 0.8rem; }
