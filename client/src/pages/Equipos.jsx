@@ -102,7 +102,8 @@ export default function Equipos() {
     setMensaje('Registrando equipo...');
     try {
       await registrarEquipo({ ...formData, valor_compra: Number(formData.valor_compra) });
-      setMensaje('Equipo registrado con éxito en inventario');
+      alert('Equipo registrado con éxito en inventario');
+      setMostrarFormulario(false);
       setFormData({
         nombre: '',
         categoria: 'CAMARA',
@@ -112,6 +113,7 @@ export default function Equipos() {
         valor_compra: '',
         id_jefe: 1
       });
+      setMensaje('');
       cargarDatos();
     } catch (error) {
       setMensaje(error.message || 'Error al registrar el equipo.');
@@ -331,21 +333,28 @@ export default function Equipos() {
           <button
             type="button"
             onClick={() => {
-              setMostrarFormulario(!mostrarFormulario);
+              setMostrarFormulario(true);
               setMensaje('');
             }}
             style={{
-              backgroundColor: mostrarFormulario ? '#dc3545' : '#0d6efd',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              backgroundColor: '#0f172a',
               color: 'white',
-              padding: '9px 16px',
+              padding: '10px 18px',
               border: 'none',
-              borderRadius: '8px',
+              borderRadius: '20px',
               cursor: 'pointer',
               fontSize: '14px',
-              fontWeight: '600'
+              fontWeight: '600',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
             }}
           >
-            {mostrarFormulario ? '✕ Cerrar formulario' : '+ Registrar nuevo equipo'}
+            <span style={{ backgroundColor: 'white', color: '#0f172a', borderRadius: '50%', padding: '2px 6px', fontSize: '11px' }}>
+              +
+            </span>
+            <span>Registrar nuevo equipo</span>
           </button>
         ) : null}
       </div>
@@ -414,50 +423,129 @@ export default function Equipos() {
 
       {/* ================= VISTA EQUIPOS / INVENTARIO ================= */}
       {activeTab === 'EQUIPOS' && (
-        <>
-          {mostrarFormulario && (
-            <div style={{
-              marginBottom: '28px',
-              padding: '24px',
-              border: '1px solid #e2e8f0',
-              borderRadius: '12px',
-              backgroundColor: '#ffffff',
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
-            }}>
-              <h2 style={{ marginTop: 0, marginBottom: '8px', fontSize: '18px', color: '#1e293b' }}>
-                Registrar Equipo en Inventario 
-              </h2>
-              <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748b' }}>
-                El sistema generará automáticamente el código único según la categoría y asignará el estado Operativo.
+        <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '24px', border: '1px solid #f1f5f9', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
+          <div style={{ marginBottom: '18px' }}>
+            <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>Inventario de Equipos</h2>
+            <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '13px' }}>
+              Listado de equipos registrados, código correlativo y estado de asignación
+            </p>
+          </div>
+
+          {cargando ? (
+            <p style={{ color: '#64748b', textAlign: 'center', padding: '20px 0' }}>Cargando inventario...</p>
+          ) : listaEquipos.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '36px 15px', color: '#64748b' }}>
+              <p style={{ margin: 0 }}>No hay equipos registrados en el inventario.</p>
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#64748b', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <th style={{ padding: '12px 14px' }}>Código</th>
+                    <th style={{ padding: '12px 14px' }}>Equipo</th>
+                    <th style={{ padding: '12px 14px' }}>Categoría</th>
+                    <th style={{ padding: '12px 14px' }}>Marca / Modelo</th>
+                    <th style={{ padding: '12px 14px' }}>Fecha Compra</th>
+                    <th style={{ padding: '12px 14px', textAlign: 'right' }}>Valor Compra</th>
+                    <th style={{ padding: '12px 14px', textAlign: 'center' }}>Estado</th>
+                    <th style={{ padding: '12px 14px', textAlign: 'center' }}>Kit</th>
+                    <th style={{ padding: '12px 14px', textAlign: 'center' }}>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {listaEquipos.map((eq) => {
+                    const fecha = eq.fecha_compra ? new Date(eq.fecha_compra).toLocaleDateString('es-CL') : '--';
+                    const esBaja = eq.estado === 'DADO_DE_BAJA';
+                    return (
+                      <tr key={eq.codigo} style={{ borderBottom: '1px solid #f1f5f9', opacity: esBaja ? 0.65 : 1 }}>
+                        <td style={{ padding: '14px', fontWeight: '700', color: '#0f172a' }}>{eq.codigo}</td>
+                        <td style={{ padding: '14px', fontWeight: '600', color: '#1e293b' }}>{eq.nombre}</td>
+                        <td style={{ padding: '14px', color: '#475569' }}>{eq.categoria}</td>
+                        <td style={{ padding: '14px', color: '#64748b' }}>{eq.marca || '-'} {eq.modelo ? `(${eq.modelo})` : ''}</td>
+                        <td style={{ padding: '14px', color: '#475569' }}>{fecha}</td>
+                        <td style={{ padding: '14px', textAlign: 'right', fontWeight: '600', color: '#1e293b' }}>${Number(eq.valor_compra || 0).toLocaleString('es-CL')}</td>
+                        <td style={{ padding: '14px', textAlign: 'center' }}>
+                          <span style={{
+                            backgroundColor: esBaja ? '#f1f5f9' : eq.estado === 'OPERATIVO' ? '#dcfce7' : '#fee2e2',
+                            color: esBaja ? '#475569' : eq.estado === 'OPERATIVO' ? '#166534' : '#991b1b',
+                            padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '600'
+                          }}>
+                            {eq.estado}
+                          </span>
+                        </td>
+                        <td style={{ padding: '14px', textAlign: 'center', color: eq.kit ? '#0f172a' : '#64748b' }}>
+                          {eq.kit?.nombre || eq.kit || 'Repuesto (Sin kit)'}
+                        </td>
+                        <td style={{ padding: '14px', textAlign: 'center' }}>
+                          <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                            <button
+                              type="button"
+                              onClick={() => setEquipoEditando(eq)}
+                              style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '5px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', color: '#1e293b' }}
+                            >
+                              Modificar
+                            </button>
+                            {!esBaja && (
+                              <button
+                                type="button"
+                                onClick={() => setEquipoBaja(eq)}
+                                style={{ backgroundColor: '#fee2e2', border: '1px solid #fca5a5', padding: '5px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', color: '#991b1b' }}
+                              >
+                                Dar de baja
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ================= MODAL REGISTRAR NUEVO EQUIPO ================= */}
+      {mostrarFormulario && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
+          <div style={{ backgroundColor: '#ffffff', borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '640px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
+            <h2 style={{ marginTop: 0, marginBottom: '6px', fontSize: '18px', color: '#1e293b' }}>
+              Registrar Equipo en Inventario
+            </h2>
+            <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748b' }}>
+              El sistema generará automáticamente el código único según la categoría y asignará el estado Operativo.
+            </p>
+
+            {mensaje && (
+              <p style={{ fontWeight: '600', color: mensaje.includes('éxito') ? '#166534' : '#dc2626', marginBottom: '14px', fontSize: '14px' }}>
+                {mensaje}
               </p>
+            )}
 
-              {mensaje && (
-                <p style={{ fontWeight: '600', color: mensaje.includes('éxito') ? '#166534' : '#dc2626', marginBottom: '14px', fontSize: '14px' }}>
-                  {mensaje}
-                </p>
-              )}
+            <form onSubmit={manejarEnvio} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Nombre del equipo:</label>
+                <input
+                  type="text"
+                  name="nombre"
+                  placeholder="Ej: Sony Alpha 7 IV"
+                  value={formData.nombre}
+                  onChange={manejarCambio}
+                  required
+                  style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                />
+              </div>
 
-              <form onSubmit={manejarEnvio} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Nombre del equipo:</label>
-                  <input
-                    type="text"
-                    name="nombre"
-                    placeholder="Ej: Sony Alpha 7 IV"
-                    value={formData.nombre}
-                    onChange={manejarCambio}
-                    required
-                    style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' }}
-                  />
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
                   <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Categoría:</label>
                   <select
                     name="categoria"
                     value={formData.categoria}
                     onChange={manejarCambio}
-                    style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#ffffff' }}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
                   >
                     <option value="CAMARA">CAMARA</option>
                     <option value="TRIPODE">TRIPODE</option>
@@ -467,7 +555,7 @@ export default function Equipos() {
                   </select>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div>
                   <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Marca:</label>
                   <input
                     type="text"
@@ -475,11 +563,13 @@ export default function Equipos() {
                     placeholder="Ej: Sony"
                     value={formData.marca}
                     onChange={manejarCambio}
-                    style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' }}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
                   />
                 </div>
+              </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
                   <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Modelo:</label>
                   <input
                     type="text"
@@ -487,11 +577,11 @@ export default function Equipos() {
                     placeholder="Ej: ILCE-7M4"
                     value={formData.modelo}
                     onChange={manejarCambio}
-                    style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' }}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
                   />
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div>
                   <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Fecha de compra:</label>
                   <input
                     type="date"
@@ -499,125 +589,42 @@ export default function Equipos() {
                     value={formData.fecha_compra}
                     onChange={manejarCambio}
                     required
-                    style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' }}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
                   />
                 </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Valor de compra ($):</label>
-                  <input
-                    type="number"
-                    name="valor_compra"
-                    placeholder="Ej: 1800000"
-                    value={formData.valor_compra}
-                    onChange={manejarCambio}
-                    required
-                    style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' }}
-                  />
-                </div>
-
-                <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '10px', marginTop: '8px' }}>
-                  <button
-                    type="submit"
-                    style={{ padding: '9px 20px', backgroundColor: '#198754', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
-                  >
-                    Guardar Equipo
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setMostrarFormulario(false)}
-                    style={{ padding: '9px 16px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px' }}
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
-
-          <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '24px', border: '1px solid #f1f5f9', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
-            <div style={{ marginBottom: '18px' }}>
-              <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>Inventario de Equipos</h2>
-              <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '13px' }}>
-                Listado de equipos registrados, código correlativo y estado de asignación
-              </p>
-            </div>
-
-            {cargando ? (
-              <p style={{ color: '#64748b', textAlign: 'center', padding: '20px 0' }}>Cargando inventario...</p>
-            ) : listaEquipos.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '36px 15px', color: '#64748b' }}>
-                <p style={{ margin: 0 }}>No hay equipos registrados en el inventario.</p>
               </div>
-            ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#64748b', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                      <th style={{ padding: '12px 14px' }}>Código</th>
-                      <th style={{ padding: '12px 14px' }}>Equipo</th>
-                      <th style={{ padding: '12px 14px' }}>Categoría</th>
-                      <th style={{ padding: '12px 14px' }}>Marca / Modelo</th>
-                      <th style={{ padding: '12px 14px' }}>Fecha Compra</th>
-                      <th style={{ padding: '12px 14px', textAlign: 'right' }}>Valor Compra</th>
-                      <th style={{ padding: '12px 14px', textAlign: 'center' }}>Estado</th>
-                      <th style={{ padding: '12px 14px', textAlign: 'center' }}>Kit</th>
-                      <th style={{ padding: '12px 14px', textAlign: 'center' }}>Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {listaEquipos.map((eq) => {
-                      const fecha = eq.fecha_compra ? new Date(eq.fecha_compra).toLocaleDateString('es-CL') : '--';
-                      const esBaja = eq.estado === 'DADO_DE_BAJA';
-                      return (
-                        <tr key={eq.codigo} style={{ borderBottom: '1px solid #f1f5f9', opacity: esBaja ? 0.65 : 1 }}>
-                          <td style={{ padding: '14px', fontWeight: '700', color: '#0f172a' }}>{eq.codigo}</td>
-                          <td style={{ padding: '14px', fontWeight: '600', color: '#1e293b' }}>{eq.nombre}</td>
-                          <td style={{ padding: '14px', color: '#475569' }}>{eq.categoria}</td>
-                          <td style={{ padding: '14px', color: '#64748b' }}>{eq.marca || '-'} {eq.modelo ? `(${eq.modelo})` : ''}</td>
-                          <td style={{ padding: '14px', color: '#475569' }}>{fecha}</td>
-                          <td style={{ padding: '14px', textAlign: 'right', fontWeight: '600', color: '#1e293b' }}>${Number(eq.valor_compra || 0).toLocaleString('es-CL')}</td>
-                          <td style={{ padding: '14px', textAlign: 'center' }}>
-                            <span style={{
-                              backgroundColor: esBaja ? '#f1f5f9' : eq.estado === 'OPERATIVO' ? '#dcfce7' : '#fee2e2',
-                              color: esBaja ? '#475569' : eq.estado === 'OPERATIVO' ? '#166534' : '#991b1b',
-                              padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '600'
-                            }}>
-                              {eq.estado}
-                            </span>
-                          </td>
-                          <td style={{ padding: '14px', textAlign: 'center', color: eq.kit ? '#0f172a' : '#64748b' }}>
-                            {eq.kit?.nombre || eq.kit || 'Repuesto (Sin kit)'}
-                          </td>
-                          <td style={{ padding: '14px', textAlign: 'center' }}>
-                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
-                              <button
-                                type="button"
-                                onClick={() => setEquipoEditando(eq)}
-                                style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '5px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', color: '#1e293b' }}
-                              >
-                                Modificar
-                              </button>
-                              {!esBaja && (
-                                <button
-                                  type="button"
-                                  onClick={() => setEquipoBaja(eq)}
-                                  style={{ backgroundColor: '#fee2e2', border: '1px solid #fca5a5', padding: '5px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', color: '#991b1b' }}
-                                >
-                                  Dar de baja
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Valor de compra ($):</label>
+                <input
+                  type="number"
+                  name="valor_compra"
+                  placeholder="Ej: 1800000"
+                  value={formData.valor_compra}
+                  onChange={manejarCambio}
+                  required
+                  style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                />
               </div>
-            )}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid #f1f5f9', paddingTop: '14px' }}>
+                <button
+                  type="button"
+                  onClick={() => setMostrarFormulario(false)}
+                  style={{ padding: '8px 16px', backgroundColor: '#e2e8f0', color: '#334155', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  style={{ padding: '8px 20px', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
+                >
+                  Guardar Equipo
+                </button>
+              </div>
+            </form>
           </div>
-        </>
+        </div>
       )}
 
       {/* ================= MODALES DE EQUIPOS ================= */}
@@ -878,7 +885,7 @@ export default function Equipos() {
                     onChange={(e) => setCamaraEdit(e.target.value)}
                     disabled={kitEditando.estado === 'EN_TERRENO'}
                     required
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: kitEditando.estado === 'EN_TERRENO' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: kitEditando.estado === 'EN_TERREno' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
                   >
                     <option value="">-- Seleccione Cámara --</option>
                     {listaEquipos.filter(eq => eq.categoria === 'CAMARA' && (eq.estado === 'OPERATIVO' || eq.codigo === camaraEdit)).map(eq => (
