@@ -501,7 +501,7 @@ export default function Equipos() {
                   boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
                 }}
               >
-                <option value="TODOS">🔍 Todas las categorías</option>
+                <option value="TODOS"> Todas las categorías</option>
                 <option value="CAMARA">Cámara</option>
                 <option value="TRIPODE">Trípode</option>
                 <option value="MICROFONO">Micrófono</option>
