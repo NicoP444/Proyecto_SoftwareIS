@@ -345,7 +345,7 @@ export default function Equipos() {
   return (
     <div style={{ padding: '10px 0', width: '100%', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       
-      {/* CABECERA / TÍTULO PRINCIPAL */}
+      {/* CABECERA / TÍTULO PRINCIPAL FUERA DEL CUBO */}
       <div style={{ marginBottom: '20px' }}>
         <h1 style={{ margin: '0 0 4px 0', fontSize: '24px', fontWeight: '700', color: '#0f172a' }}>
           Gestión de Kits y Equipos
@@ -355,276 +355,275 @@ export default function Equipos() {
         </p>
       </div>
 
-      {/* PESTAÑAS SUPERIORES Y BOTÓN DE ACCIÓN */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button
-            onClick={() => setActiveTab('KITS')}
-            style={{
-              padding: '9px 20px',
-              borderRadius: '20px',
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '600',
-              backgroundColor: activeTab === 'KITS' ? '#334155' : '#e0f2fe',
-              color: activeTab === 'KITS' ? '#ffffff' : '#0369a1',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-              transition: 'all 0.2s'
-            }}
-          >
-            KITS
-          </button>
-          <button
-            onClick={() => setActiveTab('EQUIPOS')}
-            style={{
-              padding: '9px 20px',
-              borderRadius: '20px',
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '600',
-              backgroundColor: activeTab === 'EQUIPOS' ? '#334155' : '#e0f2fe',
-              color: activeTab === 'EQUIPOS' ? '#ffffff' : '#0369a1',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-              transition: 'all 0.2s'
-            }}
-          >
-            EQUIPOS
-          </button>
-        </div>
+      {/* CUBO BLANCO CONTENEDOR GENERAL */}
+      <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
 
-        {activeTab === 'KITS' ? (
-          <button
-            onClick={() => {
-              setErrorKit('');
-              setExitoCrearKit('');
-              setIsModalOpen(true);
-            }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              backgroundColor: '#0f172a',
-              color: 'white',
-              padding: '10px 18px',
-              border: 'none',
-              borderRadius: '20px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '600',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-            }}
-          >
-            <span style={{ backgroundColor: 'white', color: '#0f172a', borderRadius: '50%', padding: '2px 6px', fontSize: '11px' }}>
-              +
-            </span>
-            <span>Crear kit</span>
-          </button>
-        ) : activeTab === 'EQUIPOS' ? (
-          <button
-            type="button"
-            onClick={() => {
-              setErrorEquipo('');
-              setExitoEquipo('');
-              setMostrarFormulario(true);
-            }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              backgroundColor: '#0f172a',
-              color: 'white',
-              padding: '10px 18px',
-              border: 'none',
-              borderRadius: '20px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '600',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-            }}
-          >
-            <span style={{ backgroundColor: 'white', color: '#0f172a', borderRadius: '50%', padding: '2px 6px', fontSize: '11px' }}>
-              +
-            </span>
-            <span>Registrar nuevo equipo</span>
-          </button>
-        ) : null}
-      </div>
-
-      {/* ================= VISTA KITS ================= */}
-      {activeTab === 'KITS' && (
-        <div>
-          {kits.length === 0 ? (
-            <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '48px', textAlign: 'center', border: '1px solid #e2e8f0', color: '#64748b' }}>
-              <FaBoxOpen style={{ fontSize: '40px', marginBottom: '12px', color: '#94a3b8' }} />
-              <h3 style={{ margin: '0 0 6px 0', fontSize: '16px', color: '#1e293b' }}>No hay kits creados</h3>
-              <p style={{ margin: 0, fontSize: '13px' }}>Haz clic en "+ Crear kit" para armar el primer kit con equipos operativos del inventario.</p>
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
-              {kits.map((kit) => (
-                <div key={kit.id_kit} style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '20px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                    <div>
-                      <h3 style={{ margin: 0, fontSize: '18px', color: '#1e293b' }}>{kit.nombre}</h3>
-                      <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#64748b' }}>
-                        {kit.nivel} · Recargo: {kit.recargo_pct}%
-                      </p>
-                    </div>
-                    <div style={{ display: 'flex', gap: '6px' }}>
-                      <button
-                        onClick={() => iniciarEdicionKit(kit)}
-                        style={{ padding: '5px 12px', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', color: '#1e293b' }}
-                      >
-                        Modificar
-                      </button>
-                      <button
-                        onClick={() => manejarEliminarKit(kit.id_kit, kit.nombre)}
-                        style={{ padding: '5px 12px', backgroundColor: '#fee2e2', border: '1px solid #fca5a5', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', color: '#991b1b' }}
-                      >
-                        Eliminar
-                      </button>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', margin: '16px 0' }}>
-                    {kit.equipos?.map((eq, idx) => (
-                      <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: '#f8fafc', border: '1px solid #f1f5f9', borderRadius: '10px', padding: '8px' }}>
-                        <div style={{ padding: '8px', backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-                          {getIconoCategoria(eq.categoria)}
-                        </div>
-                        <div style={{ overflow: 'hidden' }}>
-                          <p style={{ margin: 0, fontSize: '12px', fontWeight: '700', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{eq.nombre}</p>
-                          <p style={{ margin: 0, fontSize: '10px', color: '#64748b', textTransform: 'capitalize' }}>{formatearCategoria(eq.categoria)}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ backgroundColor: '#dcfce7', color: '#166534', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '600' }}>
-                      {kit.estado || 'DISPONIBLE'}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ================= VISTA EQUIPOS / INVENTARIO ================= */}
-      {activeTab === 'EQUIPOS' && (
-        <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '24px', border: '1px solid #f1f5f9', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
-            <div>
-              <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>Inventario de Equipos</h2>
-              <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '13px' }}>
-                Listado de equipos registrados, código correlativo y estado de asignación
-              </p>
-            </div>
-            <div>
-              <select
-                value={filtroCategoria}
-                onChange={(e) => setFiltroCategoria(e.target.value)}
-                style={{
-                  padding: '8px 14px',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '13px',
-                  backgroundColor: '#ffffff',
-                  color: '#1e293b',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
-                }}
-              >
-                <option value="TODOS">Todas las categorías</option>
-                <option value="CAMARA">Cámara</option>
-                <option value="TRIPODE">Trípode</option>
-                <option value="MICROFONO">Micrófono</option>
-                <option value="SWITCH_VIDEO">Switch de Video</option>
-                <option value="OTRO">Otro</option>
-              </select>
-            </div>
+        {/* PESTAÑAS SUPERIORES (Estilo Minimalista con Subrayado) Y BOTÓN DE ACCIÓN DENTRO DEL CUBO */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+          <div style={{ display: 'flex', gap: '24px' }}>
+            <button
+              onClick={() => setActiveTab('KITS')}
+              style={{
+                padding: '8px 4px',
+                background: 'none',
+                border: 'none',
+                borderBottom: activeTab === 'KITS' ? '2px solid #0f172a' : '2px solid transparent',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: activeTab === 'KITS' ? '#0f172a' : '#64748b',
+                transition: 'all 0.2s'
+              }}
+            >
+              KITS
+            </button>
+            <button
+              onClick={() => setActiveTab('EQUIPOS')}
+              style={{
+                padding: '8px 4px',
+                background: 'none',
+                border: 'none',
+                borderBottom: activeTab === 'EQUIPOS' ? '2px solid #0f172a' : '2px solid transparent',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: activeTab === 'EQUIPOS' ? '#0f172a' : '#64748b',
+                transition: 'all 0.2s'
+              }}
+            >
+              EQUIPOS
+            </button>
           </div>
 
-          {cargando ? (
-            <p style={{ color: '#64748b', textAlign: 'center', padding: '20px 0' }}>Cargando inventario...</p>
-          ) : equiposFiltrados.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '36px 15px', color: '#64748b' }}>
-              <p style={{ margin: 0 }}>No hay equipos registrados en esta categoría.</p>
+          {activeTab === 'KITS' ? (
+            <button
+              onClick={() => {
+                setErrorKit('');
+                setExitoCrearKit('');
+                setIsModalOpen(true);
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                backgroundColor: '#0f172a',
+                color: 'white',
+                padding: '9px 18px',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+              }}
+            >
+              <span style={{ fontSize: '14px', fontWeight: 'bold' }}>+</span>
+              <span>Crear kit</span>
+            </button>
+          ) : activeTab === 'EQUIPOS' ? (
+            <button
+              type="button"
+              onClick={() => {
+                setErrorEquipo('');
+                setExitoEquipo('');
+                setMostrarFormulario(true);
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                backgroundColor: '#0f172a',
+                color: 'white',
+                padding: '9px 18px',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+              }}
+            >
+              <span style={{ fontSize: '14px', fontWeight: 'bold' }}>+</span>
+              <span>Registrar nuevo equipo</span>
+            </button>
+          ) : null}
+        </div>
+
+        {/* ================= VISTA KITS ================= */}
+        {activeTab === 'KITS' && (
+          <div>
+            {kits.length === 0 ? (
+              <div style={{ backgroundColor: '#f8fafc', borderRadius: '16px', padding: '48px', textAlign: 'center', border: '1px solid #e2e8f0', color: '#64748b' }}>
+                <FaBoxOpen style={{ fontSize: '40px', marginBottom: '12px', color: '#94a3b8' }} />
+                <h3 style={{ margin: '0 0 6px 0', fontSize: '16px', color: '#1e293b' }}>No hay kits creados</h3>
+                <p style={{ margin: 0, fontSize: '13px' }}>Haz clic en "+ Crear kit" para armar el primer kit con equipos operativos del inventario.</p>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+                {kits.map((kit) => (
+                  <div key={kit.id_kit} style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '20px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: '18px', color: '#1e293b' }}>{kit.nombre}</h3>
+                        <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#64748b' }}>
+                          {kit.nivel} · Recargo: {kit.recargo_pct}%
+                        </p>
+                      </div>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button
+                          onClick={() => iniciarEdicionKit(kit)}
+                          style={{ padding: '5px 12px', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', color: '#1e293b' }}
+                        >
+                          Modificar
+                        </button>
+                        <button
+                          onClick={() => manejarEliminarKit(kit.id_kit, kit.nombre)}
+                          style={{ padding: '5px 12px', backgroundColor: '#fee2e2', border: '1px solid #fca5a5', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', color: '#991b1b' }}
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', margin: '16px 0' }}>
+                      {kit.equipos?.map((eq, idx) => (
+                        <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: '#f8fafc', border: '1px solid #f1f5f9', borderRadius: '10px', padding: '8px' }}>
+                          <div style={{ padding: '8px', backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                            {getIconoCategoria(eq.categoria)}
+                          </div>
+                          <div style={{ overflow: 'hidden' }}>
+                            <p style={{ margin: 0, fontSize: '12px', fontWeight: '700', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{eq.nombre}</p>
+                            <p style={{ margin: 0, fontSize: '10px', color: '#64748b', textTransform: 'capitalize' }}>{formatearCategoria(eq.categoria)}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ backgroundColor: '#dcfce7', color: '#166534', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '600' }}>
+                        {kit.estado || 'DISPONIBLE'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ================= VISTA EQUIPOS / INVENTARIO ================= */}
+        {activeTab === 'EQUIPOS' && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>Inventario de Equipos</h2>
+                <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '13px' }}>
+                  Listado de equipos registrados, código correlativo y estado de asignación
+                </p>
+              </div>
+              <div>
+                <select
+                  value={filtroCategoria}
+                  onChange={(e) => setFiltroCategoria(e.target.value)}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '13px',
+                    backgroundColor: '#ffffff',
+                    color: '#1e293b',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+                  }}
+                >
+                  <option value="TODOS">Todas las categorías</option>
+                  <option value="CAMARA">Cámara</option>
+                  <option value="TRIPODE">Trípode</option>
+                  <option value="MICROFONO">Micrófono</option>
+                  <option value="SWITCH_VIDEO">Switch de Video</option>
+                  <option value="OTRO">Otro</option>
+                </select>
+              </div>
             </div>
-          ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
-                <thead>
-                  <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#64748b', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    <th style={{ padding: '12px 14px' }}>Código</th>
-                    <th style={{ padding: '12px 14px' }}>Equipo</th>
-                    <th style={{ padding: '12px 14px' }}>Categoría</th>
-                    <th style={{ padding: '12px 14px' }}>Marca / Modelo</th>
-                    <th style={{ padding: '12px 14px' }}>Fecha Compra</th>
-                    <th style={{ padding: '12px 14px', textAlign: 'right' }}>Valor Compra</th>
-                    <th style={{ padding: '12px 14px', textAlign: 'center' }}>Estado</th>
-                    <th style={{ padding: '12px 14px', textAlign: 'center' }}>Kit</th>
-                    <th style={{ padding: '12px 14px', textAlign: 'center' }}>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {equiposFiltrados.map((eq) => {
-                    const fecha = eq.fecha_compra ? new Date(eq.fecha_compra).toLocaleDateString('es-CL') : '--';
-                    const esBaja = eq.estado === 'DADO_DE_BAJA';
-                    return (
-                      <tr key={eq.codigo} style={{ borderBottom: '1px solid #f1f5f9', opacity: esBaja ? 0.65 : 1 }}>
-                        <td style={{ padding: '14px', fontWeight: '700', color: '#0f172a' }}>{eq.codigo}</td>
-                        <td style={{ padding: '14px', fontWeight: '600', color: '#1e293b' }}>{eq.nombre}</td>
-                        <td style={{ padding: '14px', color: '#475569' }}>{formatearCategoria(eq.categoria)}</td>
-                        <td style={{ padding: '14px', color: '#64748b' }}>{eq.marca || '-'} {eq.modelo ? `(${eq.modelo})` : ''}</td>
-                        <td style={{ padding: '14px', color: '#475569' }}>{fecha}</td>
-                        <td style={{ padding: '14px', textAlign: 'right', fontWeight: '600', color: '#1e293b' }}>${Number(eq.valor_compra || 0).toLocaleString('es-CL')}</td>
-                        <td style={{ padding: '14px', textAlign: 'center' }}>
-                          <span style={{
-                            backgroundColor: esBaja ? '#f1f5f9' : eq.estado === 'OPERATIVO' ? '#dcfce7' : '#fee2e2',
-                            color: esBaja ? '#475569' : eq.estado === 'OPERATIVO' ? '#166534' : '#991b1b',
-                            padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '600'
-                          }}>
-                            {eq.estado}
-                          </span>
-                        </td>
-                        <td style={{ padding: '14px', textAlign: 'center', color: eq.kit ? '#0f172a' : '#64748b' }}>
-                          {eq.kit?.nombre || eq.kit || 'Repuesto (Sin kit)'}
-                        </td>
-                        <td style={{ padding: '14px', textAlign: 'center' }}>
-                          <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
-                            <button
-                              type="button"
-                              onClick={() => setEquipoEditando(eq)}
-                              style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '5px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', color: '#1e293b' }}
-                            >
-                              Modificar
-                            </button>
-                            {!esBaja && (
+
+            {cargando ? (
+              <p style={{ color: '#64748b', textAlign: 'center', padding: '20px 0' }}>Cargando inventario...</p>
+            ) : equiposFiltrados.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '36px 15px', color: '#64748b' }}>
+                <p style={{ margin: 0 }}>No hay equipos registrados en esta categoría.</p>
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#64748b', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      <th style={{ padding: '12px 14px' }}>Código</th>
+                      <th style={{ padding: '12px 14px' }}>Equipo</th>
+                      <th style={{ padding: '12px 14px' }}>Categoría</th>
+                      <th style={{ padding: '12px 14px' }}>Marca / Modelo</th>
+                      <th style={{ padding: '12px 14px' }}>Fecha Compra</th>
+                      <th style={{ padding: '12px 14px', textAlign: 'right' }}>Valor Compra</th>
+                      <th style={{ padding: '12px 14px', textAlign: 'center' }}>Estado</th>
+                      <th style={{ padding: '12px 14px', textAlign: 'center' }}>Kit</th>
+                      <th style={{ padding: '12px 14px', textAlign: 'center' }}>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {equiposFiltrados.map((eq) => {
+                      const fecha = eq.fecha_compra ? new Date(eq.fecha_compra).toLocaleDateString('es-CL') : '--';
+                      const esBaja = eq.estado === 'DADO_DE_BAJA';
+                      return (
+                        <tr key={eq.codigo} style={{ borderBottom: '1px solid #f1f5f9', opacity: esBaja ? 0.65 : 1 }}>
+                          <td style={{ padding: '14px', fontWeight: '700', color: '#0f172a' }}>{eq.codigo}</td>
+                          <td style={{ padding: '14px', fontWeight: '600', color: '#1e293b' }}>{eq.nombre}</td>
+                          <td style={{ padding: '14px', color: '#475569' }}>{formatearCategoria(eq.categoria)}</td>
+                          <td style={{ padding: '14px', color: '#64748b' }}>{eq.marca || '-'} {eq.modelo ? `(${eq.modelo})` : ''}</td>
+                          <td style={{ padding: '14px', color: '#475569' }}>{fecha}</td>
+                          <td style={{ padding: '14px', textAlign: 'right', fontWeight: '600', color: '#1e293b' }}>${Number(eq.valor_compra || 0).toLocaleString('es-CL')}</td>
+                          <td style={{ padding: '14px', textAlign: 'center' }}>
+                            <span style={{
+                              backgroundColor: esBaja ? '#f1f5f9' : eq.estado === 'OPERATIVO' ? '#dcfce7' : '#fee2e2',
+                              color: esBaja ? '#475569' : eq.estado === 'OPERATIVO' ? '#166534' : '#991b1b',
+                              padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '600'
+                            }}>
+                              {eq.estado}
+                            </span>
+                          </td>
+                          <td style={{ padding: '14px', textAlign: 'center', color: eq.kit ? '#0f172a' : '#64748b' }}>
+                            {eq.kit?.nombre || eq.kit || 'Repuesto (Sin kit)'}
+                          </td>
+                          <td style={{ padding: '14px', textAlign: 'center' }}>
+                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
                               <button
                                 type="button"
-                                onClick={() => setEquipoBaja(eq)}
-                                style={{ backgroundColor: '#fee2e2', border: '1px solid #fca5a5', padding: '5px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', color: '#991b1b' }}
+                                onClick={() => setEquipoEditando(eq)}
+                                style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '5px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', color: '#1e293b' }}
                               >
-                                Dar de baja
+                                Modificar
                               </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
+                              {!esBaja && (
+                                <button
+                                  type="button"
+                                  onClick={() => setEquipoBaja(eq)}
+                                  style={{ backgroundColor: '#fee2e2', border: '1px solid #fca5a5', padding: '5px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', color: '#991b1b' }}
+                                >
+                                  Dar de baja
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+      </div>
 
       {/* ================= MODAL REGISTRAR NUEVO EQUIPO ================= */}
       {mostrarFormulario && (
