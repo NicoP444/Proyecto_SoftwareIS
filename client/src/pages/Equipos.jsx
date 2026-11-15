@@ -31,6 +31,7 @@ export default function Equipos() {
   const [guardandoEquipo, setGuardandoEquipo] = useState(false);
   const [errorEquipo, setErrorEquipo] = useState('');
   const [exitoEquipo, setExitoEquipo] = useState('');
+  const [exitoKit, setExitoKit] = useState('');
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [equipoEditando, setEquipoEditando] = useState(null);
   const [equipoBaja, setEquipoBaja] = useState(null);
@@ -136,7 +137,7 @@ export default function Equipos() {
     try {
       await actualizarEquipo(equipoEditando.codigo, {
         nombre: equipoEditando.nombre,
-        categoria: equipoEditando.categoria, // Mantiene su categoría original
+        categoria: equipoEditando.categoria,
         marca: equipoEditando.marca || null,
         modelo: equipoEditando.modelo || null,
         fecha_compra: equipoEditando.fecha_compra,
@@ -274,8 +275,11 @@ export default function Equipos() {
     }
     try {
       const resultado = await kitClientService.eliminarKit(idKit);
-      alert(resultado.mensaje || 'Kit eliminado con éxito');
+      setExitoKit(resultado.mensaje || 'Kit eliminado exitosamente y sus equipos pasaron a ser repuestos');
       await cargarDatos();
+      setTimeout(() => {
+        setExitoKit('');
+      }, 1500);
     } catch (err) {
       alert(err.message || 'Error al eliminar el kit');
     }
@@ -836,6 +840,19 @@ export default function Equipos() {
                 <button type="submit" style={{ padding: '8px 18px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Confirmar Baja</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL ÉXITO ELIMINAR KIT ================= */}
+      {exitoKit && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
+          <div style={{ backgroundColor: '#ffffff', borderRadius: '20px', padding: '32px', width: '100%', maxWidth: '480px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', textAlign: 'center', boxSizing: 'border-box' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+              <FaCheckCircle style={{ fontSize: '56px', color: '#166534' }} />
+              <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>¡Eliminación Exitosa!</h2>
+              <p style={{ margin: 0, fontSize: '15px', color: '#166534', fontWeight: '600' }}>{exitoKit}</p>
+            </div>
           </div>
         </div>
       )}
