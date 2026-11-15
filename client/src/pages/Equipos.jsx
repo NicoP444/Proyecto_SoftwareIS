@@ -276,6 +276,16 @@ export default function Equipos() {
   return (
     <div style={{ padding: '10px 0', width: '100%', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       
+      {/* CABECERA / TÍTULO PRINCIPAL */}
+      <div style={{ marginBottom: '20px' }}>
+        <h1 style={{ margin: '0 0 4px 0', fontSize: '24px', fontWeight: '700', color: '#0f172a' }}>
+          Gestión de Kits y Equipos
+        </h1>
+        <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
+          Administración de kits técnicos, niveles de servicio y catálogo de inventario general
+        </p>
+      </div>
+
       {/* PESTAÑAS SUPERIORES Y BOTÓN DE ACCIÓN */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div style={{ display: 'flex', gap: '10px' }}>
