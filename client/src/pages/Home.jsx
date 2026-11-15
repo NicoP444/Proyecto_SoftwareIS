@@ -1,6 +1,8 @@
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import AlertasKitsSinRetorno from "../components/equipos/AlertasKitsSinRetorno.jsx";
 import EventosPendientesCierre from "../components/evento/EventosPendientesCierre.jsx";
+import { obtenerAcuerdos } from "../services/acuerdoService";
 import "../styles/Home.css";
 
 // Íconos
@@ -131,6 +133,31 @@ export default function Home() {
   const nombre =
     [usuario.nombre, usuario.apellido].filter(Boolean).join(" ") || "Usuario";
 
+  const [cobrosPendientes, setCobrosPendientes] = useState([]);
+  const [cargandoCobros, setCargandoCobros] = useState(true);
+
+  useEffect(() => {
+    const cargarCobros = async () => {
+      try {
+        setCargandoCobros(true);
+        const data = await obtenerAcuerdos();
+        
+        const pendientes = Array.isArray(data)
+          ? data.filter(item => ['PENDIENTE', 'PARCIAL', 'VENCIDO'].includes(item.estado))
+          : [];
+
+        setCobrosPendientes(pendientes);
+      } catch (error) {
+        console.warn("Error al cargar auspiciadores por cobrar:", error.message);
+        setCobrosPendientes([]);
+      } finally {
+        setCargandoCobros(false);
+      }
+    };
+
+    cargarCobros();
+  }, []);
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("usuario");
@@ -247,7 +274,72 @@ export default function Home() {
                 Ver todos →
               </button>
             </div>
-            <EstadoVacio texto="No hay cobros pendientes" />
+
+            {cargandoCobros ? (
+              <p style={{ fontSize: "13px", color: "#64748b", textAlign: "center", padding: "20px 0" }}>
+                Cargando cobros...
+              </p>
+            ) : cobrosPendientes.length === 0 ? (
+              <EstadoVacio texto="No hay cobros pendientes" />
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px", maxHeight: "220px", overflowY: "auto", marginTop: "10px" }}>
+                {cobrosPendientes.map((acuerdo) => {
+                  const nombreAuspiciador = acuerdo.auspiciador?.nombre || "Auspiciador";
+                  const monto = Number(acuerdo.monto_comprometido || 0).toLocaleString("es-CL");
+                  const esVencido = acuerdo.estado === "VENCIDO";
+                  const fechaPlazo = acuerdo.fecha_comprometida || acuerdo.fecha_limite 
+                    ? new Date(acuerdo.fecha_comprometida || acuerdo.fecha_limite).toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit" }) 
+                    : "";
+
+                  return (
+                    <div 
+                      key={acuerdo.id_acuerdo || acuerdo.id} 
+                      style={{ 
+                        display: "flex", 
+                        justifyContent: "space-between", 
+                        alignItems: "center", 
+                        padding: "10px 12px", 
+                        backgroundColor: "#f8fafc", 
+                        borderRadius: "8px", 
+                        border: "1px solid #f1f5f9" 
+                      }}
+                    >
+                      <div style={{ overflow: "hidden" }}>
+                        <p style={{ margin: 0, fontSize: "14px", fontWeight: "600", color: "#1e293b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {nombreAuspiciador}
+                        </p>
+                        <p style={{ margin: "2px 0 0 0", fontSize: "12px", color: "#64748b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {acuerdo.glosa || "Acuerdo de auspicio"}
+                        </p>
+                      </div>
+                      <div style={{ textAlign: "right", flexShrink: 0 }}>
+                        <p style={{ margin: 0, fontSize: "14px", fontWeight: "700", color: "#0f172a" }}>
+                          ${monto}
+                        </p>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px", justifyContent: "flex-end", marginTop: "2px" }}>
+                          {fechaPlazo && (
+                            <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "500" }}>
+                              Plazo: {fechaPlazo}
+                            </span>
+                          )}
+                          <span style={{ 
+                            fontSize: "11px", 
+                            padding: "2px 8px", 
+                            borderRadius: "10px", 
+                            backgroundColor: esVencido ? "#fee2e2" : "#fef3c7", 
+                            color: esVencido ? "#991b1b" : "#92400e", 
+                            fontWeight: "600",
+                            display: "inline-block"
+                          }}>
+                            {acuerdo.estado}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </section>
       </main>
