@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
 import {
   registrarAuspiciador,
   obtenerAuspiciadores,
@@ -26,7 +27,7 @@ export default function Auspiciadores() {
   });
 
   const [idEditando, setIdEditando] = useState(null);
-  const [mensaje, setMensaje] = useState('');
+  const [mensajeExitoModal, setMensajeExitoModal] = useState('');
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
 
   // Pestaña activa: 'acuerdos', 'reporte' o 'auspiciadores'
@@ -124,7 +125,6 @@ export default function Auspiciadores() {
       telefono: item.telefono || '',
       id_dueno: item.id_dueno || 1
     });
-    setMensaje('');
   };
 
   const cancelarEdicion = () => {
@@ -136,30 +136,31 @@ export default function Auspiciadores() {
       telefono: '',
       id_dueno: 1
     });
-    setMensaje('');
     setMostrarFormulario(false);
   };
 
   const manejarEnvio = async (e) => {
     e.preventDefault();
-    setMensaje("Guardando...");
 
     try {
       if (idEditando) {
         await modificarAuspiciador(idEditando, formData);
-        setMensaje("Auspiciador actualizado con éxito!");
+        setMensajeExitoModal('Auspiciador modificado correctamente en el sistema');
       } else {
         await registrarAuspiciador(formData);
-        setMensaje("Auspiciador registrado con éxito!");
+        setMensajeExitoModal('Auspiciador registrado con éxito en el sistema');
       }
 
-      setTimeout(() => {
-        cancelarEdicion();
-      }, 1000);
+      setMostrarFormulario(false);
+      cancelarEdicion();
       cargarAuspiciadores();
+
+      setTimeout(() => {
+        setMensajeExitoModal('');
+      }, 1300);
     } catch (error) {
       console.error(error);
-      setMensaje(error.message || "Hubo un error al guardar.");
+      alert(error.message || "Hubo un error al guardar.");
     }
   };
 
@@ -169,8 +170,11 @@ export default function Auspiciadores() {
 
     try {
       await eliminarAuspiciador(id);
-      setMensaje("Auspiciador eliminado con éxito.");
+      setMensajeExitoModal('Auspiciador eliminado exitosamente');
       cargarAuspiciadores();
+      setTimeout(() => {
+        setMensajeExitoModal('');
+      }, 1300);
     } catch (error) {
       console.error(error);
       alert(error.message || "No se puede eliminar el auspiciador.");
@@ -199,9 +203,12 @@ export default function Auspiciadores() {
         motivo_clasificacion: motivo
       });
 
-      setMensaje(`Clasificación de ${auspiciador.nombre} cambiada a ${nuevoEstado}.`);
       setModalClasificacion({ abierto: false, auspiciador: null, nuevoEstado: '', motivo: '' });
+      setMensajeExitoModal(`Clasificación actualizada a ${nuevoEstado === 'NO_CONFIABLE' ? 'No Confiable' : 'Confiable'}`);
       cargarAuspiciadores();
+      setTimeout(() => {
+        setMensajeExitoModal('');
+      }, 1300);
     } catch (error) {
       alert('Error al actualizar: ' + error.message);
     }
@@ -233,7 +240,11 @@ export default function Auspiciadores() {
       });
 
       setModalCumplimiento({ abierto: false, acuerdo: null, monto_recibido: '', fecha_recibida: '' });
+      setMensajeExitoModal('Cumplimiento de aporte registrado con éxito');
       cargarAcuerdos();
+      setTimeout(() => {
+        setMensajeExitoModal('');
+      }, 1300);
     } catch (error) {
       alert('Error al registrar cumplimiento: ' + error.message);
     }
@@ -255,7 +266,11 @@ export default function Auspiciadores() {
     try {
       await declararIncobrable(id, motivo);
       setModalIncobrable({ abierto: false, acuerdo: null, motivo: '' });
+      setMensajeExitoModal('Aporte declarado como incobrable correctamente');
       cargarAcuerdos();
+      setTimeout(() => {
+        setMensajeExitoModal('');
+      }, 1300);
     } catch (error) {
       alert('Error al declarar incobrable: ' + error.message);
     }
@@ -300,7 +315,11 @@ export default function Auspiciadores() {
         cant_menciones: '',
         fecha_comprometida: ''
       });
+      setMensajeExitoModal('Acuerdo modificado exitosamente');
       cargarAcuerdos();
+      setTimeout(() => {
+        setMensajeExitoModal('');
+      }, 1300);
     } catch (error) {
       alert('Error al modificar acuerdo: ' + error.message);
     }
@@ -312,7 +331,11 @@ export default function Auspiciadores() {
 
     try {
       await eliminarAcuerdo(idAcuerdo);
+      setMensajeExitoModal('Acuerdo eliminado exitosamente');
       cargarAcuerdos();
+      setTimeout(() => {
+        setMensajeExitoModal('');
+      }, 1300);
     } catch (error) {
       alert('Error al eliminar acuerdo: ' + error.message);
     }
@@ -414,7 +437,7 @@ export default function Auspiciadores() {
       {/* CUBO BLANCO CONTENEDOR GENERAL */}
       <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
 
-        {/* PESTAÑAS DENTRO DEL CUBO (SIN BOTONES FLOTANTES ARRIBA) */}
+        {/* PESTAÑAS DENTRO DEL CUBO */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
           <div style={{ display: 'flex', gap: '24px' }}>
             <button
@@ -1100,6 +1123,19 @@ export default function Auspiciadores() {
 
       </div>
 
+      {/* ================= MODAL DE ÉXITO GENERAL ================= */}
+      {mensajeExitoModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
+          <div style={{ backgroundColor: '#ffffff', borderRadius: '20px', padding: '32px', width: '100%', maxWidth: '480px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', textAlign: 'center', boxSizing: 'border-box' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+              <FaCheckCircle style={{ fontSize: '56px', color: '#166534' }} />
+              <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>¡Operación Exitosa!</h2>
+              <p style={{ margin: 0, fontSize: '15px', color: '#166534', fontWeight: '600' }}>{mensajeExitoModal}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ================= MODAL REGISTRAR / MODIFICAR AUSPICIADOR ================= */}
       {mostrarFormulario && (
         <div style={{
@@ -1130,17 +1166,6 @@ export default function Auspiciadores() {
             <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748b' }}>
               Ingresa los datos correspondientes para el registro o actualización del auspiciador.
             </p>
-
-            {mensaje && (
-              <p style={{
-                fontWeight: 'bold',
-                color: mensaje.includes('éxito') || mensaje.includes('cambiada') ? '#166534' : '#dc2626',
-                marginBottom: '15px',
-                fontSize: '13px'
-              }}>
-                {mensaje}
-              </p>
-            )}
 
             <form onSubmit={manejarEnvio} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
