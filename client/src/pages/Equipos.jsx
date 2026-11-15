@@ -90,8 +90,21 @@ export default function Equipos() {
     cargarDatos();
   }, []);
 
+  // Función helper para formatear categorías visualmente para el usuario
+  const formatearCategoria = (cat) => {
+    if (!cat) return '';
+    switch (cat.toUpperCase()) {
+      case 'CAMARA': return 'Cámara';
+      case 'TRIPODE': return 'Trípode';
+      case 'MICROFONO': return 'Micrófono';
+      case 'SWITCH_VIDEO': return 'Switch de Video';
+      case 'OTRO': return 'Otro';
+      default: return cat;
+    }
+  };
+
   const getIconoCategoria = (categoria) => {
-    switch (categoria) {
+    switch (categoria?.toUpperCase()) {
       case 'CAMARA': return <FaVideo className="text-blue-500" />;
       case 'TRIPODE': return <FaSlidersH className="text-gray-500" />;
       case 'MICROFONO': return <FaMicrophone className="text-indigo-500" />;
@@ -476,7 +489,7 @@ export default function Equipos() {
                         </div>
                         <div style={{ overflow: 'hidden' }}>
                           <p style={{ margin: 0, fontSize: '12px', fontWeight: '700', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{eq.nombre}</p>
-                          <p style={{ margin: 0, fontSize: '10px', color: '#64748b', textTransform: 'capitalize' }}>{eq.categoria?.toLowerCase().replace('_', ' ')}</p>
+                          <p style={{ margin: 0, fontSize: '10px', color: '#64748b', textTransform: 'capitalize' }}>{formatearCategoria(eq.categoria)}</p>
                         </div>
                       </div>
                     ))}
@@ -520,7 +533,7 @@ export default function Equipos() {
                   boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
                 }}
               >
-                <option value="TODOS"> Todas las categorías</option>
+                <option value="TODOS">🔍 Todas las categorías</option>
                 <option value="CAMARA">Cámara</option>
                 <option value="TRIPODE">Trípode</option>
                 <option value="MICROFONO">Micrófono</option>
@@ -560,7 +573,7 @@ export default function Equipos() {
                       <tr key={eq.codigo} style={{ borderBottom: '1px solid #f1f5f9', opacity: esBaja ? 0.65 : 1 }}>
                         <td style={{ padding: '14px', fontWeight: '700', color: '#0f172a' }}>{eq.codigo}</td>
                         <td style={{ padding: '14px', fontWeight: '600', color: '#1e293b' }}>{eq.nombre}</td>
-                        <td style={{ padding: '14px', color: '#475569' }}>{eq.categoria}</td>
+                        <td style={{ padding: '14px', color: '#475569' }}>{formatearCategoria(eq.categoria)}</td>
                         <td style={{ padding: '14px', color: '#64748b' }}>{eq.marca || '-'} {eq.modelo ? `(${eq.modelo})` : ''}</td>
                         <td style={{ padding: '14px', color: '#475569' }}>{fecha}</td>
                         <td style={{ padding: '14px', textAlign: 'right', fontWeight: '600', color: '#1e293b' }}>${Number(eq.valor_compra || 0).toLocaleString('es-CL')}</td>
@@ -656,11 +669,11 @@ export default function Equipos() {
                         onChange={manejarCambio}
                         style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
                       >
-                        <option value="CAMARA">CAMARA</option>
-                        <option value="TRIPODE">TRIPODE</option>
-                        <option value="MICROFONO">MICROFONO</option>
-                        <option value="SWITCH_VIDEO">SWITCH_VIDEO</option>
-                        <option value="OTRO">OTRO</option>
+                        <option value="CAMARA">Cámara</option>
+                        <option value="TRIPODE">Trípode</option>
+                        <option value="MICROFONO">Micrófono</option>
+                        <option value="SWITCH_VIDEO">Switch de Video</option>
+                        <option value="OTRO">Otro</option>
                       </select>
                     </div>
 
@@ -769,7 +782,7 @@ export default function Equipos() {
                   <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Categoría (Fija):</label>
                   <input
                     type="text"
-                    value={equipoEditando.categoria || ''}
+                    value={formatearCategoria(equipoEditando.categoria)}
                     disabled
                     style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#f1f5f9', color: '#64748b', boxSizing: 'border-box' }}
                   />
@@ -1043,7 +1056,7 @@ export default function Equipos() {
                           >
                             <option value="">-- Seleccionar equipo adicional --</option>
                             {disponiblesExtra.map(eq => (
-                              <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre} ({eq.categoria})</option>
+                              <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre} ({formatearCategoria(eq.categoria)})</option>
                             ))}
                           </select>
                           <button
@@ -1259,7 +1272,7 @@ export default function Equipos() {
                           >
                             <option value="">-- Seleccionar equipo adicional --</option>
                             {disponiblesExtra.map(eq => (
-                              <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre} ({eq.categoria})</option>
+                              <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre} ({formatearCategoria(eq.categoria)})</option>
                             ))}
                           </select>
                           {kitEditando.estado !== 'EN_TERRENO' && (
