@@ -127,7 +127,6 @@ export const kitService = {
 
     const intentandoCambiarEquipos = equipos !== undefined;
 
-    // Regla: Impidiendo cambios de composición mientras esté en terreno
     if (intentandoCambiarEquipos && kitActual.estado === 'EN_TERRENO') {
       throw new ValidationError('No se pueden modificar los equipos de un kit mientras está en terreno', 'equipos');
     }
@@ -158,7 +157,6 @@ export const kitService = {
         throw new ValidationError(`Los siguientes equipos no están operativos: ${nombres}`, 'equipos');
       }
 
-      // Permitir si ya pertenecen a este kit o no pertenecen a ningún kit
       const deOtroKit = equiposEncontrados.filter((eq) => eq.id_kit !== null && eq.id_kit !== id_kit);
       if (deOtroKit.length > 0) {
         const nombres = deOtroKit.map((e) => e.nombre).join(', ');
@@ -178,7 +176,7 @@ export const kitService = {
     }
 
     const kitActualizado = await prisma.$transaction(async (tx) => {
-      const kitModificado = await tx.kit.update({
+      await tx.kit.update({
         where: { id_kit },
         data: {
           ...(nombre && { nombre }),
@@ -191,7 +189,6 @@ export const kitService = {
       if (intentandoCambiarEquipos) {
         const codigosActuales = kitActual.equipos.map((eq) => eq.codigo);
 
-        // Liberar equipos que ya no están
         const aLiberar = codigosActuales.filter((c) => !nuevosEquiposCodigos.includes(c));
         if (aLiberar.length > 0) {
           await tx.equipo.updateMany({
@@ -200,7 +197,6 @@ export const kitService = {
           });
         }
 
-        // Asignar nuevos equipos
         await tx.equipo.updateMany({
           where: { codigo: { in: nuevosEquiposCodigos } },
           data: { id_kit },
@@ -214,5 +210,38 @@ export const kitService = {
     });
 
     return kitActualizado;
+  },
+
+  async eliminar(idKit) {
+    const id_kit = Number(idKit);
+    if (!Number.isInteger(id_kit) || id_kit <= 0) {
+      throw new ValidationError('El ID del kit no es válido', 'id_kit');
+    }
+
+    const kit = await prisma.kit.findUnique({
+      where: { id_kit },
+      include: { equipos: true },
+    });
+
+    if (!kit) {
+      throw new ValidationError('El kit no existe', 'id_kit');
+    }
+
+    if (kit.estado === 'EN_TERRENO') {
+      throw new ValidationError('No se puede eliminar un kit que se encuentra en terreno', 'estado');
+    }
+
+    return await prisma.$transaction(async (tx) => {
+      await tx.equipo.updateMany({
+        where: { id_kit },
+        data: { id_kit: null },
+      });
+
+      await tx.kit.delete({
+        where: { id_kit },
+      });
+
+      return { mensaje: 'Kit eliminado exitosamente y sus equipos pasaron a ser repuestos' };
+    });
   },
 };

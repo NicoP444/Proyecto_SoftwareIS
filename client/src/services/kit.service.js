@@ -14,7 +14,7 @@ export const kitClientService = {
     }
   },
 
-async crearKit(datosKit) {
+  async crearKit(datosKit) {
     try {
       const response = await fetch(`${API_URL}/kits`, {
         method: 'POST',
@@ -50,6 +50,24 @@ async crearKit(datosKit) {
 
       if (!response.ok) {
         throw new Error(data.mensaje || 'Error al actualizar el kit');
+      }
+
+      return data;
+    } catch (error) {
+      throw new Error(error.message || 'Error de conexión con el servidor');
+    }
+  },
+
+  async eliminarKit(idKit) {
+    try {
+      const response = await fetch(`${API_URL}/kits/${idKit}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.mensaje || 'Error al eliminar el kit');
       }
 
       return data;

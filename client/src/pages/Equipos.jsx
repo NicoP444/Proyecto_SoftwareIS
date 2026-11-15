@@ -239,6 +239,20 @@ export default function Equipos() {
     }
   };
 
+  // --- LÓGICA DE ELIMINAR KIT (RF-P5-06) ---
+  const manejarEliminarKit = async (idKit, nombreKit) => {
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar el kit "${nombreKit}"? Sus equipos pasarán a ser repuestos.`)) {
+      return;
+    }
+    try {
+      const resultado = await kitClientService.eliminarKit(idKit);
+      alert(resultado.mensaje || 'Kit eliminado con éxito');
+      await cargarDatos();
+    } catch (err) {
+      alert(err.message || 'Error al eliminar el kit');
+    }
+  };
+
   const equiposOperativos = listaEquipos.filter(
     eq => eq.estado?.toUpperCase() === 'OPERATIVO'
   );
@@ -373,12 +387,20 @@ export default function Equipos() {
                         {kit.nivel} · Recargo: {kit.recargo_pct}%
                       </p>
                     </div>
-                    <button
-                      onClick={() => iniciarEdicionKit(kit)}
-                      style={{ padding: '5px 12px', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', color: '#1e293b' }}
-                    >
-                      Modificar
-                    </button>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button
+                        onClick={() => iniciarEdicionKit(kit)}
+                        style={{ padding: '5px 12px', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', color: '#1e293b' }}
+                      >
+                        Modificar
+                      </button>
+                      <button
+                        onClick={() => manejarEliminarKit(kit.id_kit, kit.nombre)}
+                        style={{ padding: '5px 12px', backgroundColor: '#fee2e2', border: '1px solid #fca5a5', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', color: '#991b1b' }}
+                      >
+                        Eliminar
+                      </button>
+                    </div>
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', margin: '16px 0' }}>
@@ -397,7 +419,7 @@ export default function Equipos() {
 
                   <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span style={{ backgroundColor: '#dcfce7', color: '#166534', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '600' }}>
-                      ● {kit.estado || 'DISPONIBLE'}
+                      {kit.estado || 'DISPONIBLE'}
                     </span>
                   </div>
                 </div>
@@ -820,7 +842,7 @@ export default function Equipos() {
 
             {kitEditando.estado === 'EN_TERRENO' && (
               <div style={{ marginBottom: '14px', padding: '10px 14px', backgroundColor: '#fef3c7', color: '#92400e', fontSize: '13px', borderRadius: '8px' }}>
-                ⚠️ Este kit está en terreno, por lo que no se permite cambiar su composición de equipos.
+                Este kit está en terreno, por lo que no se permite cambiar su composición de equipos.
               </div>
             )}
 
