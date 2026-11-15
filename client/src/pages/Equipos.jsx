@@ -41,7 +41,7 @@ export default function Equipos() {
   const [nivelKit, setNivelKit] = useState('BASICO');
   const [recargoPct, setRecargoPct] = useState(0);
 
-  // Selección independiente por categoría
+  // Selección independiente por categoría para CREAR
   const [camaraSeleccionada, setCamaraSeleccionada] = useState('');
   const [tripodeSeleccionado, setTripodeSeleccionado] = useState('');
   const [microfonoSeleccionado, setMicrofonoSeleccionado] = useState('');
@@ -49,6 +49,18 @@ export default function Equipos() {
 
   const [errorKit, setErrorKit] = useState('');
   const [loadingKit, setLoadingKit] = useState(false);
+
+  // --- ESTADOS PARA MODIFICAR KIT (RF-P5-05) ---
+  const [kitEditando, setKitEditando] = useState(null);
+  const [nombreEditKit, setNombreEditKit] = useState('');
+  const [nivelEditKit, setNivelEditKit] = useState('BASICO');
+  const [recargoEditPct, setRecargoEditPct] = useState(0);
+  const [camaraEdit, setCamaraEdit] = useState('');
+  const [tripodeEdit, setTripodeEdit] = useState('');
+  const [microfonoEdit, setMicrofonoEdit] = useState('');
+  const [switchEdit, setSwitchEdit] = useState('');
+  const [errorEditKit, setErrorEditKit] = useState('');
+  const [loadingEditKit, setLoadingEditKit] = useState(false);
 
   const cargarDatos = async () => {
     try {
@@ -179,6 +191,51 @@ export default function Equipos() {
       setErrorKit(err.message || 'Error al crear el kit');
     } finally {
       setLoadingKit(false);
+    }
+  };
+
+  // --- LÓGICA DE MODIFICAR KIT (RF-P5-05) ---
+  const iniciarEdicionKit = (kit) => {
+    setKitEditando(kit);
+    setNombreEditKit(kit.nombre);
+    setNivelEditKit(kit.nivel);
+    setRecargoEditPct(kit.recargo_pct);
+    setErrorEditKit('');
+
+    const camara = kit.equipos?.find(e => e.categoria === 'CAMARA')?.codigo || '';
+    const tripode = kit.equipos?.find(e => e.categoria === 'TRIPODE')?.codigo || '';
+    const microfono = kit.equipos?.find(e => e.categoria === 'MICROFONO')?.codigo || '';
+    const sw = kit.equipos?.find(e => e.categoria === 'SWITCH_VIDEO')?.codigo || '';
+
+    setCamaraEdit(camara);
+    setTripodeEdit(tripode);
+    setMicrofonoEdit(microfono);
+    setSwitchEdit(sw);
+  };
+
+  const handleSubmitModificarKit = async (e) => {
+    e.preventDefault();
+    setErrorEditKit('');
+    setLoadingEditKit(true);
+
+    try {
+      const equiposArray = [camaraEdit, tripodeEdit, microfonoEdit, switchEdit].filter(Boolean);
+
+      const payload = {
+        nombre: nombreEditKit,
+        nivel: nivelEditKit,
+        recargo_pct: Number(recargoEditPct),
+        equipos: equiposArray
+      };
+
+      const resultado = await kitClientService.actualizarKit(kitEditando.id_kit, payload);
+      alert(resultado.mensaje || 'Kit actualizado exitosamente');
+      setKitEditando(null);
+      await cargarDatos();
+    } catch (err) {
+      setErrorEditKit(err.message || 'Error al actualizar el kit');
+    } finally {
+      setLoadingEditKit(false);
     }
   };
 
@@ -316,6 +373,12 @@ export default function Equipos() {
                         {kit.nivel} · Recargo: {kit.recargo_pct}%
                       </p>
                     </div>
+                    <button
+                      onClick={() => iniciarEdicionKit(kit)}
+                      style={{ padding: '5px 12px', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', color: '#1e293b' }}
+                    >
+                      Modificar
+                    </button>
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', margin: '16px 0' }}>
@@ -739,6 +802,156 @@ export default function Equipos() {
                   style={{ padding: '8px 20px', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
                 >
                   {loadingKit ? 'Guardando...' : 'Guardar Kit'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL MODIFICAR KIT (RF-P5-05) ================= */}
+      {kitEditando && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
+          <div style={{ backgroundColor: '#ffffff', borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '640px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
+            <h2 style={{ marginTop: 0, marginBottom: '6px', fontSize: '18px', color: '#1e293b' }}>Modificar Kit: {kitEditando.nombre}</h2>
+            <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748b' }}>
+              Actualiza la información o los equipos del kit.
+            </p>
+
+            {kitEditando.estado === 'EN_TERRENO' && (
+              <div style={{ marginBottom: '14px', padding: '10px 14px', backgroundColor: '#fef3c7', color: '#92400e', fontSize: '13px', borderRadius: '8px' }}>
+                ⚠️ Este kit está en terreno, por lo que no se permite cambiar su composición de equipos.
+              </div>
+            )}
+
+            {errorEditKit && (
+              <div style={{ marginBottom: '14px', padding: '10px 14px', backgroundColor: '#fee2e2', color: '#991b1b', fontSize: '13px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FaExclamationTriangle />
+                <span>{errorEditKit}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmitModificarKit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Nombre del Kit:</label>
+                <input
+                  type="text"
+                  maxLength={60}
+                  required
+                  value={nombreEditKit}
+                  onChange={(e) => setNombreEditKit(e.target.value)}
+                  style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Nivel:</label>
+                  <select
+                    value={nivelEditKit}
+                    onChange={(e) => setNivelEditKit(e.target.value)}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
+                  >
+                    <option value="BASICO">Básico</option>
+                    <option value="ESTANDAR">Estándar</option>
+                    <option value="ALTA_GAMA">Alta Gama</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Recargo (%):</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="999.99"
+                    step="0.01"
+                    value={recargoEditPct}
+                    onChange={(e) => setRecargoEditPct(e.target.value)}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Cámara:</label>
+                  <select
+                    value={camaraEdit}
+                    onChange={(e) => setCamaraEdit(e.target.value)}
+                    disabled={kitEditando.estado === 'EN_TERRENO'}
+                    required
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: kitEditando.estado === 'EN_TERRENO' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
+                  >
+                    <option value="">-- Seleccione Cámara --</option>
+                    {listaEquipos.filter(eq => eq.categoria === 'CAMARA' && (eq.estado === 'OPERATIVO' || eq.codigo === camaraEdit)).map(eq => (
+                      <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Trípode:</label>
+                  <select
+                    value={tripodeEdit}
+                    onChange={(e) => setTripodeEdit(e.target.value)}
+                    disabled={kitEditando.estado === 'EN_TERRENO'}
+                    required
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: kitEditando.estado === 'EN_TERRENO' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
+                  >
+                    <option value="">-- Seleccione Trípode --</option>
+                    {listaEquipos.filter(eq => eq.categoria === 'TRIPODE' && (eq.estado === 'OPERATIVO' || eq.codigo === tripodeEdit)).map(eq => (
+                      <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Micrófono:</label>
+                  <select
+                    value={microfonoEdit}
+                    onChange={(e) => setMicrofonoEdit(e.target.value)}
+                    disabled={kitEditando.estado === 'EN_TERRENO'}
+                    required
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: kitEditando.estado === 'EN_TERRENO' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
+                  >
+                    <option value="">-- Seleccione Micrófono --</option>
+                    {listaEquipos.filter(eq => eq.categoria === 'MICROFONO' && (eq.estado === 'OPERATIVO' || eq.codigo === microfonoEdit)).map(eq => (
+                      <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Switch de video:</label>
+                  <select
+                    value={switchEdit}
+                    onChange={(e) => setSwitchEdit(e.target.value)}
+                    disabled={kitEditando.estado === 'EN_TERRENO'}
+                    required
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: kitEditando.estado === 'EN_TERRENO' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
+                  >
+                    <option value="">-- Seleccione Switch --</option>
+                    {listaEquipos.filter(eq => eq.categoria === 'SWITCH_VIDEO' && (eq.estado === 'OPERATIVO' || eq.codigo === switchEdit)).map(eq => (
+                      <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid #f1f5f9', paddingTop: '14px' }}>
+                <button
+                  type="button"
+                  onClick={() => setKitEditando(null)}
+                  style={{ padding: '8px 16px', backgroundColor: '#e2e8f0', color: '#334155', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={loadingEditKit}
+                  style={{ padding: '8px 20px', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
+                >
+                  {loadingEditKit ? 'Guardando...' : 'Guardar Cambios'}
                 </button>
               </div>
             </form>
