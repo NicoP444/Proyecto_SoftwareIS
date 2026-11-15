@@ -32,6 +32,8 @@ export default function Equipos() {
   const [errorEquipo, setErrorEquipo] = useState('');
   const [exitoEquipo, setExitoEquipo] = useState('');
   const [exitoKit, setExitoKit] = useState('');
+  const [exitoCrearKit, setExitoCrearKit] = useState('');
+  const [exitoModificarKit, setExitoModificarKit] = useState('');
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [equipoEditando, setEquipoEditando] = useState(null);
   const [equipoBaja, setEquipoBaja] = useState(null);
@@ -172,6 +174,7 @@ export default function Equipos() {
   const handleSubmitCrearKit = async (e) => {
     e.preventDefault();
     setErrorKit('');
+    setExitoCrearKit('');
     setLoadingKit(true);
     try {
       const equiposArray = [
@@ -190,8 +193,7 @@ export default function Equipos() {
       };
 
       const resultado = await kitClientService.crearKit(payload);
-      alert(resultado.mensaje || 'Kit creado exitosamente');
-      setIsModalOpen(false);
+      setExitoCrearKit(resultado.mensaje || 'Kit creado exitosamente');
       
       setNombreKit('');
       setNivelKit('BASICO');
@@ -203,6 +205,10 @@ export default function Equipos() {
       setEquiposAdicionalesCrear([]);
       
       await cargarDatos();
+      setTimeout(() => {
+        setIsModalOpen(false);
+        setExitoCrearKit('');
+      }, 1200);
     } catch (err) {
       setErrorKit(err.message || 'Error al crear el kit');
     } finally {
@@ -217,6 +223,7 @@ export default function Equipos() {
     setNivelEditKit(kit.nivel);
     setRecargoEditPct(kit.recargo_pct);
     setErrorEditKit('');
+    setExitoModificarKit('');
 
     const equiposKit = kit.equipos || [];
     const camara = equiposKit.find(e => e.categoria === 'CAMARA')?.codigo || '';
@@ -239,6 +246,7 @@ export default function Equipos() {
   const handleSubmitModificarKit = async (e) => {
     e.preventDefault();
     setErrorEditKit('');
+    setExitoModificarKit('');
     setLoadingEditKit(true);
 
     try {
@@ -258,9 +266,12 @@ export default function Equipos() {
       };
 
       const resultado = await kitClientService.actualizarKit(kitEditando.id_kit, payload);
-      alert(resultado.mensaje || 'Kit actualizado exitosamente');
-      setKitEditando(null);
+      setExitoModificarKit(resultado.mensaje || 'Kit actualizado exitosamente');
       await cargarDatos();
+      setTimeout(() => {
+        setKitEditando(null);
+        setExitoModificarKit('');
+      }, 1200);
     } catch (err) {
       setErrorEditKit(err.message || 'Error al actualizar el kit');
     } finally {
@@ -365,7 +376,11 @@ export default function Equipos() {
 
         {activeTab === 'KITS' ? (
           <button
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => {
+              setErrorKit('');
+              setExitoCrearKit('');
+              setIsModalOpen(true);
+            }}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -861,199 +876,211 @@ export default function Equipos() {
       {isModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
           <div style={{ backgroundColor: '#ffffff', borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '640px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
-            <h2 style={{ marginTop: 0, marginBottom: '6px', fontSize: '18px', color: '#1e293b' }}>Crear Nuevo Kit</h2>
-            <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748b' }}>
-              Selecciona los equipos base obligatorios y añade más equipos adicionales si lo necesitas.
-            </p>
-
-            {errorKit && (
-              <div style={{ marginBottom: '14px', padding: '10px 14px', backgroundColor: '#fee2e2', color: '#991b1b', fontSize: '13px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <FaExclamationTriangle />
-                <span>{errorKit}</span>
+            
+            {exitoCrearKit ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+                <FaCheckCircle style={{ fontSize: '56px', color: '#166534' }} />
+                <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>¡Creación Exitosa!</h2>
+                <p style={{ margin: 0, fontSize: '15px', color: '#166534', fontWeight: '600' }}>{exitoCrearKit}</p>
               </div>
-            )}
+            ) : (
+              <>
+                <h2 style={{ marginTop: 0, marginBottom: '6px', fontSize: '18px', color: '#1e293b' }}>Crear Nuevo Kit</h2>
+                <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748b' }}>
+                  Selecciona los equipos base obligatorios y añade más equipos adicionales si lo necesitas.
+                </p>
 
-            <form onSubmit={handleSubmitCrearKit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div>
-                <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Nombre del Kit:</label>
-                <input
-                  type="text"
-                  maxLength={60}
-                  required
-                  value={nombreKit}
-                  onChange={(e) => setNombreKit(e.target.value)}
-                  placeholder="Ej. Kit Audiovisual Pro"
-                  style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
-                />
-              </div>
+                {errorKit && (
+                  <div style={{ marginBottom: '14px', padding: '10px 14px', backgroundColor: '#fee2e2', color: '#991b1b', fontSize: '13px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <FaExclamationTriangle />
+                    <span>{errorKit}</span>
+                  </div>
+                )}
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Nivel:</label>
-                  <select
-                    value={nivelKit}
-                    onChange={(e) => setNivelKit(e.target.value)}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
-                  >
-                    <option value="BASICO">Básico</option>
-                    <option value="ESTANDAR">Estándar</option>
-                    <option value="ALTA_GAMA">Alta Gama</option>
-                  </select>
-                </div>
+                <form onSubmit={handleSubmitCrearKit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div>
+                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Nombre del Kit:</label>
+                    <input
+                      type="text"
+                      maxLength={60}
+                      required
+                      value={nombreKit}
+                      onChange={(e) => setNombreKit(e.target.value)}
+                      placeholder="Ej. Kit Audiovisual Pro"
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                    />
+                  </div>
 
-                <div>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Recargo (%):</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="999.99"
-                    step="0.01"
-                    value={recargoPct}
-                    onChange={(e) => setRecargoPct(e.target.value)}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
-                  />
-                </div>
-              </div>
-
-              {/* 4 SELECTORES PRINCIPALES OBLIGATORIOS */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Cámara (Obligatorio):</label>
-                  <select
-                    value={camaraSeleccionada}
-                    onChange={(e) => setCamaraSeleccionada(e.target.value)}
-                    required
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
-                  >
-                    <option value="">-- Seleccione Cámara --</option>
-                    {camerasDisponibles.map(eq => (
-                      <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Trípode (Obligatorio):</label>
-                  <select
-                    value={tripodeSeleccionado}
-                    onChange={(e) => setTripodeSeleccionado(e.target.value)}
-                    required
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
-                  >
-                    <option value="">-- Seleccione Trípode --</option>
-                    {tripodesDisponibles.map(eq => (
-                      <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Micrófono (Obligatorio):</label>
-                  <select
-                    value={microfonoSeleccionado}
-                    onChange={(e) => setMicrofonoSeleccionado(e.target.value)}
-                    required
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
-                  >
-                    <option value="">-- Seleccione Micrófono --</option>
-                    {microfonosDisponibles.map(eq => (
-                      <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Switch de video (Obligatorio):</label>
-                  <select
-                    value={switchSeleccionado}
-                    onChange={(e) => setSwitchSeleccionado(e.target.value)}
-                    required
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
-                  >
-                    <option value="">-- Seleccione Switch --</option>
-                    {switchesDisponibles.map(eq => (
-                      <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
-                    ))}
-                  </select>
-                </div>
-
-              </div>
-
-              {/* EQUIPOS ADICIONALES */}
-              <div style={{ marginTop: '6px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <label style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>Equipos Adicionales (Opcional):</label>
-                  <button
-                    type="button"
-                    onClick={() => setEquiposAdicionalesCrear([...equiposAdicionalesCrear, ''])}
-                    style={{ padding: '4px 10px', backgroundColor: '#e0f2fe', color: '#0369a1', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}
-                  >
-                    + Añadir equipo
-                  </button>
-                </div>
-
-                {equiposAdicionalesCrear.map((codigoAdicional, index) => {
-                  const codigosYaUsados = [
-                    camaraSeleccionada, 
-                    tripodeSeleccionado, 
-                    microfonoSeleccionado, 
-                    switchSeleccionado, 
-                    ...equiposAdicionalesCrear
-                  ];
-                  const disponiblesExtra = equiposDisponiblesParaKit.filter(
-                    eq => !codigosYaUsados.includes(eq.codigo) || eq.codigo === codigoAdicional
-                  );
-
-                  return (
-                    <div key={index} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Nivel:</label>
                       <select
-                        value={codigoAdicional}
-                        onChange={(e) => {
-                          const nuevos = [...equiposAdicionalesCrear];
-                          nuevos[index] = e.target.value;
-                          setEquiposAdicionalesCrear(nuevos);
-                        }}
-                        required
-                        style={{ flex: 1, padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: '#ffffff' }}
+                        value={nivelKit}
+                        onChange={(e) => setNivelKit(e.target.value)}
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
                       >
-                        <option value="">-- Seleccionar equipo adicional --</option>
-                        {disponiblesExtra.map(eq => (
-                          <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre} ({eq.categoria})</option>
+                        <option value="BASICO">Básico</option>
+                        <option value="ESTANDAR">Estándar</option>
+                        <option value="ALTA_GAMA">Alta Gama</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Recargo (%):</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="999.99"
+                        step="0.01"
+                        value={recargoPct}
+                        onChange={(e) => setRecargoPct(e.target.value)}
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* 4 SELECTORES PRINCIPALES OBLIGATORIOS */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Cámara (Obligatorio):</label>
+                      <select
+                        value={camaraSeleccionada}
+                        onChange={(e) => setCamaraSeleccionada(e.target.value)}
+                        required
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
+                      >
+                        <option value="">-- Seleccione Cámara --</option>
+                        {camerasDisponibles.map(eq => (
+                          <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
                         ))}
                       </select>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Trípode (Obligatorio):</label>
+                      <select
+                        value={tripodeSeleccionado}
+                        onChange={(e) => setTripodeSeleccionado(e.target.value)}
+                        required
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
+                      >
+                        <option value="">-- Seleccione Trípode --</option>
+                        {tripodesDisponibles.map(eq => (
+                          <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Micrófono (Obligatorio):</label>
+                      <select
+                        value={microfonoSeleccionado}
+                        onChange={(e) => setMicrofonoSeleccionado(e.target.value)}
+                        required
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
+                      >
+                        <option value="">-- Seleccione Micrófono --</option>
+                        {microfonosDisponibles.map(eq => (
+                          <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Switch de video (Obligatorio):</label>
+                      <select
+                        value={switchSeleccionado}
+                        onChange={(e) => setSwitchSeleccionado(e.target.value)}
+                        required
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
+                      >
+                        <option value="">-- Seleccione Switch --</option>
+                        {switchesDisponibles.map(eq => (
+                          <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                  </div>
+
+                  {/* EQUIPOS ADICIONALES */}
+                  <div style={{ marginTop: '6px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <label style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>Equipos Adicionales (Opcional):</label>
                       <button
                         type="button"
-                        onClick={() => {
-                          const nuevos = equiposAdicionalesCrear.filter((_, i) => i !== index);
-                          setEquiposAdicionalesCrear(nuevos);
-                        }}
-                        style={{ padding: '8px 10px', backgroundColor: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
+                        onClick={() => setEquiposAdicionalesCrear([...equiposAdicionalesCrear, ''])}
+                        style={{ padding: '4px 10px', backgroundColor: '#e0f2fe', color: '#0369a1', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}
                       >
-                        <FaTrash />
+                        + Añadir equipo
                       </button>
                     </div>
-                  );
-                })}
-              </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid #f1f5f9', paddingTop: '14px' }}>
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  style={{ padding: '8px 16px', backgroundColor: '#e2e8f0', color: '#334155', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={loadingKit}
-                  style={{ padding: '8px 20px', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
-                >
-                  {loadingKit ? 'Guardando...' : 'Guardar Kit'}
-                </button>
-              </div>
-            </form>
+                    {equiposAdicionalesCrear.map((codigoAdicional, index) => {
+                      const codigosYaUsados = [
+                        camaraSeleccionada, 
+                        tripodeSeleccionado, 
+                        microfonoSeleccionado, 
+                        switchSeleccionado, 
+                        ...equiposAdicionalesCrear
+                      ];
+                      const disponiblesExtra = equiposDisponiblesParaKit.filter(
+                        eq => !codigosYaUsados.includes(eq.codigo) || eq.codigo === codigoAdicional
+                      );
+
+                      return (
+                        <div key={index} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
+                          <select
+                            value={codigoAdicional}
+                            onChange={(e) => {
+                              const nuevos = [...equiposAdicionalesCrear];
+                              nuevos[index] = e.target.value;
+                              setEquiposAdicionalesCrear(nuevos);
+                            }}
+                            required
+                            style={{ flex: 1, padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: '#ffffff' }}
+                          >
+                            <option value="">-- Seleccionar equipo adicional --</option>
+                            {disponiblesExtra.map(eq => (
+                              <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre} ({eq.categoria})</option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const nuevos = equiposAdicionalesCrear.filter((_, i) => i !== index);
+                              setEquiposAdicionalesCrear(nuevos);
+                            }}
+                            style={{ padding: '8px 10px', backgroundColor: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
+                          >
+                            <FaTrash />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid #f1f5f9', paddingTop: '14px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setIsModalOpen(false)}
+                      style={{ padding: '8px 16px', backgroundColor: '#e2e8f0', color: '#334155', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={loadingKit}
+                      style={{ padding: '8px 20px', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
+                    >
+                      {loadingKit ? 'Guardando...' : 'Guardar Kit'}
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
+
           </div>
         </div>
       )}
@@ -1062,204 +1089,216 @@ export default function Equipos() {
       {kitEditando && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
           <div style={{ backgroundColor: '#ffffff', borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '700px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
-            <h2 style={{ marginTop: 0, marginBottom: '6px', fontSize: '18px', color: '#1e293b' }}>Modificar Kit: {kitEditando.nombre}</h2>
-            <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748b' }}>
-              Actualiza la información o los equipos del kit.
-            </p>
-
-            {kitEditando.estado === 'EN_TERRENO' && (
-              <div style={{ marginBottom: '14px', padding: '10px 14px', backgroundColor: '#fef3c7', color: '#92400e', fontSize: '13px', borderRadius: '8px' }}>
-                Este kit está en terreno, por lo que no se permite cambiar su composición de equipos.
+            
+            {exitoModificarKit ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+                <FaCheckCircle style={{ fontSize: '56px', color: '#166534' }} />
+                <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>¡Actualización Exitosa!</h2>
+                <p style={{ margin: 0, fontSize: '15px', color: '#166534', fontWeight: '600' }}>{exitoModificarKit}</p>
               </div>
-            )}
+            ) : (
+              <>
+                <h2 style={{ marginTop: 0, marginBottom: '6px', fontSize: '18px', color: '#1e293b' }}>Modificar Kit: {kitEditando.nombre}</h2>
+                <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748b' }}>
+                  Actualiza la información o los equipos del kit.
+                </p>
 
-            {errorEditKit && (
-              <div style={{ marginBottom: '14px', padding: '10px 14px', backgroundColor: '#fee2e2', color: '#991b1b', fontSize: '13px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <FaExclamationTriangle />
-                <span>{errorEditKit}</span>
-              </div>
-            )}
+                {kitEditando.estado === 'EN_TERRENO' && (
+                  <div style={{ marginBottom: '14px', padding: '10px 14px', backgroundColor: '#fef3c7', color: '#92400e', fontSize: '13px', borderRadius: '8px' }}>
+                    Este kit está en terreno, por lo que no se permite cambiar su composición de equipos.
+                  </div>
+                )}
 
-            <form onSubmit={handleSubmitModificarKit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div>
-                <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Nombre del Kit:</label>
-                <input
-                  type="text"
-                  maxLength={60}
-                  required
-                  value={nombreEditKit}
-                  onChange={(e) => setNombreEditKit(e.target.value)}
-                  style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
-                />
-              </div>
+                {errorEditKit && (
+                  <div style={{ marginBottom: '14px', padding: '10px 14px', backgroundColor: '#fee2e2', color: '#991b1b', fontSize: '13px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <FaExclamationTriangle />
+                    <span>{errorEditKit}</span>
+                  </div>
+                )}
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Nivel:</label>
-                  <select
-                    value={nivelEditKit}
-                    onChange={(e) => setNivelEditKit(e.target.value)}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
-                  >
-                    <option value="BASICO">Básico</option>
-                    <option value="ESTANDAR">Estándar</option>
-                    <option value="ALTA_GAMA">Alta Gama</option>
-                  </select>
-                </div>
+                <form onSubmit={handleSubmitModificarKit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div>
+                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Nombre del Kit:</label>
+                    <input
+                      type="text"
+                      maxLength={60}
+                      required
+                      value={nombreEditKit}
+                      onChange={(e) => setNombreEditKit(e.target.value)}
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                    />
+                  </div>
 
-                <div>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Recargo (%):</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="999.99"
-                    step="0.01"
-                    value={recargoEditPct}
-                    onChange={(e) => setRecargoEditPct(e.target.value)}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Cámara:</label>
-                  <select
-                    value={camaraEdit}
-                    onChange={(e) => setCamaraEdit(e.target.value)}
-                    disabled={kitEditando.estado === 'EN_TERRENO'}
-                    required
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: kitEditando.estado === 'EN_TERRENO' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
-                  >
-                    <option value="">-- Seleccione Cámara --</option>
-                    {obtenerEquiposParaEdicion().filter(eq => eq.categoria === 'CAMARA' || eq.codigo === camaraEdit).map(eq => (
-                      <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Trípode:</label>
-                  <select
-                    value={tripodeEdit}
-                    onChange={(e) => setTripodeEdit(e.target.value)}
-                    disabled={kitEditando.estado === 'EN_TERRENO'}
-                    required
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: kitEditando.estado === 'EN_TERRENO' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
-                  >
-                    <option value="">-- Seleccione Trípode --</option>
-                    {obtenerEquiposParaEdicion().filter(eq => eq.categoria === 'TRIPODE' || eq.codigo === tripodeEdit).map(eq => (
-                      <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Micrófono:</label>
-                  <select
-                    value={microfonoEdit}
-                    onChange={(e) => setMicrofonoEdit(e.target.value)}
-                    disabled={kitEditando.estado === 'EN_TERRENO'}
-                    required
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: kitEditando.estado === 'EN_TERRENO' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
-                  >
-                    <option value="">-- Seleccione Micrófono --</option>
-                    {obtenerEquiposParaEdicion().filter(eq => eq.categoria === 'MICROFONO' || eq.codigo === microfonoEdit).map(eq => (
-                      <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Switch de video:</label>
-                  <select
-                    value={switchEdit}
-                    onChange={(e) => setSwitchEdit(e.target.value)}
-                    disabled={kitEditando.estado === 'EN_TERRENO'}
-                    required
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: kitEditando.estado === 'EN_TERRENO' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
-                  >
-                    <option value="">-- Seleccione Switch --</option>
-                    {obtenerEquiposParaEdicion().filter(eq => eq.categoria === 'SWITCH_VIDEO' || eq.codigo === switchEdit).map(eq => (
-                      <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* ADICIONALES EN EDICIÓN */}
-              <div style={{ marginTop: '6px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <label style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>Equipos Adicionales:</label>
-                  {kitEditando.estado !== 'EN_TERRENO' && (
-                    <button
-                      type="button"
-                      onClick={() => setEquiposAdicionalesEditar([...equiposAdicionalesEditar, ''])}
-                      style={{ padding: '4px 10px', backgroundColor: '#e0f2fe', color: '#0369a1', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}
-                    >
-                      + Añadir equipo
-                    </button>
-                  )}
-                </div>
-
-                {equiposAdicionalesEditar.map((codigoAdicional, index) => {
-                  const codigosUsados = [camaraEdit, tripodeEdit, microfonoEdit, switchEdit, ...equiposAdicionalesEditar];
-                  const disponiblesExtra = obtenerEquiposParaEdicion().filter(
-                    eq => !codigosUsados.includes(eq.codigo) || eq.codigo === codigoAdicional
-                  );
-
-                  return (
-                    <div key={index} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Nivel:</label>
                       <select
-                        value={codigoAdicional}
-                        disabled={kitEditando.estado === 'EN_TERRENO'}
-                        onChange={(e) => {
-                          const nuevos = [...equiposAdicionalesEditar];
-                          nuevos[index] = e.target.value;
-                          setEquiposAdicionalesEditar(nuevos);
-                        }}
-                        required
-                        style={{ flex: 1, padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: '#ffffff' }}
+                        value={nivelEditKit}
+                        onChange={(e) => setNivelEditKit(e.target.value)}
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
                       >
-                        <option value="">-- Seleccionar equipo adicional --</option>
-                        {disponiblesExtra.map(eq => (
-                          <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre} ({eq.categoria})</option>
+                        <option value="BASICO">Básico</option>
+                        <option value="ESTANDAR">Estándar</option>
+                        <option value="ALTA_GAMA">Alta Gama</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Recargo (%):</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="999.99"
+                        step="0.01"
+                        value={recargoEditPct}
+                        onChange={(e) => setRecargoEditPct(e.target.value)}
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Cámara:</label>
+                      <select
+                        value={camaraEdit}
+                        onChange={(e) => setCamaraEdit(e.target.value)}
+                        disabled={kitEditando.estado === 'EN_TERRENO'}
+                        required
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: kitEditando.estado === 'EN_TERRENO' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
+                      >
+                        <option value="">-- Seleccione Cámara --</option>
+                        {obtenerEquiposParaEdicion().filter(eq => eq.categoria === 'CAMARA' || eq.codigo === camaraEdit).map(eq => (
+                          <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
                         ))}
                       </select>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Trípode:</label>
+                      <select
+                        value={tripodeEdit}
+                        onChange={(e) => setTripodeEdit(e.target.value)}
+                        disabled={kitEditando.estado === 'EN_TERRENO'}
+                        required
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: kitEditando.estado === 'EN_TERRENO' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
+                      >
+                        <option value="">-- Seleccione Trípode --</option>
+                        {obtenerEquiposParaEdicion().filter(eq => eq.categoria === 'TRIPODE' || eq.codigo === tripodeEdit).map(eq => (
+                          <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Micrófono:</label>
+                      <select
+                        value={microfonoEdit}
+                        onChange={(e) => setMicrofonoEdit(e.target.value)}
+                        disabled={kitEditando.estado === 'EN_TERRENO'}
+                        required
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: kitEditando.estado === 'EN_TERRENO' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
+                      >
+                        <option value="">-- Seleccione Micrófono --</option>
+                        {obtenerEquiposParaEdicion().filter(eq => eq.categoria === 'MICROFONO' || eq.codigo === microfonoEdit).map(eq => (
+                          <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Switch de video:</label>
+                      <select
+                        value={switchEdit}
+                        onChange={(e) => setSwitchEdit(e.target.value)}
+                        disabled={kitEditando.estado === 'EN_TERRENO'}
+                        required
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: kitEditando.estado === 'EN_TERRENO' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
+                      >
+                        <option value="">-- Seleccione Switch --</option>
+                        {obtenerEquiposParaEdicion().filter(eq => eq.categoria === 'SWITCH_VIDEO' || eq.codigo === switchEdit).map(eq => (
+                          <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* ADICIONALES EN EDICIÓN */}
+                  <div style={{ marginTop: '6px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <label style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>Equipos Adicionales:</label>
                       {kitEditando.estado !== 'EN_TERRENO' && (
                         <button
                           type="button"
-                          onClick={() => {
-                            const nuevos = equiposAdicionalesEditar.filter((_, i) => i !== index);
-                            setEquiposAdicionalesEditar(nuevos);
-                          }}
-                          style={{ padding: '8px 10px', backgroundColor: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
+                          onClick={() => setEquiposAdicionalesEditar([...equiposAdicionalesEditar, ''])}
+                          style={{ padding: '4px 10px', backgroundColor: '#e0f2fe', color: '#0369a1', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}
                         >
-                          <FaTrash />
+                          + Añadir equipo
                         </button>
                       )}
                     </div>
-                  );
-                })}
-              </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid #f1f5f9', paddingTop: '14px' }}>
-                <button
-                  type="button"
-                  onClick={() => setKitEditando(null)}
-                  style={{ padding: '8px 16px', backgroundColor: '#e2e8f0', color: '#334155', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={loadingEditKit || kitEditando.estado === 'EN_TERRENO'}
-                  style={{ padding: '8px 20px', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: kitEditando.estado === 'EN_TERRENO' ? 'not-allowed' : 'pointer', fontSize: '14px' }}
-                >
-                  {loadingEditKit ? 'Guardando...' : 'Guardar Cambios'}
-                </button>
-              </div>
-            </form>
+                    {equiposAdicionalesEditar.map((codigoAdicional, index) => {
+                      const codigosUsados = [camaraEdit, tripodeEdit, microfonoEdit, switchEdit, ...equiposAdicionalesEditar];
+                      const disponiblesExtra = obtenerEquiposParaEdicion().filter(
+                        eq => !codigosUsados.includes(eq.codigo) || eq.codigo === codigoAdicional
+                      );
+
+                      return (
+                        <div key={index} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
+                          <select
+                            value={codigoAdicional}
+                            disabled={kitEditando.estado === 'EN_TERRENO'}
+                            onChange={(e) => {
+                              const nuevos = [...equiposAdicionalesEditar];
+                              nuevos[index] = e.target.value;
+                              setEquiposAdicionalesEditar(nuevos);
+                            }}
+                            required
+                            style={{ flex: 1, padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: '#ffffff' }}
+                          >
+                            <option value="">-- Seleccionar equipo adicional --</option>
+                            {disponiblesExtra.map(eq => (
+                              <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre} ({eq.categoria})</option>
+                            ))}
+                          </select>
+                          {kitEditando.estado !== 'EN_TERRENO' && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const nuevos = equiposAdicionalesEditar.filter((_, i) => i !== index);
+                                setEquiposAdicionalesEditar(nuevos);
+                              }}
+                              style={{ padding: '8px 10px', backgroundColor: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
+                            >
+                              <FaTrash />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid #f1f5f9', paddingTop: '14px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setKitEditando(null)}
+                      style={{ padding: '8px 16px', backgroundColor: '#e2e8f0', color: '#334155', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={loadingEditKit || kitEditando.estado === 'EN_TERRENO'}
+                      style={{ padding: '8px 20px', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: kitEditando.estado === 'EN_TERRENO' ? 'not-allowed' : 'pointer', fontSize: '14px' }}
+                    >
+                      {loadingEditKit ? 'Guardando...' : 'Guardar Cambios'}
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
+
           </div>
         </div>
       )}
