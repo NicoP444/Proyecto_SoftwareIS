@@ -263,14 +263,15 @@ export default function Equipos() {
     }
   };
 
-  const equiposOperativos = listaEquipos.filter(
-    eq => eq.estado?.toUpperCase() === 'OPERATIVO'
+  // Equipos libres y operativos para crear un kit
+  const equiposDisponiblesParaKit = listaEquipos.filter(
+    eq => eq.estado?.toUpperCase() === 'OPERATIVO' && !eq.id_kit
   );
 
-  const camerasDisponibles = equiposOperativos.filter(eq => eq.categoria?.toUpperCase() === 'CAMARA');
-  const tripodesDisponibles = equiposOperativos.filter(eq => eq.categoria?.toUpperCase() === 'TRIPODE');
-  const microfonosDisponibles = equiposOperativos.filter(eq => eq.categoria?.toUpperCase() === 'MICROFONO');
-  const switchesDisponibles = equiposOperativos.filter(eq => eq.categoria?.toUpperCase() === 'SWITCH_VIDEO');
+  const camerasDisponibles = equiposDisponiblesParaKit.filter(eq => eq.categoria?.toUpperCase() === 'CAMARA');
+  const tripodesDisponibles = equiposDisponiblesParaKit.filter(eq => eq.categoria?.toUpperCase() === 'TRIPODE');
+  const microfonosDisponibles = equiposDisponiblesParaKit.filter(eq => eq.categoria?.toUpperCase() === 'MICROFONO');
+  const switchesDisponibles = equiposDisponiblesParaKit.filter(eq => eq.categoria?.toUpperCase() === 'SWITCH_VIDEO');
 
   return (
     <div style={{ padding: '10px 0', width: '100%', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
