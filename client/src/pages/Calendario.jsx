@@ -31,6 +31,7 @@ import PanelKits from "../components/calendario/PanelKits";
 import ConvocatoriaEvento from "../components/calendario/ConvocatoriaEvento";
 import ViabilidadEvento from "../components/calendario/ViabilidadEvento";
 import PagosEvento from "../components/calendario/PagosEvento";
+import DetalleFinancieroEvento from "../components/calendario/DetalleFinancieroEvento";
 import ConsultaPersonal from "../components/calendario/ConsultaPersonal";
 import MargenTraslado from "../components/calendario/MargenTraslado";
 import { obtenerUsuario } from "../services/http.js";
@@ -144,6 +145,7 @@ export default function Calendario() {
   const [motivoEliminar, setMotivoEliminar] = useState("");
   const [editando, setEditando] = useState(false); // ventana "Modificar evento" (RF-P1-07)
   const [avisosEdicion, setAvisosEdicion] = useState([]); // avisos que devuelve el back al modificar
+  const [versionFin, setVersionFin] = useState(0); // sube para que el detalle financiero se vuelva a pedir
 
   // RF-P1-12 y RF-P1-13: el Jefe técnico no ve datos financieros
   const rol = obtenerUsuario()?.rol;
@@ -211,6 +213,7 @@ export default function Calendario() {
   async function guardarEdicion(datos) {
     const respuesta = await modificarEvento(eventoAbierto.id_evento, datos);
     setEditando(false);
+    setVersionFin((v) => v + 1);
     const lista = await listarEventos().catch(() => null);
     if (lista) {
       setEventos(lista);
@@ -226,6 +229,7 @@ export default function Calendario() {
 
   // Después de registrar un pago: recarga el calendario y deja el detalle con el estado nuevo
   async function refrescarDetalle() {
+    setVersionFin((v) => v + 1);
     const lista = await listarEventos().catch(() => null);
     if (lista) {
       setEventos(lista);
@@ -648,6 +652,14 @@ export default function Calendario() {
                         idEvento={e.id_evento}
                         puedeRegistrar={rol === "CONTADOR"}
                         onCambio={refrescarDetalle}
+                      />
+                    </section>
+                  )}
+                  {verFinanzas && (
+                    <section className="cal-bloque">
+                      <DetalleFinancieroEvento
+                        idEvento={e.id_evento}
+                        version={versionFin}
                       />
                     </section>
                   )}
