@@ -32,12 +32,20 @@ export async function listarEventos() {
 }
 
 export async function crearEvento(datos) {
+  const tipo = String(datos.tipo ?? "").trim();
+  const direccion = String(datos.direccion ?? "").trim();
+  const observaciones = String(datos.observaciones ?? "").trim() || null;
   const cantidadCamaras = Number(datos.cantidad_camaras);
   const precio = Number(datos.precio_acordado);
   const idCliente = Number(datos.id_cliente);
 
-  if (!datos.direccion || !datos.direccion.trim()) {
-    throw new Error("Debe indicar la dirección del evento");
+  // 1. Validaciones de los datos (las mismas del PUT)
+  if (!tipo) throw new Error("Debe indicar el tipo de evento");
+  if (tipo.length > 40) throw new Error("El tipo de evento no puede superar los 40 caracteres");
+  if (!direccion) throw new Error("Debe indicar la dirección del evento");
+  if (direccion.length > 120) throw new Error("La dirección no puede superar los 120 caracteres");
+  if (observaciones && observaciones.length > 255) {
+    throw new Error("Las observaciones no pueden superar los 255 caracteres");
   }
   if (!Number.isInteger(cantidadCamaras) || cantidadCamaras < 1) {
     throw new Error("Debe indicar al menos 1 cámara");
@@ -48,16 +56,18 @@ export async function crearEvento(datos) {
   if (!Number.isInteger(idCliente) || idCliente <= 0) {
     throw new Error("Debe seleccionar un cliente");
   }
+  validarFormatoAgenda(datos); // fecha y horas válidas, y término posterior al inicio
+
+  // 2. El cliente debe existir y ser del dueño
+  const cliente = await prisma.cliente.findFirst({
+    where: { id_cliente: idCliente, id_dueno: ID_DUENO_DEMO },
+  });
+  if (!cliente) throw new Error("El cliente no existe");
 
   const inicio = new Date(`${datos.fecha}T${datos.hora_inicio}:00Z`);
   const termino = new Date(`${datos.fecha}T${datos.hora_termino}:00Z`);
 
-  if (termino <= inicio) {
-    throw new Error(
-      "La hora de término debe ser posterior a la hora de inicio",
-    );
-  }
-
+  // 3. Estado inicial según la duración (RF-P1-04)
   const duracionHoras = (termino - inicio) / (1000 * 60 * 60);
   const estado =
     duracionHoras >= HORAS_LIMITE_ADELANTO
@@ -66,14 +76,14 @@ export async function crearEvento(datos) {
 
   return prisma.evento.create({
     data: {
-      tipo: datos.tipo,
+      tipo,
       fecha: new Date(datos.fecha),
       hora_inicio: inicio,
       hora_termino: termino,
-      direccion: datos.direccion,
+      direccion,
       cantidad_camaras: cantidadCamaras,
       precio_acordado: precio,
-      observaciones: datos.observaciones || null,
+      observaciones,
       estado,
       id_cliente: idCliente,
       id_dueno: ID_DUENO_DEMO,
