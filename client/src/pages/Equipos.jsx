@@ -31,6 +31,7 @@ export default function Equipos() {
   const [guardandoEquipo, setGuardandoEquipo] = useState(false);
   const [errorEquipo, setErrorEquipo] = useState('');
   const [exitoEquipo, setExitoEquipo] = useState('');
+  const [exitoEditarEquipo, setExitoEditarEquipo] = useState('');
   const [exitoBaja, setExitoBaja] = useState('');
   const [exitoKit, setExitoKit] = useState('');
   const [exitoCrearKit, setExitoCrearKit] = useState('');
@@ -104,6 +105,17 @@ export default function Equipos() {
     }
   };
 
+  // Función segura para formatear fechas en los inputs
+  const formatearFechaInput = (fecha) => {
+    if (!fecha) return '';
+    if (typeof fecha === 'string') return fecha.split('T')[0];
+    try {
+      return new Date(fecha).toISOString().split('T')[0];
+    } catch {
+      return '';
+    }
+  };
+
   const getIconoCategoria = (categoria) => {
     switch (categoria?.toUpperCase()) {
       case 'CAMARA': return <FaVideo className="text-blue-500" />;
@@ -150,6 +162,7 @@ export default function Equipos() {
 
   const guardarEdicion = async (e) => {
     e.preventDefault();
+    setExitoEditarEquipo('');
     try {
       await actualizarEquipo(equipoEditando.codigo, {
         nombre: equipoEditando.nombre,
@@ -159,8 +172,12 @@ export default function Equipos() {
         fecha_compra: equipoEditando.fecha_compra,
         valor_compra: Number(equipoEditando.valor_compra)
       });
-      setEquipoEditando(null);
+      setExitoEditarEquipo('Equipo modificado correctamente en el inventario');
       await cargarDatos();
+      setTimeout(() => {
+        setEquipoEditando(null);
+        setExitoEditarEquipo('');
+      }, 1200);
     } catch (error) {
       alert(error.message || 'Error al actualizar el equipo.');
     }
@@ -832,7 +849,7 @@ export default function Equipos() {
                       <input
                         type="date"
                         name="fecha_compra"
-                        value={equipoEditando.fecha_compra ? equipoEditando.fecha_compra.split('T')[0] : ''}
+                        value={formatearFechaInput(equipoEditando.fecha_compra)}
                         onChange={(e) => setEquipoEditando({ ...equipoEditando, fecha_compra: e.target.value })}
                         required
                         style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
