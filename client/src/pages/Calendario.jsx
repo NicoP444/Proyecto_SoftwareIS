@@ -27,6 +27,7 @@ import {
 import FormularioEvento from "../components/calendario/FormularioEvento";
 import GestionClientes from "../components/calendario/GestionClientes";
 import PanelPersonal from "../components/calendario/PanelPersonal";
+import PanelKits from "../components/calendario/PanelKits";
 import ConvocatoriaEvento from "../components/calendario/ConvocatoriaEvento";
 import ViabilidadEvento from "../components/calendario/ViabilidadEvento";
 import PagosEvento from "../components/calendario/PagosEvento";
@@ -593,20 +594,14 @@ export default function Calendario() {
                     onCambio={cargarDatos}
                   />
                 </section>
-
-                {e.reservas_kit?.length > 0 && (
-                  <section className="cal-bloque">
-                    <span className="etiqueta">Kits</span>
-                    <div className="lista-roles">
-                      {e.reservas_kit.map((r) => (
-                        <span key={r.id_reserva} className="chip-rol">
-                          {r.kit?.nombre}
-                        </span>
-                      ))}
-                    </div>
-                  </section>
-                )}
-
+                {/* Kits del evento (RF-P1-05) */}
+                <section className="cal-bloque">
+                  <PanelKits
+                    evento={{ id_evento: e.id_evento, estado: e.estado }}
+                    puedeEditar={puedeCrear}
+                    onCambio={cargarDatos}
+                  />
+                </section>
                 {e.acuerdos?.length > 0 && (
                   <section className="cal-bloque">
                     <span className="etiqueta">Auspiciadores</span>
