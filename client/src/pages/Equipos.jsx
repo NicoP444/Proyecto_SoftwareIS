@@ -102,7 +102,7 @@ export default function Equipos() {
     setMensaje('Registrando equipo...');
     try {
       await registrarEquipo({ ...formData, valor_compra: Number(formData.valor_compra) });
-      setMensaje('¡Equipo registrado con éxito en inventario!');
+      setMensaje('Equipo registrado con éxito en inventario');
       setFormData({
         nombre: '',
         categoria: 'CAMARA',
@@ -144,7 +144,7 @@ export default function Equipos() {
     }
     try {
       const resp = await darDeBajaEquipo(equipoBaja.codigo, motivoBaja);
-      if (resp?.sinHistorial && window.confirm('¿Deseas eliminarlo definitivamente?')) {
+      if (resp?.sinHistorial && window.confirm('Deseas eliminarlo definitivamente?')) {
         await eliminarEquipo(equipoBaja.codigo);
       }
       setEquipoBaja(null);
@@ -241,7 +241,7 @@ export default function Equipos() {
 
   // --- LÓGICA DE ELIMINAR KIT (RF-P5-06) ---
   const manejarEliminarKit = async (idKit, nombreKit) => {
-    if (!window.confirm(`¿Estás seguro de que deseas eliminar el kit "${nombreKit}"? Sus equipos pasarán a ser repuestos.`)) {
+    if (!window.confirm(`Estás seguro de que deseas eliminar el kit "${nombreKit}"? Sus equipos pasarán a ser repuestos.`)) {
       return;
     }
     try {
@@ -286,7 +286,7 @@ export default function Equipos() {
             KITS
           </button>
           <button
-            onClick={() => setActiveTab('REPUESTOS')}
+            onClick={() => setActiveTab('EQUIPOS')}
             style={{
               padding: '9px 20px',
               borderRadius: '20px',
@@ -294,30 +294,13 @@ export default function Equipos() {
               cursor: 'pointer',
               fontSize: '14px',
               fontWeight: '600',
-              backgroundColor: activeTab === 'REPUESTOS' ? '#334155' : '#e0f2fe',
-              color: activeTab === 'REPUESTOS' ? '#ffffff' : '#0369a1',
+              backgroundColor: activeTab === 'EQUIPOS' ? '#334155' : '#e0f2fe',
+              color: activeTab === 'EQUIPOS' ? '#ffffff' : '#0369a1',
               boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
               transition: 'all 0.2s'
             }}
           >
-            REPUESTOS
-          </button>
-          <button
-            onClick={() => setActiveTab('INCIDENTES')}
-            style={{
-              padding: '9px 20px',
-              borderRadius: '20px',
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '600',
-              backgroundColor: activeTab === 'INCIDENTES' ? '#334155' : '#e0f2fe',
-              color: activeTab === 'INCIDENTES' ? '#ffffff' : '#0369a1',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-              transition: 'all 0.2s'
-            }}
-          >
-            INCIDENTES
+            EQUIPOS
           </button>
         </div>
 
@@ -344,7 +327,7 @@ export default function Equipos() {
             </span>
             <span>Crear kit</span>
           </button>
-        ) : activeTab === 'REPUESTOS' ? (
+        ) : activeTab === 'EQUIPOS' ? (
           <button
             type="button"
             onClick={() => {
@@ -429,8 +412,8 @@ export default function Equipos() {
         </div>
       )}
 
-      {/* ================= VISTA REPUESTOS / INVENTARIO ================= */}
-      {activeTab === 'REPUESTOS' && (
+      {/* ================= VISTA EQUIPOS / INVENTARIO ================= */}
+      {activeTab === 'EQUIPOS' && (
         <>
           {mostrarFormulario && (
             <div style={{
@@ -635,13 +618,6 @@ export default function Equipos() {
             )}
           </div>
         </>
-      )}
-
-      {/* ================= VISTA INCIDENTES ================= */}
-      {activeTab === 'INCIDENTES' && (
-        <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '32px', textAlign: 'center', border: '1px solid #f1f5f9' }}>
-          <p style={{ color: '#64748b', fontSize: '14px', margin: 0 }}>Sección de incidentes en gestión de equipos.</p>
-        </div>
       )}
 
       {/* ================= MODALES DE EQUIPOS ================= */}
