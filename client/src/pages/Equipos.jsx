@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
   FaPlus, FaVideo, FaSlidersH, FaMicrophone, FaDesktop, 
-  FaExclamationTriangle, FaBoxOpen 
+  FaExclamationTriangle, FaBoxOpen, FaCheckCircle 
 } from 'react-icons/fa';
 import {
   obtenerEquipos,
@@ -28,7 +28,9 @@ export default function Equipos() {
 
   const [listaEquipos, setListaEquipos] = useState([]);
   const [cargando, setCargando] = useState(true);
-  const [mensaje, setMensaje] = useState('');
+  const [guardandoEquipo, setGuardandoEquipo] = useState(false);
+  const [errorEquipo, setErrorEquipo] = useState('');
+  const [exitoEquipo, setExitoEquipo] = useState('');
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [equipoEditando, setEquipoEditando] = useState(null);
   const [equipoBaja, setEquipoBaja] = useState(null);
@@ -99,11 +101,12 @@ export default function Equipos() {
 
   const manejarEnvio = async (e) => {
     e.preventDefault();
-    setMensaje('Registrando equipo...');
+    setErrorEquipo('');
+    setExitoEquipo('');
+    setGuardandoEquipo(true);
     try {
       await registrarEquipo({ ...formData, valor_compra: Number(formData.valor_compra) });
-      alert('Equipo registrado con éxito en inventario');
-      setMostrarFormulario(false);
+      setExitoEquipo('Equipo registrado con éxito en el inventario');
       setFormData({
         nombre: '',
         categoria: 'CAMARA',
@@ -113,10 +116,15 @@ export default function Equipos() {
         valor_compra: '',
         id_jefe: 1
       });
-      setMensaje('');
       cargarDatos();
+      setTimeout(() => {
+        setMostrarFormulario(false);
+        setExitoEquipo('');
+      }, 1200);
     } catch (error) {
-      setMensaje(error.message || 'Error al registrar el equipo.');
+      setErrorEquipo(error.message || 'Error al registrar el equipo.');
+    } finally {
+      setGuardandoEquipo(false);
     }
   };
 
@@ -333,8 +341,9 @@ export default function Equipos() {
           <button
             type="button"
             onClick={() => {
+              setErrorEquipo('');
+              setExitoEquipo('');
               setMostrarFormulario(true);
-              setMensaje('');
             }}
             style={{
               display: 'flex',
@@ -511,118 +520,132 @@ export default function Equipos() {
       {mostrarFormulario && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
           <div style={{ backgroundColor: '#ffffff', borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '640px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
-            <h2 style={{ marginTop: 0, marginBottom: '6px', fontSize: '18px', color: '#1e293b' }}>
-              Registrar Equipo en Inventario
-            </h2>
-            <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748b' }}>
-              El sistema generará automáticamente el código único según la categoría y asignará el estado Operativo.
-            </p>
+            
+            {exitoEquipo ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+                <FaCheckCircle style={{ fontSize: '56px', color: '#166534' }} />
+                <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>¡Registro Exitoso!</h2>
+                <p style={{ margin: 0, fontSize: '15px', color: '#166534', fontWeight: '600' }}>{exitoEquipo}</p>
+              </div>
+            ) : (
+              <>
+                <h2 style={{ marginTop: 0, marginBottom: '6px', fontSize: '18px', color: '#1e293b' }}>
+                  Registrar Equipo en Inventario
+                </h2>
+                <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748b' }}>
+                  El sistema generará automáticamente el código único según la categoría y asignará el estado Operativo.
+                </p>
 
-            {mensaje && (
-              <p style={{ fontWeight: '600', color: mensaje.includes('éxito') ? '#166534' : '#dc2626', marginBottom: '14px', fontSize: '14px' }}>
-                {mensaje}
-              </p>
+                {errorEquipo && (
+                  <div style={{ marginBottom: '14px', padding: '10px 14px', backgroundColor: '#fee2e2', color: '#991b1b', fontSize: '13px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <FaExclamationTriangle />
+                    <span>{errorEquipo}</span>
+                  </div>
+                )}
+
+                <form onSubmit={manejarEnvio} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div>
+                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Nombre del equipo:</label>
+                    <input
+                      type="text"
+                      name="nombre"
+                      placeholder="Ej: Sony Alpha 7 IV"
+                      value={formData.nombre}
+                      onChange={manejarCambio}
+                      required
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Categoría:</label>
+                      <select
+                        name="categoria"
+                        value={formData.categoria}
+                        onChange={manejarCambio}
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
+                      >
+                        <option value="CAMARA">CAMARA</option>
+                        <option value="TRIPODE">TRIPODE</option>
+                        <option value="MICROFONO">MICROFONO</option>
+                        <option value="SWITCH_VIDEO">SWITCH_VIDEO</option>
+                        <option value="OTRO">OTRO</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Marca:</label>
+                      <input
+                        type="text"
+                        name="marca"
+                        placeholder="Ej: Sony"
+                        value={formData.marca}
+                        onChange={manejarCambio}
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Modelo:</label>
+                      <input
+                        type="text"
+                        name="modelo"
+                        placeholder="Ej: ILCE-7M4"
+                        value={formData.modelo}
+                        onChange={manejarCambio}
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Fecha de compra:</label>
+                      <input
+                        type="date"
+                        name="fecha_compra"
+                        value={formData.fecha_compra}
+                        onChange={manejarCambio}
+                        required
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Valor de compra ($):</label>
+                    <input
+                      type="number"
+                      name="valor_compra"
+                      placeholder="Ej: 1800000"
+                      value={formData.valor_compra}
+                      onChange={manejarCambio}
+                      required
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid #f1f5f9', paddingTop: '14px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setMostrarFormulario(false)}
+                      style={{ padding: '8px 16px', backgroundColor: '#e2e8f0', color: '#334155', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={guardandoEquipo}
+                      style={{ padding: '8px 20px', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
+                    >
+                      {guardandoEquipo ? 'Guardando...' : 'Guardar Equipo'}
+                    </button>
+                  </div>
+                </form>
+              </>
             )}
 
-            <form onSubmit={manejarEnvio} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div>
-                <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Nombre del equipo:</label>
-                <input
-                  type="text"
-                  name="nombre"
-                  placeholder="Ej: Sony Alpha 7 IV"
-                  value={formData.nombre}
-                  onChange={manejarCambio}
-                  required
-                  style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Categoría:</label>
-                  <select
-                    name="categoria"
-                    value={formData.categoria}
-                    onChange={manejarCambio}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
-                  >
-                    <option value="CAMARA">CAMARA</option>
-                    <option value="TRIPODE">TRIPODE</option>
-                    <option value="MICROFONO">MICROFONO</option>
-                    <option value="SWITCH_VIDEO">SWITCH_VIDEO</option>
-                    <option value="OTRO">OTRO</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Marca:</label>
-                  <input
-                    type="text"
-                    name="marca"
-                    placeholder="Ej: Sony"
-                    value={formData.marca}
-                    onChange={manejarCambio}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Modelo:</label>
-                  <input
-                    type="text"
-                    name="modelo"
-                    placeholder="Ej: ILCE-7M4"
-                    value={formData.modelo}
-                    onChange={manejarCambio}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Fecha de compra:</label>
-                  <input
-                    type="date"
-                    name="fecha_compra"
-                    value={formData.fecha_compra}
-                    onChange={manejarCambio}
-                    required
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Valor de compra ($):</label>
-                <input
-                  type="number"
-                  name="valor_compra"
-                  placeholder="Ej: 1800000"
-                  value={formData.valor_compra}
-                  onChange={manejarCambio}
-                  required
-                  style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid #f1f5f9', paddingTop: '14px' }}>
-                <button
-                  type="button"
-                  onClick={() => setMostrarFormulario(false)}
-                  style={{ padding: '8px 16px', backgroundColor: '#e2e8f0', color: '#334155', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  style={{ padding: '8px 20px', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
-                >
-                  Guardar Equipo
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}
@@ -885,7 +908,7 @@ export default function Equipos() {
                     onChange={(e) => setCamaraEdit(e.target.value)}
                     disabled={kitEditando.estado === 'EN_TERRENO'}
                     required
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: kitEditando.estado === 'EN_TERREno' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: kitEditando.estado === 'EN_TERRENO' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
                   >
                     <option value="">-- Seleccione Cámara --</option>
                     {listaEquipos.filter(eq => eq.categoria === 'CAMARA' && (eq.estado === 'OPERATIVO' || eq.codigo === camaraEdit)).map(eq => (
