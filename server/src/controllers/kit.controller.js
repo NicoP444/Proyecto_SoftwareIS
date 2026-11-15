@@ -22,4 +22,16 @@ export const kitController = {
       return manejarError(res, error);
     }
   },
+
+  async actualizar(req, res) {
+    try {
+      const kit = await kitService.actualizar(req.params.id, req.body);
+      return res.status(200).json({
+        mensaje: 'Kit actualizado exitosamente',
+        data: kit,
+      });
+    } catch (error) {
+      return manejarError(res, error);
+    }
+  },
 };

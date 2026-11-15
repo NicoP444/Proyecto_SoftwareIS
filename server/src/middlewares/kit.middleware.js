@@ -1,5 +1,5 @@
-import { validarBody, camposObligatorios } from './validate.middleware.js';
-import { validarCrearKit } from '../schemas/kit.schemas.js';
+import { validarBody } from './validate.middleware.js';
+import { validarCrearKit, validarModificarKit } from '../schemas/kit.schemas.js';
 import { manejarError } from '../utils/errores.js';
 
 export const verificarCrearKit = (req, res, next) => {
@@ -11,9 +11,21 @@ export const verificarCrearKit = (req, res, next) => {
   }
 };
 
-// POST /api/kits
+export const verificarModificarKit = (req, res, next) => {
+  try {
+    req.body = validarModificarKit(req.body);
+    next();
+  } catch (error) {
+    return manejarError(res, error);
+  }
+};
+
 export const crearKitMiddleware = [
   validarBody,
-  camposObligatorios('nombre', 'nivel', 'equipos'),
   verificarCrearKit,
+];
+
+export const actualizarKitMiddleware = [
+  validarBody,
+  verificarModificarKit,
 ];

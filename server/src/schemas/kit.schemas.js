@@ -70,3 +70,53 @@ export const validarCrearKit = (body) => {
     equipos: codigosUnicos,
   };
 };
+
+export const validarModificarKit = (body) => {
+  const { nombre, nivel, recargo_pct, id_jefe, equipos } = body;
+  let datosValidados = {};
+
+  if (nombre !== undefined && nombre !== null) {
+    if (typeof nombre !== 'string' || nombre.trim().length === 0) {
+      throw new ValidationError('El nombre del kit debe ser texto válido', 'nombre');
+    }
+    datosValidados.nombre = nombre.trim();
+  }
+
+  if (nivel !== undefined && nivel !== null) {
+    if (typeof nivel !== 'string' || !NIVELES_VALIDOS.includes(nivel.trim().toUpperCase())) {
+      throw new ValidationError('El nivel debe ser BASICO, ESTANDAR o ALTA_GAMA', 'nivel');
+    }
+    datosValidados.nivel = nivel.trim().toUpperCase();
+  }
+
+  if (recargo_pct !== undefined && recargo_pct !== null && recargo_pct !== '') {
+    const recargoNum = Number(recargo_pct);
+    if (Number.isNaN(recargoNum) || recargoNum < 0 || recargoNum > 999.99) {
+      throw new ValidationError('El recargo porcentual debe ser un número entre 0 y 999.99', 'recargo_pct');
+    }
+    datosValidados.recargo_pct = recargoNum;
+  }
+
+  if (id_jefe !== undefined && id_jefe !== null && id_jefe !== '') {
+    datosValidados.id_jefe = enteroPositivo(id_jefe, 'id_jefe');
+  }
+
+  if (equipos !== undefined && equipos !== null) {
+    if (!Array.isArray(equipos) || equipos.length < 4) {
+      throw new ValidationError('El kit debe mantener al menos 4 equipos (cámara, trípode, micrófono y switch de video)', 'equipos');
+    }
+    const codigosValidos = equipos.map((codigo) => {
+      if (typeof codigo !== 'string' || codigo.trim().length === 0) {
+        throw new ValidationError('Cada código de equipo debe ser un texto válido', 'equipos');
+      }
+      return codigo.trim();
+    });
+    const codigosUnicos = [...new Set(codigosValidos)];
+    if (codigosUnicos.length < 4) {
+      throw new ValidationError('No puedes repetir el mismo equipo; deben ser al menos 4 equipos distintos', 'equipos');
+    }
+    datosValidados.equipos = codigosUnicos;
+  }
+
+  return datosValidados;
+};
