@@ -31,6 +31,7 @@ export default function Equipos() {
   const [guardandoEquipo, setGuardandoEquipo] = useState(false);
   const [errorEquipo, setErrorEquipo] = useState('');
   const [exitoEquipo, setExitoEquipo] = useState('');
+  const [exitoEditarEquipo, setExitoEditarEquipo] = useState('');
   const [exitoKit, setExitoKit] = useState('');
   const [exitoCrearKit, setExitoCrearKit] = useState('');
   const [exitoModificarKit, setExitoModificarKit] = useState('');
@@ -149,6 +150,7 @@ export default function Equipos() {
 
   const guardarEdicion = async (e) => {
     e.preventDefault();
+    setExitoEditarEquipo('');
     try {
       await actualizarEquipo(equipoEditando.codigo, {
         nombre: equipoEditando.nombre,
@@ -158,8 +160,12 @@ export default function Equipos() {
         fecha_compra: equipoEditando.fecha_compra,
         valor_compra: Number(equipoEditando.valor_compra)
       });
-      setEquipoEditando(null);
+      setExitoEditarEquipo('Equipo modificado correctamente en el inventario');
       await cargarDatos();
+      setTimeout(() => {
+        setEquipoEditando(null);
+        setExitoEditarEquipo('');
+      }, 1200);
     } catch (error) {
       alert(error.message || 'Error al actualizar el equipo.');
     }
@@ -753,106 +759,118 @@ export default function Equipos() {
         </div>
       )}
 
-      {/* ================= MODAL MODIFICAR EQUIPO (SIN CAMBIO DE CATEGORÍA) ================= */}
+      {/* ================= MODAL MODIFICAR EQUIPO ================= */}
       {equipoEditando && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
           <div style={{ backgroundColor: '#ffffff', borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '640px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
-            <h2 style={{ marginTop: 0, marginBottom: '6px', fontSize: '18px', color: '#1e293b' }}>
-              Modificar Equipo: {equipoEditando.codigo}
-            </h2>
-            <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748b' }}>
-              Actualiza los datos generales del equipo (la categoría se mantiene fija).
-            </p>
-
-            <form onSubmit={guardarEdicion} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div>
-                <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Nombre del equipo:</label>
-                <input
-                  type="text"
-                  name="nombre"
-                  value={equipoEditando.nombre || ''}
-                  onChange={(e) => setEquipoEditando({ ...equipoEditando, nombre: e.target.value })}
-                  required
-                  style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
-                />
+            
+            {exitoEditarEquipo ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+                <FaCheckCircle style={{ fontSize: '56px', color: '#166534' }} />
+                <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>¡Modificación Exitosa!</h2>
+                <p style={{ margin: 0, fontSize: '15px', color: '#166534', fontWeight: '600' }}>{exitoEditarEquipo}</p>
               </div>
+            ) : (
+              <>
+                <h2 style={{ marginTop: 0, marginBottom: '6px', fontSize: '18px', color: '#1e293b' }}>
+                  Modificar Equipo: {equipoEditando.codigo}
+                </h2>
+                <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748b' }}>
+                  Actualiza los datos generales del equipo (la categoría se mantiene fija).
+                </p>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Categoría (Fija):</label>
-                  <input
-                    type="text"
-                    value={formatearCategoria(equipoEditando.categoria)}
-                    disabled
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#f1f5f9', color: '#64748b', boxSizing: 'border-box' }}
-                  />
-                </div>
+                <form onSubmit={guardarEdicion} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div>
+                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Nombre del equipo:</label>
+                    <input
+                      type="text"
+                      name="nombre"
+                      value={equipoEditando.nombre || ''}
+                      onChange={(e) => setEquipoEditando({ ...equipoEditando, nombre: e.target.value })}
+                      required
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                    />
+                  </div>
 
-                <div>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Marca:</label>
-                  <input
-                    type="text"
-                    name="marca"
-                    value={equipoEditando.marca || ''}
-                    onChange={(e) => setEquipoEditando({ ...equipoEditando, marca: e.target.value })}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
-                  />
-                </div>
-              </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Categoría (Fija):</label>
+                      <input
+                        type="text"
+                        value={formatearCategoria(equipoEditando.categoria)}
+                        disabled
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#f1f5f9', color: '#64748b', boxSizing: 'border-box' }}
+                      />
+                    </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Modelo:</label>
-                  <input
-                    type="text"
-                    name="modelo"
-                    value={equipoEditando.modelo || ''}
-                    onChange={(e) => setEquipoEditando({ ...equipoEditando, modelo: e.target.value })}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
-                  />
-                </div>
+                    <div>
+                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Marca:</label>
+                      <input
+                        type="text"
+                        name="marca"
+                        value={equipoEditando.marca || ''}
+                        onChange={(e) => setEquipoEditando({ ...equipoEditando, marca: e.target.value })}
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
 
-                <div>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Fecha de compra:</label>
-                  <input
-                    type="date"
-                    name="fecha_compra"
-                    value={equipoEditando.fecha_compra ? equipoEditando.fecha_compra.split('T')[0] : ''}
-                    onChange={(e) => setEquipoEditando({ ...equipoEditando, fecha_compra: e.target.value })}
-                    required
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
-                  />
-                </div>
-              </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Modelo:</label>
+                      <input
+                        type="text"
+                        name="modelo"
+                        value={equipoEditando.modelo || ''}
+                        onChange={(e) => setEquipoEditando({ ...equipoEditando, modelo: e.target.value })}
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                      />
+                    </div>
 
-              <div>
-                <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Valor de compra ($):</label>
-                <input
-                  type="number"
-                  name="valor_compra"
-                  value={equipoEditando.valor_compra || ''}
-                  onChange={(e) => setEquipoEditando({ ...equipoEditando, valor_compra: e.target.value })}
-                  required
-                  style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
-                />
-              </div>
+                    <div>
+                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Fecha de compra:</label>
+                      <input
+                        type="date"
+                        name="fecha_compra"
+                        value={equipoEditando.fecha_compra ? equipoEditando.fecha_compra.split('T')[0] : ''}
+                        onChange={(e) => setEquipoEditando({ ...equipoEditando, fecha_compra: e.target.value })}
+                        required
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid #f1f5f9', paddingTop: '14px' }}>
-                <button
-                  type="button"
-                  onClick={() => setEquipoEditando(null)}
-                  style={{ padding: '8px 16px', backgroundColor: '#e2e8f0', color: '#334155', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  style={{ padding: '8px 20px', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
-                >
-                  Guardar Cambios
-                </button>
-              </div>
-            </form>
+                  <div>
+                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Valor de compra ($):</label>
+                    <input
+                      type="number"
+                      name="valor_compra"
+                      value={equipoEditando.valor_compra || ''}
+                      onChange={(e) => setEquipoEditando({ ...equipoEditando, valor_compra: e.target.value })}
+                      required
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid #f1f5f9', paddingTop: '14px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setEquipoEditando(null)}
+                      style={{ padding: '8px 16px', backgroundColor: '#e2e8f0', color: '#334155', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      style={{ padding: '8px 20px', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
+                    >
+                      Guardar Cambios
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
+
           </div>
         </div>
       )}
