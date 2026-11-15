@@ -44,11 +44,12 @@ export default function Equipos() {
   const [nivelKit, setNivelKit] = useState('BASICO');
   const [recargoPct, setRecargoPct] = useState(0);
 
-  // Selección independiente por categoría para CREAR
+  // Selección independiente por categoría para CREAR (incluyendo OTRO)
   const [camaraSeleccionada, setCamaraSeleccionada] = useState('');
   const [tripodeSeleccionado, setTripodeSeleccionado] = useState('');
   const [microfonoSeleccionado, setMicrofonoSeleccionado] = useState('');
   const [switchSeleccionado, setSwitchSeleccionado] = useState('');
+  const [otroSeleccionado, setOtroSeleccionado] = useState('');
 
   const [errorKit, setErrorKit] = useState('');
   const [loadingKit, setLoadingKit] = useState(false);
@@ -62,6 +63,7 @@ export default function Equipos() {
   const [tripodeEdit, setTripodeEdit] = useState('');
   const [microfonoEdit, setMicrofonoEdit] = useState('');
   const [switchEdit, setSwitchEdit] = useState('');
+  const [otroEdit, setOtroEdit] = useState('');
   const [errorEditKit, setErrorEditKit] = useState('');
   const [loadingEditKit, setLoadingEditKit] = useState(false);
 
@@ -175,7 +177,8 @@ export default function Equipos() {
         camaraSeleccionada,
         tripodeSeleccionado,
         microfonoSeleccionado,
-        switchSeleccionado
+        switchSeleccionado,
+        otroSeleccionado
       ].filter(Boolean);
 
       const payload = {
@@ -196,6 +199,7 @@ export default function Equipos() {
       setTripodeSeleccionado('');
       setMicrofonoSeleccionado('');
       setSwitchSeleccionado('');
+      setOtroSeleccionado('');
       
       await cargarDatos();
     } catch (err) {
@@ -217,11 +221,13 @@ export default function Equipos() {
     const tripode = kit.equipos?.find(e => e.categoria === 'TRIPODE')?.codigo || '';
     const microfono = kit.equipos?.find(e => e.categoria === 'MICROFONO')?.codigo || '';
     const sw = kit.equipos?.find(e => e.categoria === 'SWITCH_VIDEO')?.codigo || '';
+    const otro = kit.equipos?.find(e => e.categoria === 'OTRO')?.codigo || '';
 
     setCamaraEdit(camara);
     setTripodeEdit(tripode);
     setMicrofonoEdit(microfono);
     setSwitchEdit(sw);
+    setOtroEdit(otro);
   };
 
   const handleSubmitModificarKit = async (e) => {
@@ -230,7 +236,7 @@ export default function Equipos() {
     setLoadingEditKit(true);
 
     try {
-      const equiposArray = [camaraEdit, tripodeEdit, microfonoEdit, switchEdit].filter(Boolean);
+      const equiposArray = [camaraEdit, tripodeEdit, microfonoEdit, switchEdit, otroEdit].filter(Boolean);
 
       const payload = {
         nombre: nombreEditKit,
@@ -264,17 +270,29 @@ export default function Equipos() {
     }
   };
 
-  // Equipos libres y operativos para crear un kit
+  // Equipos libres y operativos para CREAR un kit
   const equiposDisponiblesParaKit = listaEquipos.filter(
-    eq => eq.estado?.toUpperCase() === 'OPERATIVO' && !eq.id_kit
+    eq => eq.estado?.toUpperCase() === 'OPERATIVO' && !eq.id_kit && !eq.kit
   );
 
   const camerasDisponibles = equiposDisponiblesParaKit.filter(eq => eq.categoria?.toUpperCase() === 'CAMARA');
   const tripodesDisponibles = equiposDisponiblesParaKit.filter(eq => eq.categoria?.toUpperCase() === 'TRIPODE');
   const microfonosDisponibles = equiposDisponiblesParaKit.filter(eq => eq.categoria?.toUpperCase() === 'MICROFONO');
   const switchesDisponibles = equiposDisponiblesParaKit.filter(eq => eq.categoria?.toUpperCase() === 'SWITCH_VIDEO');
+  const otrosDisponibles = equiposDisponiblesParaKit.filter(eq => eq.categoria?.toUpperCase() === 'OTRO');
 
-  // Filtrado de equipos por categoría seleccionada
+  // Helper para MODIFICAR kit (permite equipos libres o los que ya pertenecen a este kit)
+  const obtenerEquiposParaEdicion = (categoria) => {
+    return listaEquipos.filter(eq => {
+      const esCategoria = eq.categoria?.toUpperCase() === categoria;
+      const esOperativo = eq.estado?.toUpperCase() === 'OPERATIVO';
+      const estaLibre = !eq.id_kit && !eq.kit;
+      const perteneceAEsteKit = kitEditando?.equipos?.some(e => e.codigo === eq.codigo);
+      return esCategoria && esOperativo && (estaLibre || perteneceAEsteKit);
+    });
+  };
+
+  // Filtrado de equipos por categoría seleccionada en la tabla
   const equiposFiltrados = listaEquipos.filter(eq => {
     if (filtroCategoria === 'TODOS') return true;
     return eq.categoria?.toUpperCase() === filtroCategoria;
@@ -474,7 +492,7 @@ export default function Equipos() {
                   boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
                 }}
               >
-                <option value="TODOS"> Todas las categorías</option>
+                <option value="TODOS">🔍 Todas las categorías</option>
                 <option value="CAMARA">Cámara</option>
                 <option value="TRIPODE">Trípode</option>
                 <option value="MICROFONO">Micrófono</option>
@@ -783,7 +801,7 @@ export default function Equipos() {
                 </div>
               </div>
 
-              {/* 4 APARTADOS INDEPENDIENTES POR CATEGORÍA */}
+              {/* APARTADOS POR CATEGORÍA (INCLUYENDO OTRO) */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 
                 {/* 1. CÁMARA */}
@@ -851,6 +869,23 @@ export default function Equipos() {
                   >
                     <option value="">-- Seleccione Switch --</option>
                     {switchesDisponibles.map(eq => (
+                      <option key={eq.codigo} value={eq.codigo}>
+                        {eq.codigo} - {eq.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* 5. OTRO (Opcional) */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', gridColumn: '1 / -1' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Otro equipo (Opcional):</label>
+                  <select
+                    value={otroSeleccionado}
+                    onChange={(e) => setOtroSeleccionado(e.target.value)}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
+                  >
+                    <option value="">-- Seleccione Otro (Opcional) --</option>
+                    {otrosDisponibles.map(eq => (
                       <option key={eq.codigo} value={eq.codigo}>
                         {eq.codigo} - {eq.nombre}
                       </option>
@@ -955,7 +990,7 @@ export default function Equipos() {
                     style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: kitEditando.estado === 'EN_TERRENO' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
                   >
                     <option value="">-- Seleccione Cámara --</option>
-                    {listaEquipos.filter(eq => eq.categoria === 'CAMARA' && (eq.estado === 'OPERATIVO' || eq.codigo === camaraEdit)).map(eq => (
+                    {obtenerEquiposParaEdicion('CAMARA').map(eq => (
                       <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
                     ))}
                   </select>
@@ -971,7 +1006,7 @@ export default function Equipos() {
                     style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: kitEditando.estado === 'EN_TERRENO' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
                   >
                     <option value="">-- Seleccione Trípode --</option>
-                    {listaEquipos.filter(eq => eq.categoria === 'TRIPODE' && (eq.estado === 'OPERATIVO' || eq.codigo === tripodeEdit)).map(eq => (
+                    {obtenerEquiposParaEdicion('TRIPODE').map(eq => (
                       <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
                     ))}
                   </select>
@@ -987,7 +1022,7 @@ export default function Equipos() {
                     style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: kitEditando.estado === 'EN_TERRENO' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
                   >
                     <option value="">-- Seleccione Micrófono --</option>
-                    {listaEquipos.filter(eq => eq.categoria === 'MICROFONO' && (eq.estado === 'OPERATIVO' || eq.codigo === microfonoEdit)).map(eq => (
+                    {obtenerEquiposParaEdicion('MICROFONO').map(eq => (
                       <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
                     ))}
                   </select>
@@ -1003,7 +1038,22 @@ export default function Equipos() {
                     style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: kitEditando.estado === 'EN_TERRENO' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
                   >
                     <option value="">-- Seleccione Switch --</option>
-                    {listaEquipos.filter(eq => eq.categoria === 'SWITCH_VIDEO' && (eq.estado === 'OPERATIVO' || eq.codigo === switchEdit)).map(eq => (
+                    {obtenerEquiposParaEdicion('SWITCH_VIDEO').map(eq => (
+                      <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', gridColumn: '1 / -1' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Otro equipo (Opcional):</label>
+                  <select
+                    value={otroEdit}
+                    onChange={(e) => setOtroEdit(e.target.value)}
+                    disabled={kitEditando.estado === 'EN_TERRENO'}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: kitEditando.estado === 'EN_TERRENO' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
+                  >
+                    <option value="">-- Seleccione Otro (Opcional) --</option>
+                    {obtenerEquiposParaEdicion('OTRO').map(eq => (
                       <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
                     ))}
                   </select>
