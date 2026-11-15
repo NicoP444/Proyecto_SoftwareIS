@@ -35,6 +35,7 @@ export default function Equipos() {
   const [equipoEditando, setEquipoEditando] = useState(null);
   const [equipoBaja, setEquipoBaja] = useState(null);
   const [motivoBaja, setMotivoBaja] = useState('');
+  const [filtroCategoria, setFiltroCategoria] = useState('TODOS');
 
   // --- ESTADOS DE KITS ---
   const [kits, setKits] = useState([]);
@@ -273,6 +274,12 @@ export default function Equipos() {
   const microfonosDisponibles = equiposDisponiblesParaKit.filter(eq => eq.categoria?.toUpperCase() === 'MICROFONO');
   const switchesDisponibles = equiposDisponiblesParaKit.filter(eq => eq.categoria?.toUpperCase() === 'SWITCH_VIDEO');
 
+  // Filtrado de equipos por categoría seleccionada
+  const equiposFiltrados = listaEquipos.filter(eq => {
+    if (filtroCategoria === 'TODOS') return true;
+    return eq.categoria?.toUpperCase() === filtroCategoria;
+  });
+
   return (
     <div style={{ padding: '10px 0', width: '100%', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       
@@ -444,18 +451,44 @@ export default function Equipos() {
       {/* ================= VISTA EQUIPOS / INVENTARIO ================= */}
       {activeTab === 'EQUIPOS' && (
         <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '24px', border: '1px solid #f1f5f9', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
-          <div style={{ marginBottom: '18px' }}>
-            <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>Inventario de Equipos</h2>
-            <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '13px' }}>
-              Listado de equipos registrados, código correlativo y estado de asignación
-            </p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
+            <div>
+              <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>Inventario de Equipos</h2>
+              <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '13px' }}>
+                Listado de equipos registrados, código correlativo y estado de asignación
+              </p>
+            </div>
+            <div>
+              <select
+                value={filtroCategoria}
+                onChange={(e) => setFiltroCategoria(e.target.value)}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '13px',
+                  backgroundColor: '#ffffff',
+                  color: '#1e293b',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+                }}
+              >
+                <option value="TODOS"> Todas las categorías</option>
+                <option value="CAMARA">Cámara</option>
+                <option value="TRIPODE">Trípode</option>
+                <option value="MICROFONO">Micrófono</option>
+                <option value="SWITCH_VIDEO">Switch de Video</option>
+                <option value="OTRO">Otro</option>
+              </select>
+            </div>
           </div>
 
           {cargando ? (
             <p style={{ color: '#64748b', textAlign: 'center', padding: '20px 0' }}>Cargando inventario...</p>
-          ) : listaEquipos.length === 0 ? (
+          ) : equiposFiltrados.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '36px 15px', color: '#64748b' }}>
-              <p style={{ margin: 0 }}>No hay equipos registrados en el inventario.</p>
+              <p style={{ margin: 0 }}>No hay equipos registrados en esta categoría.</p>
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
@@ -474,7 +507,7 @@ export default function Equipos() {
                   </tr>
                 </thead>
                 <tbody>
-                  {listaEquipos.map((eq) => {
+                  {equiposFiltrados.map((eq) => {
                     const fecha = eq.fecha_compra ? new Date(eq.fecha_compra).toLocaleDateString('es-CL') : '--';
                     const esBaja = eq.estado === 'DADO_DE_BAJA';
                     return (
