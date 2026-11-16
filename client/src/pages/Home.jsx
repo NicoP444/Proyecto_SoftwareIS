@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import AlertasKitsSinRetorno from "../components/equipos/AlertasKitsSinRetorno.jsx";
 import EventosPendientesCierre from "../components/evento/EventosPendientesCierre.jsx";
+import PanelPorRol from "../components/panel/PanelPorRol.jsx";
 import { obtenerAcuerdos } from "../services/acuerdoService";
 import "../styles/Home.css";
 
@@ -88,24 +89,11 @@ const MODULOS = [
   { ruta: "/finanzas", titulo: "Finanzas", icono: "finanzas" },
 ];
 
-const KPIS = [
-  { titulo: "Utilidad Neta", color: "verde", vacio: "Sin datos este mes" },
-  {
-    titulo: "Ingresos por Transmisión",
-    color: "azul",
-    vacio: "Sin transmisiones registradas",
-  },
-  {
-    titulo: "Remuneraciones Pagadas",
-    color: "naranja",
-    vacio: "Sin pagos registrados",
-  },
-  {
-    titulo: "Pérdidas de Inventario",
-    color: "rojo",
-    vacio: "Sin incidentes este mes",
-  },
-];
+const ETIQUETA_ROL = {
+  DUENO: "Dueño",
+  CONTADOR: "Contador",
+  JEFE_TECNICO: "Jefe de área técnica",
+};
 
 const EstadoVacio = ({ texto }) => (
   <div className="empty">
@@ -125,10 +113,11 @@ const EstadoVacio = ({ texto }) => (
 );
 
 export default function Home() {
-  const mesActual = new Date().toLocaleString("es-CL", { month: "long" });
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const usuario = JSON.parse(localStorage.getItem("usuario") || "{}");
+  const rol = usuario.rol;
+  const verFinanzas = rol === "DUENO" || rol === "CONTADOR"; // el Jefe técnico no ve datos financieros
 
   const nombre =
     [usuario.nombre, usuario.apellido].filter(Boolean).join(" ") || "Usuario";
@@ -137,6 +126,7 @@ export default function Home() {
   const [cargandoCobros, setCargandoCobros] = useState(true);
 
   useEffect(() => {
+    if (!verFinanzas) return; // el Jefe técnico no ve auspicios por cobrar
     const cargarCobros = async () => {
       try {
         setCargandoCobros(true);
@@ -177,7 +167,7 @@ export default function Home() {
         <div className="topbar-user">
           <div className="topbar-user-text">
             <div className="user-name">{nombre}</div>
-            <div className="user-role">Gerente</div>
+            <div className="user-role">{ETIQUETA_ROL[rol] ?? "Usuario"}</div>
           </div>
           <div className="avatar">{nombre.charAt(0).toUpperCase()}</div>
         </div>
@@ -188,7 +178,7 @@ export default function Home() {
         <nav className="sidebar-nav">
           <button
             className={`nav-item ${pathname === "/" || pathname === "/home" ? "active" : ""}`}
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/home")}
           >
             <Icono>{ICONOS.inicio}</Icono>
             Panel Principal
@@ -221,46 +211,18 @@ export default function Home() {
           Hola, {nombre}. Este es el resumen general de la empresa.
         </p>
 
-        {/* Resumen del mes */}
-        <div className="section-heading">
-          <h2>Resumen de {mesActual}</h2>
-          <span className="section-line" />
-        </div>
+        {/* Panel según el rol (RF-T-07) */}
+        <PanelPorRol rol={rol} />
 
-        <section className="kpis">
-          {KPIS.map((k) => (
-            <div key={k.titulo} className={`kpi kpi-${k.color}`}>
-              <span className="kpi-label">{k.titulo}</span>
-              <span className="kpi-value">—</span>
-              <span className="kpi-note">{k.vacio}</span>
-            </div>
-          ))}
-        </section>
-
-        {/* Alertas recientes */}
-        <AlertasKitsSinRetorno />
+           {/* Alertas recientes */}
+        {(rol === "DUENO" || rol === "JEFE_TECNICO") && <AlertasKitsSinRetorno />}
 
         {/* Eventos por Finalizar */}
-        <EventosPendientesCierre />
+        {rol === "DUENO" && <EventosPendientesCierre />}
 
-        {/* Transmisiones y auspiciadores */}
-        <section className="panels-row">
-          <div className="panel">
-            <div className="panel-head">
-              <h3>
-                <Icono>{ICONOS.calendario}</Icono>
-                Próximas transmisiones
-              </h3>
-              <button
-                className="panel-link"
-                onClick={() => navigate("/calendario")}
-              >
-                Ver calendario →
-              </button>
-            </div>
-            <EstadoVacio texto="No hay transmisiones programadas" />
-          </div>
-
+        {/* Auspiciadores por cobrar (solo Dueño y Contador) */}
+        {verFinanzas && (
+        <section className="panels-row" style={{ gridTemplateColumns: "1fr" }}>
           <div className="panel">
             <div className="panel-head">
               <h3>
@@ -342,6 +304,7 @@ export default function Home() {
             )}
           </div>
         </section>
+        )}
       </main>
     </div>
   );
