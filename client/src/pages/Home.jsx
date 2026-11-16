@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AlertasKitsSinRetorno from "../components/equipos/AlertasKitsSinRetorno.jsx";
 import EventosPendientesCierre from "../components/evento/EventosPendientesCierre.jsx";
-import PanelPorRol from "../components/panel/PanelPorRol.jsx";
 import { obtenerAcuerdos } from "../services/acuerdoService";
 import "../styles/Home.css";
 
@@ -68,7 +67,8 @@ export default function Home() {
 
   const nombre =
     [usuario.nombre, usuario.apellido].filter(Boolean).join(" ") || "Usuario";
-
+  const verFinanzas = rol === "DUENO" || rol === "CONTADOR";
+    const mesActual = new Date().toLocaleDateString("es-CL", { month: "long", year: "numeric" });
   const [cobrosPendientes, setCobrosPendientes] = useState([]);
   const [cargandoCobros, setCargandoCobros] = useState(true);
 
@@ -92,9 +92,8 @@ export default function Home() {
       }
     };
 
-     if (rol === "DUENO" || rol === "CONTADOR") cargarCobros();
-    else setCargandoCobros(false);
-  }, [rol]);
+    cargarCobros();
+  }, [verFinanzas]);
   
 
   return (
@@ -172,9 +171,10 @@ export default function Home() {
                   const nombreAuspiciador = acuerdo.auspiciador?.nombre || "Auspiciador";
                   const monto = Number(acuerdo.monto_comprometido || 0).toLocaleString("es-CL");
                   const esVencido = acuerdo.estado === "VENCIDO";
-                  const fechaPlazo = acuerdo.fecha_comprometida || acuerdo.fecha_limite 
-                    ? new Date(acuerdo.fecha_comprometida || acuerdo.fecha_limite).toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit" }) 
-                    : "";
+                  const fechaRaw = acuerdo.fecha_comprometida || acuerdo.fecha_limite;
+                  const fechaPlazo = fechaRaw
+                  ? String(fechaRaw).slice(0, 10).split("-").reverse().slice(0, 2).join("/")
+                  : "";   
 
                   return (
                     <div 
