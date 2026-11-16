@@ -1,99 +1,48 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import AlertasKitsSinRetorno from "../components/equipos/AlertasKitsSinRetorno.jsx";
 import EventosPendientesCierre from "../components/evento/EventosPendientesCierre.jsx";
 import PanelPorRol from "../components/panel/PanelPorRol.jsx";
 import { obtenerAcuerdos } from "../services/acuerdoService";
 import "../styles/Home.css";
 
-// Íconos
+// Íconos de los títulos de los paneles
 const Icono = ({ children }) => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.7"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
     {children}
   </svg>
 );
 
 const ICONOS = {
-  inicio: (
-    <>
-      <rect x="3" y="3" width="7" height="7" rx="1.5" />
-      <rect x="14" y="3" width="7" height="7" rx="1.5" />
-      <rect x="3" y="14" width="7" height="7" rx="1.5" />
-      <rect x="14" y="14" width="7" height="7" rx="1.5" />
-    </>
-  ),
   calendario: (
     <>
       <rect x="3" y="5" width="18" height="16" rx="2" />
       <path d="M3 10h18M8 3v4M16 3v4" />
     </>
   ),
-  inventario: (
-    <>
-      <path d="M21 8l-9-5-9 5 9 5 9-5z" />
-      <path d="M3 8v8l9 5 9-5V8M12 13v8" />
-    </>
-  ),
-  personal: (
-    <>
-      <circle cx="12" cy="8" r="4" />
-      <path d="M4 21c0-4 3.6-6 8-6s8 2 8 6" />
-    </>
-  ),
-  finanzas: (
-    <path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-  ),
   auspiciadores: (
     <path d="M12 3l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.4 6.7 19.1l1-5.8L3.5 9.2l5.9-.9z" />
   ),
-  eventos: (
-    <>
-      <rect x="3" y="6" width="13" height="12" rx="2" />
-      <path d="M16 10l5-3v10l-5-3z" />
-    </>
-  ),
-  incidentes: (
-    <>
-      <path d="M12 3L2 20h20z" />
-      <path d="M12 10v4M12 17h.01" />
-    </>
-  ),
-  clientes: (
-    <>
-      <rect x="3" y="7" width="18" height="13" rx="2" />
-      <path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
-    </>
-  ),
-  salir: (
-    <>
-      <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3" />
-      <path d="M10 17l-5-5 5-5M5 12h11" />
-    </>
-  ),
 };
 
-const MODULOS = [
-  { ruta: "/calendario", titulo: "Calendario", icono: "calendario" },
-  { ruta: "/consulta-inventario", titulo: "Inventario", icono: "inventario" },
-  { ruta: "/equipos", titulo: "Gestión de Equipos", icono: "inventario" },
-  { ruta: "/salida-kits?tab=incidentes", titulo: "Incidentes", icono: "incidentes" },
-  { ruta: "/trabajadores", titulo: "Personal", icono: "personal" },
-  { ruta: "/auspiciadores", titulo: "Auspiciadores", icono: "auspiciadores" },
-  { ruta: "/finanzas", titulo: "Finanzas", icono: "finanzas" },
+const KPIS = [
+  { titulo: "Utilidad Neta", color: "verde", vacio: "Sin datos este mes" },
+  {
+    titulo: "Ingresos por Transmisión",
+    color: "azul",
+    vacio: "Sin transmisiones registradas",
+  },
+  {
+    titulo: "Remuneraciones Pagadas",
+    color: "naranja",
+    vacio: "Sin pagos registrados",
+  },
+  {
+    titulo: "Pérdidas de Inventario",
+    color: "rojo",
+    vacio: "Sin incidentes este mes",
+  },
 ];
-
-const ETIQUETA_ROL = {
-  DUENO: "Dueño",
-  CONTADOR: "Contador",
-  JEFE_TECNICO: "Jefe de área técnica",
-};
 
 const EstadoVacio = ({ texto }) => (
   <div className="empty">
@@ -114,10 +63,8 @@ const EstadoVacio = ({ texto }) => (
 
 export default function Home() {
   const navigate = useNavigate();
-  const { pathname } = useLocation();
   const usuario = JSON.parse(localStorage.getItem("usuario") || "{}");
-  const rol = usuario.rol;
-  const verFinanzas = rol === "DUENO" || rol === "CONTADOR"; // el Jefe técnico no ve datos financieros
+  const rol = String(usuario.rol ?? "").toUpperCase();
 
   const nombre =
     [usuario.nombre, usuario.apellido].filter(Boolean).join(" ") || "Usuario";
@@ -145,84 +92,60 @@ export default function Home() {
       }
     };
 
-    cargarCobros();
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("usuario");
-    navigate("/");
-  };
+     if (rol === "DUENO" || rol === "CONTADOR") cargarCobros();
+    else setCargandoCobros(false);
+  }, [rol]);
+  
 
   return (
-    <div className="layout">
-      {/* Barra superior */}
-      <header className="topbar">
-        <div className="brand">
-          <span className="brand-logo">E</span>
-          <span className="brand-name">
-            <span>Empresa</span>
-          </span>
-        </div>
-        <div className="topbar-user">
-          <div className="topbar-user-text">
-            <div className="user-name">{nombre}</div>
-            <div className="user-role">{ETIQUETA_ROL[rol] ?? "Usuario"}</div>
-          </div>
-          <div className="avatar">{nombre.charAt(0).toUpperCase()}</div>
-        </div>
-      </header>
-
-      {/* Menú lateral */}
-      <aside className="sidebar">
-        <nav className="sidebar-nav">
-          <button
-            className={`nav-item ${pathname === "/" || pathname === "/home" ? "active" : ""}`}
-            onClick={() => navigate("/home")}
-          >
-            <Icono>{ICONOS.inicio}</Icono>
-            Panel Principal
-          </button>
-
-          {MODULOS.map((m) => (
-            <button
-              key={m.ruta}
-              className={`nav-item ${pathname.startsWith(m.ruta) ? "active" : ""}`}
-              onClick={() => navigate(m.ruta)}
-            >
-              <Icono>{ICONOS[m.icono]}</Icono>
-              {m.titulo}
-            </button>
-          ))}
-        </nav>
-
-        <div className="sidebar-footer">
-          <button className="nav-item logout" onClick={handleLogout}>
-            <Icono>{ICONOS.salir}</Icono>
-            Cerrar sesión
-          </button>
-        </div>
-      </aside>
-
-      {/* Contenido principal */}
-      <main className="content">
+       <div className="panel-principal">
         <h1 className="page-title">Panel Principal</h1>
         <p className="page-subtitle">
           Hola, {nombre}. Este es el resumen general de la empresa.
         </p>
+           {(rol === "DUENO" || rol === "CONTADOR") && (
+          <>
+        {/* Resumen del mes */}
+        <div className="section-heading">
+          <h2>Resumen de {mesActual}</h2>
+          <span className="section-line" />
+        </div>
+        <section className="kpis">
+          {KPIS.map((k) => (
+            <div key={k.titulo} className={`kpi kpi-${k.color}`}>
+              <span className="kpi-label">{k.titulo}</span>
+              <span className="kpi-value">—</span>
+              <span className="kpi-note">{k.vacio}</span>
+            </div>
+          ))}
+        </section>
+        </>
+        )}
 
-        {/* Panel según el rol (RF-T-07) */}
-        <PanelPorRol rol={rol} />
-
-           {/* Alertas recientes */}
+        {/* Alertas recientes */}
         {(rol === "DUENO" || rol === "JEFE_TECNICO") && <AlertasKitsSinRetorno />}
 
         {/* Eventos por Finalizar */}
-        {rol === "DUENO" && <EventosPendientesCierre />}
+       {rol === "DUENO" && <EventosPendientesCierre />}
 
-        {/* Auspiciadores por cobrar (solo Dueño y Contador) */}
-        {verFinanzas && (
-        <section className="panels-row" style={{ gridTemplateColumns: "1fr" }}>
+        {/* Transmisiones y auspiciadores */}
+        <section className="panels-row">
+          <div className="panel">
+            <div className="panel-head">
+              <h3>
+                <Icono>{ICONOS.calendario}</Icono>
+                Próximas transmisiones
+              </h3>
+              <button
+                className="panel-link"
+                onClick={() => navigate("/calendario")}
+              >
+                Ver calendario →
+              </button>
+            </div>
+            <EstadoVacio texto="No hay transmisiones programadas" />
+          </div>
+          {(rol === "DUENO" || rol === "CONTADOR") && (
           <div className="panel">
             <div className="panel-head">
               <h3>
@@ -303,9 +226,8 @@ export default function Home() {
               </div>
             )}
           </div>
-        </section>
         )}
-      </main>
-    </div>
+        </section>
+       </div>
   );
 }

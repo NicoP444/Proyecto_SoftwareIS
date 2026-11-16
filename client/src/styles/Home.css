@@ -1,4 +1,6 @@
-.layout {
+/* Variables y estilos base: sirven al layout antiguo (.layout) y al Home dentro de la plantilla (.panel-principal) */
+.layout,
+.panel-principal {
   --primary: #01107a;
   --primary-soft: rgba(1, 16, 122, 0.08);
   --bg: #f6f7fb;
@@ -8,14 +10,17 @@
   --muted: #6b7280;
   --topbar-h: 56px;
   --sidebar-w: 260px;
+}
 
+.layout {
   min-height: 100vh;
   background: var(--bg);
   color: var(--text);
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
-.layout svg {
+.layout svg,
+.panel-principal svg {
   width: 20px;
   height: 20px;
   flex-shrink: 0;
