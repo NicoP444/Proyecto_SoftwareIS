@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AlertasKitsSinRetorno from "../components/equipos/AlertasKitsSinRetorno.jsx";
 import EventosPendientesCierre from "../components/evento/EventosPendientesCierre.jsx";
+import PanelPorRol from "../components/panel/PanelPorRol.jsx";
 import { obtenerAcuerdos } from "../services/acuerdoService";
 import "../styles/Home.css";
 
@@ -61,7 +62,6 @@ const EstadoVacio = ({ texto }) => (
 );
 
 export default function Home() {
-  const mesActual = new Date().toLocaleString("es-CL", { month: "long" });
   const navigate = useNavigate();
   const usuario = JSON.parse(localStorage.getItem("usuario") || "{}");
   const rol = String(usuario.rol ?? "").toUpperCase();
@@ -73,6 +73,7 @@ export default function Home() {
   const [cargandoCobros, setCargandoCobros] = useState(true);
 
   useEffect(() => {
+    if (!verFinanzas) return; // el Jefe técnico no ve auspicios por cobrar
     const cargarCobros = async () => {
       try {
         setCargandoCobros(true);
