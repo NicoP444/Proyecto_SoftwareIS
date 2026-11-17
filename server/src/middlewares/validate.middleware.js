@@ -22,8 +22,9 @@ export const validarBody = (req, res, next) => {
 
 //Recibe los nombres de los campos y devuelve un middleware que los exige
 export const camposObligatorios = (...campos) => (req, res, next) => {
+  const body = req.body ?? {}; // en Express 5, req.body es undefined si no se envió nada
   const faltante = campos.find(
-    (campo) => req.body[campo] === undefined || req.body[campo] === null || req.body[campo] === '',
+    (campo) => body[campo] === undefined || body[campo] === null || body[campo] === '',
   );
   if(faltante){
     return res.status(400).json({ mensaje: `El campo ${faltante} es obligatorio`, campo: faltante });
