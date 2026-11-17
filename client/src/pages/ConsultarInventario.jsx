@@ -181,7 +181,7 @@ export default function ConsultarInventario() {
       case 'BAJA':
         bg = '#fee2e2';
         text = '#dc2626';
-        label = 'Baja';
+        label = 'Retirado';
         break;
       default:
         break;
@@ -202,6 +202,21 @@ export default function ConsultarInventario() {
         {label}
       </span>
     );
+  };
+
+  const formatearDescripcionHistorial = (item) => {
+    if (item.tipo === 'INCIDENTE') {
+      return item.descripcion
+        .replace('DANO', 'Daño')
+        .replace('PERDIDA', 'Pérdida')
+        .replace('ROBO', 'Robo');
+    }
+
+    if (item.tipo === 'BAJA') {
+      return item.descripcion.replace('Equipo dado de baja:', 'Equipo retirado:');
+    }
+
+    return item.descripcion;
   };
 
   // Filtros combinados: Búsqueda por texto + Filtro por Estado
@@ -228,6 +243,14 @@ export default function ConsultarInventario() {
     }
     return filtrados;
   }, [datos, busqueda, filtroEstado]);
+
+  useEffect(() => {
+    if (kitsFiltrados.length === 0) {
+      setKitSeleccionado(null);
+    } else if (!kitsFiltrados.some((k) => k.id_kit === kitSeleccionado?.id_kit)) {
+      setKitSeleccionado(kitsFiltrados[0]);
+    }
+  }, [kitsFiltrados, kitSeleccionado]);
 
   const repuestosFiltrados = useMemo(() => {
     if (!datos?.repuestos) return [];
@@ -919,9 +942,9 @@ export default function ConsultarInventario() {
                             </span>
                           </div>
                           <p style={{ margin: '0.35rem 0', fontSize: '0.9rem', fontWeight: '600', color: '#0f172a' }}>
-                            {item.descripcion}
+                            {formatearDescripcionHistorial(item)}
                           </p>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', fontSize: '0.8rem', color: '#64748b', marginTop: '0.3rem' }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', fontSize: '0.8rem', color: '#64748b', marginTop: '0.3rem' }}>
                             {item.evento && <span><strong>Evento:</strong> {item.evento}</span>}
                             {item.responsable && <span><strong>Responsable:</strong> {item.responsable}</span>}
                             {item.detalle?.observacion && <span><strong>Obs:</strong> {item.detalle.observacion}</span>}
