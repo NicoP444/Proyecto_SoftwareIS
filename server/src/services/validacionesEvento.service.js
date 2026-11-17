@@ -46,7 +46,7 @@ export function validarFormatoAgenda({ fecha, hora_inicio, hora_termino }) {
     if (!ok) throw new Error(`La hora de ${nombre} no es válida (usa HH:MM)`);
   }
   if (hora_termino <= hora_inicio) {
-    throw new Error('La hora de término debe ser posterior a la hora de inicio');
+    throw new Error('La hora de término debe ser posterior a la de inicio (los eventos terminan el mismo día)');
   }
 }
 

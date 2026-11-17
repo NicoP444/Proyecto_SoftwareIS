@@ -24,7 +24,7 @@ const EVENTOS = [
   { cliente: 3, tipo: 'Matrimonio',            dia: 2,  ini: '15:00', fin: '21:00', cam: 3, precio: 450000, dir: 'Centro de Eventos, Hualpén' },
   { cliente: 4, tipo: 'Torneo de básquetbol',  dia: 3,  ini: '09:00', fin: '15:00', cam: 4, precio: 520000, dir: 'Gimnasio Universitario' },
   { cliente: 0, tipo: 'Partido de fútbol',     dia: 5,  ini: '16:00', fin: '18:30', cam: 3, precio: 200000, dir: 'Estadio Municipal, Concepción' },
-  { cliente: 1, tipo: 'Concierto',             dia: 7,  ini: '20:00', fin: '01:00', cam: 4, precio: 600000, dir: 'Parque Ecuador, Concepción' },
+  { cliente: 1, tipo: 'Concierto',             dia: 7,  ini: '18:00', fin: '23:30', cam: 4, precio: 600000, dir: 'Parque Ecuador, Concepción' },
   { cliente: 2, tipo: 'Charla tech',           dia: 8,  ini: '10:00', fin: '12:00', cam: 1, precio: 90000,  dir: 'Auditorio Central' },
   { cliente: 3, tipo: 'Cumpleaños',            dia: 10, ini: '18:00', fin: '21:00', cam: 1, precio: 150000, dir: 'Av. Collao 1202, Concepción' },
   { cliente: 4, tipo: 'Final de campeonato',   dia: 14, ini: '14:00', fin: '20:00', cam: 5, precio: 700000, dir: 'Complejo Deportivo Sur' },
@@ -44,11 +44,22 @@ export async function limpiar() {
   });
   const ids = eventos.map((e) => e.id_evento);
 
-  if (ids.length > 0) {
-    await prisma.asignacionPersonal.deleteMany({ where: { id_evento: { in: ids } } });
-    await prisma.reservaKit.deleteMany({ where: { id_evento: { in: ids } } });
-    await prisma.historialCambio.updateMany({ where: { id_evento: { in: ids } }, data: { id_evento: null } });
-    await prisma.evento.deleteMany({ where: { id_evento: { in: ids } } });
+    if (ids.length > 0) {
+    // Son datos de prueba: se borra primero todo lo que cuelga de los eventos (pagos, gastos, salidas, etc.)
+    // y al final los eventos. Va en una transacción: o se borra todo o no se borra nada.
+    const deEvento = { id_evento: { in: ids } };
+    await prisma.$transaction([
+      prisma.pagoCliente.deleteMany({ where: deEvento }),
+      prisma.gastoEvento.deleteMany({ where: { asignacion: deEvento } }),
+      prisma.pagoRemuneracion.deleteMany({ where: { asignacion: deEvento } }),
+      prisma.salidaKit.deleteMany({ where: { reserva: deEvento } }),
+      prisma.acuerdoAuspicio.deleteMany({ where: deEvento }),
+      prisma.incidente.deleteMany({ where: deEvento }),
+      prisma.asignacionPersonal.deleteMany({ where: deEvento }),
+      prisma.reservaKit.deleteMany({ where: deEvento }),
+      prisma.historialCambio.updateMany({ where: deEvento, data: { id_evento: null } }),
+      prisma.evento.deleteMany({ where: deEvento }),
+    ]);
   }
 
   let clientesBorrados = 0;
@@ -71,14 +82,20 @@ async function crear() {
 
   const clientes = [];
   for (const c of CLIENTES) {
-    clientes.push(await prisma.cliente.create({ data: { ...c, id_dueno: ID_DUENO } }));
+    // Si el RUT ya existe (por ejemplo, uno que creaste a mano), se reutiliza ese cliente tal como está
+    clientes.push(
+      await prisma.cliente.upsert({
+        where: { rut: c.rut },
+        update: {},
+        create: { ...c, id_dueno: ID_DUENO },
+      }),
+    );
   }
 
   for (const e of EVENTOS) {
     const fecha = fechaDesdeHoy(e.dia);
     const inicio = new Date(`${fecha}T${e.ini}:00Z`);
-    let termino = new Date(`${fecha}T${e.fin}:00Z`);
-    if (termino <= inicio) termino = new Date(termino.getTime() + 24 * 60 * 60 * 1000); // termina pasada la medianoche
+    const termino = new Date(`${fecha}T${e.fin}:00Z`); // los eventos terminan el mismo día
 
     const horas = (termino - inicio) / (1000 * 60 * 60);
     await prisma.evento.create({

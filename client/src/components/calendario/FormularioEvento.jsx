@@ -50,7 +50,7 @@ export default function FormularioEvento({ evento = null, fechaInicial = "", dir
     if (!datos.direccion.trim()) return setError("Indica la dirección del evento");
     if (!datos.fecha) return setError("Indica la fecha");
     if (!datos.hora_inicio || !datos.hora_termino) return setError("Indica la hora de inicio y de término");
-    if (!horasValidas) return setError("La hora de término debe ser posterior a la hora de inicio");
+    if (!horasValidas) return setError("La hora de término debe ser posterior a la de inicio (los eventos terminan el mismo día)");
     if (!Number.isInteger(Number(datos.cantidad_camaras)) || Number(datos.cantidad_camaras) < 1)
       return setError("Debe indicar al menos 1 cámara");
     if (!Number.isInteger(Number(datos.precio_acordado)) || Number(datos.precio_acordado) <= 0)
