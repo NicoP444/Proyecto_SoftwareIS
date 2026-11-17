@@ -108,6 +108,10 @@ export const reservarKit = async (id_evento, { id_kit, id_dueno }) => {
   }
 
   const advertencias = [];
+  // Un kit que salió a terreno y aún no vuelve podría no estar libre a tiempo
+  if (kit.estado === 'EN_TERRENO') {
+    advertencias.push(`El kit "${kit.nombre}" figura En terreno y aún no registra su retorno`);
+  }
 
   // Margen de traslado (RF-P3-02): otro evento el mismo día en otra dirección, con poco tiempo entre ambos
   const { margen_traslado_min } = await prisma.dueno.findUnique({
