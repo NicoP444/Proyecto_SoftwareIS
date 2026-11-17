@@ -4,13 +4,15 @@ import {
   listarEventosConfirmados,
 } from '../controllers/marcarEvento.controller.js';
 import { marcarEventoRealizadoMiddleware } from '../middlewares/marcarEvento.middleware.js';
+import { autenticar, permitirRoles } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
+router.use(autenticar, permitirRoles('DUENO', 'JEFE_TECNICO'));
+
 // Listar eventos confirmados listos para revisar/finalizar
 router.get('/confirmados', listarEventosConfirmados);
-
-// Marcar como realizado (RF-P7-01)
+// Marcar como realizado (
 router.patch('/:id_evento/realizado', marcarEventoRealizadoMiddleware, marcarEventoRealizado);
 
 export default router;
