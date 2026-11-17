@@ -6,7 +6,6 @@ import Finanzas from "./pages/Finanzas"; //nico
 import Auspiciadores from "./pages/Auspiciadores";
 import Eventos from "./pages/Eventos";
 import Incidentes from "./pages/Incidentes";
-import Clientes from "./pages/Clientes";
 import RegistrarAcuerdoPage from "./pages/RegistrarAcuerdo";
 import SalidaKits from "./pages/SalidaKits";
 import Plantilla from "./components/Plantilla";
@@ -59,7 +58,6 @@ export default function App() {
           </Route>
         </Route>
           <Route element={<RutaProtegida><RutaPorRol roles={["DUENO"]} /></RutaProtegida>}>
-          <Route path="/clientes" element={<Clientes />} />
           <Route path="/eventos" element={<Eventos />} />
         </Route>
         <Route

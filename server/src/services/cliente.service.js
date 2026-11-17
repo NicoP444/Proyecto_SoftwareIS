@@ -2,9 +2,6 @@ import prisma from '../config/prisma.js';
 import { ValidationError, NotFoundError } from '../utils/errores.js';
 import { limpiarRut, rutEsValido } from '../utils/rut.js';
 
-// TODO: reemplazar por el id del dueño autenticado (JWT) cuando el login se conecte a estos módulos
-const ID_DUENO_DEMO = 1;
-
 // Valida los datos del cliente y los deja listos para guardar
 function prepararDatos(datos) {
   const rut = limpiarRut(datos.rut);
@@ -33,9 +30,9 @@ function prepararDatos(datos) {
 }
 
 // Busca un cliente del dueño o lanza 404
-async function obtenerCliente(id) {
+async function obtenerCliente(id, idDueno) {
   const cliente = await prisma.cliente.findFirst({
-    where: { id_cliente: id, id_dueno: ID_DUENO_DEMO }
+    where: { id_cliente: id, id_dueno: idDueno }
   });
   if (!cliente) throw new NotFoundError('El cliente no existe');
   return cliente;
@@ -50,7 +47,7 @@ async function verificarRutLibre(rut, idActual) {
 }
 
 // buscar (opcional): filtra por nombre o por RUT. limite (opcional): máximo de resultados
-export async function listarClientes({ buscar = '', limite } = {}) {
+export async function listarClientes(idDueno, { buscar = '', limite } = {}) {
   const texto = String(buscar).trim();
   const filtros = [];
 
@@ -61,29 +58,29 @@ export async function listarClientes({ buscar = '', limite } = {}) {
   }
 
   return prisma.cliente.findMany({
-    where: { id_dueno: ID_DUENO_DEMO, ...(filtros.length > 0 && { OR: filtros }) },
+    where: { id_dueno: idDueno, ...(filtros.length > 0 && { OR: filtros }) },
     include: { _count: { select: { eventos: true } } }, // para saber si se puede eliminar
     orderBy: { nombre: 'asc' },
     take: limite || undefined
   });
 }
 
-export async function crearCliente(datos) {
+export async function crearCliente(idDueno, datos) {
   const data = prepararDatos(datos);
   await verificarRutLibre(data.rut);
-  return prisma.cliente.create({ data: { ...data, id_dueno: ID_DUENO_DEMO } });
+  return prisma.cliente.create({ data: { ...data, id_dueno: idDueno } });
 }
 
-export async function modificarCliente(id, datos) {
-  await obtenerCliente(id);
+export async function modificarCliente(idDueno, id, datos) {
+  await obtenerCliente(id, idDueno);
   const data = prepararDatos(datos);
   await verificarRutLibre(data.rut, id);
   return prisma.cliente.update({ where: { id_cliente: id }, data });
 }
 
 // No se puede eliminar un cliente que tenga eventos asociados
-export async function eliminarCliente(id) {
-  await obtenerCliente(id);
+export async function eliminarCliente(idDueno, id) {
+  await obtenerCliente(id, idDueno);
   const eventos = await prisma.evento.count({ where: { id_cliente: id } });
   if (eventos > 0) {
     throw new ValidationError(
