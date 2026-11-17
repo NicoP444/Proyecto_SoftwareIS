@@ -75,7 +75,7 @@ export async function crearEvento(datos) {
   const cliente = await prisma.cliente.findFirst({
     where: { id_cliente: idCliente, id_dueno: ID_DUENO_DEMO },
   });
-  if (!cliente) throw new ValidationError("El cliente no existe");
+  if (!cliente) throw new NotFoundError("El cliente no existe");
 
   const inicio = new Date(`${datos.fecha}T${datos.hora_inicio}:00Z`);
   const termino = new Date(`${datos.fecha}T${datos.hora_termino}:00Z`);

@@ -6,7 +6,6 @@ import Finanzas from "./pages/Finanzas"; //nico
 import Auspiciadores from "./pages/Auspiciadores";
 import Eventos from "./pages/Eventos";
 import Incidentes from "./pages/Incidentes";
-import Clientes from "./pages/Clientes";
 import RegistrarAcuerdoPage from "./pages/RegistrarAcuerdo";
 import SalidaKits from "./pages/SalidaKits";
 import Plantilla from "./components/Plantilla";
@@ -58,25 +57,9 @@ export default function App() {
             <Route path="/salida-kits" element={<SalidaKits />} />
           </Route>
         </Route>
-
-        <Route
-          path="/clientes"
-          element={
-            <RutaProtegida>
-              <Clientes />
-            </RutaProtegida>
-          }
-        />
-
-        <Route
-          path="/eventos"
-          element={
-            <RutaProtegida>
-              <Eventos />
-            </RutaProtegida>
-          }
-        />
-
+          <Route element={<RutaProtegida><RutaPorRol roles={["DUENO"]} /></RutaProtegida>}>
+          <Route path="/eventos" element={<Eventos />} />
+        </Route>
         <Route
           path="/incidentes"
           element={
