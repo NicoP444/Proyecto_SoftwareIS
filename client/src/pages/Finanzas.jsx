@@ -2,7 +2,6 @@ import { useState } from 'react';
 import FinanzasEventos from '../components/finanzas/FinanzaEvento.jsx';
 // Cada persona agrega aquí su import cuando su archivo exista:
 // import RentabilidadMes from '../components/finanzas/RentabilidadMes'; // Persona 2 (pendiente)
-// import PagosCliente from '../components/finanzas/PagosCliente';       // Persona 1
 import GastosFijos from '../components/finanzas/GastosFijos.jsx';     // Persona 4
 import PerdidasInventario from '../components/finanzas/PerdidasInventario.jsx';
 import ResumenInventario from '../components/finanzas/ResumenInventario.jsx';
@@ -15,7 +14,6 @@ import '../styles/Finanzas.css';
 const PESTANAS = [
   { id: 'eventos', texto: 'Eventos', componente: FinanzasEventos }, // Persona 2 (P7)
   { id: 'rentabilidad', texto: 'Rentabilidad', componente: RentabilidadMes },   // Persona 2 (pendiente)
-  // { id: 'pagos-cliente', texto: 'Pagos del cliente', componente: PagosCliente }, // Persona 1 (RF-P1-10)
   { id: 'resumen-mensual', texto: 'Resumen Mensual', componente: ResumenFinancieroMensual }, // Persona 4
   { id: 'perdidas', texto: 'Pérdidas de Inventario', componente: PerdidasInventario }, // Persona 4
   { id: 'mensual', texto: 'Gastos Fijos', componente: GastosFijos },        // Persona 4 (P8)
