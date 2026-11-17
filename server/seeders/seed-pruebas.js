@@ -1,4 +1,5 @@
-// Datos de prueba (clientes y eventos). NO lo usa nada del sistema: se puede borrar la carpeta /seeders cuando quieras.
+// Datos de prueba (clientes y eventos). NO lo usa nada del sistema: se puede borrar este archivo cuando quieras.
+// La carpeta /seeders también guarda los seeds base (dueño, usuarios y kits): no la borres entera.
 //   Crear datos:   npm run seed:pruebas
 //   Borrar datos:  npm run seed:limpiar
 import 'dotenv/config';
@@ -76,7 +77,7 @@ export async function limpiar() {
 
 async function crear() {
   const dueno = await prisma.dueno.findUnique({ where: { id_dueno: ID_DUENO } });
-  if (!dueno) throw new Error('No existe el dueño 1. Ejecuta primero: node prisma/seed.js');
+  if (!dueno) throw new Error('No existe el dueño 1. Ejecuta primero: npm run seed:base');
 
   await limpiar(); // así se puede correr varias veces sin duplicar
 
