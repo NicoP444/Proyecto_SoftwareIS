@@ -6,8 +6,13 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon src/server.js",
+    "seed:base": "node seeders/seed.js",
+    "seed:usuarios": "node seeders/seed-usuarios.js",
+    "seed:kits": "node seeders/seed-kits.js",
+    "seed:eventos": "node seeders/seed-eventos.js",
     "seed:pruebas": "node seeders/seed-pruebas.js",
-    "seed:limpiar": "node seeders/seed-pruebas.js limpiar"
+    "seed:limpiar": "node seeders/seed-pruebas.js limpiar",
+    "seed:todo": "npm run seed:base && npm run seed:usuarios && npm run seed:kits && npm run seed:pruebas"
   },
   "keywords": [],
   "author": "",

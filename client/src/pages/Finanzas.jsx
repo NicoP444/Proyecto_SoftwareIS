@@ -7,13 +7,14 @@ import GastosFijos from '../components/finanzas/GastosFijos.jsx';     // Persona
 import PerdidasInventario from '../components/finanzas/PerdidasInventario.jsx';
 import ResumenInventario from '../components/finanzas/ResumenInventario.jsx';
 import ResumenFinancieroMensual from '../components/finanzas/ResumenFinancieroMensual.jsx';
+import RentabilidadMes from '../components/finanzas/RentabilidadMes.jsx'
 import '../styles/Finanzas.css';
 
 
 // Cada persona agrega UNA línea aquí con su pestaña
 const PESTANAS = [
   { id: 'eventos', texto: 'Eventos', componente: FinanzasEventos }, // Persona 2 (P7)
-  // { id: 'rentabilidad', texto: 'Rentabilidad', componente: RentabilidadMes },   // Persona 2 (pendiente)
+  { id: 'rentabilidad', texto: 'Rentabilidad', componente: RentabilidadMes },   // Persona 2 (pendiente)
   // { id: 'pagos-cliente', texto: 'Pagos del cliente', componente: PagosCliente }, // Persona 1 (RF-P1-10)
   { id: 'resumen-mensual', texto: 'Resumen Mensual', componente: ResumenFinancieroMensual }, // Persona 4
   { id: 'perdidas', texto: 'Pérdidas de Inventario', componente: PerdidasInventario }, // Persona 4

@@ -1,4 +1,5 @@
 import prisma from '../config/prisma.js';
+import { ValidationError } from '../utils/errores.js';
 
 // Validaciones al MODIFICAR un evento (RF-P1-07): agenda, kits y personal.
 // Solo leen la base de datos: si algo no se puede, lanzan un Error; si algo solo hay que revisar, lo devuelven como advertencia.
@@ -9,6 +10,11 @@ const HORA = /^\d{2}:\d{2}$/; // HH:MM
 // Prisma entrega fechas y horas como Date: las pasamos a texto para compararlas fácil
 export const aHora = (d) => d.toISOString().slice(11, 16); // "09:00"
 export const aFecha = (d) => d.toISOString().slice(0, 10); // "2026-11-10"
+// Hoy como "AAAA-MM-DD" (sin toISOString, para que no se corra el día por la zona horaria)
+export const hoyTexto = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 const aMinutos = (hhmm) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
 
 // Dos franjas se traslapan si una empieza antes de que la otra termine (y al revés)
@@ -34,14 +40,14 @@ const cubreFecha = (bloques, fecha) =>
 export function validarFormatoAgenda({ fecha, hora_inicio, hora_termino }) {
   const fechaValida =
     FECHA.test(fecha ?? '') && new Date(`${fecha}T00:00:00Z`).toISOString().slice(0, 10) === fecha; // evita "2026-02-31"
-  if (!fechaValida) throw new Error('La fecha no es válida (usa AAAA-MM-DD)');
+  if (!fechaValida) throw new ValidationError('La fecha no es válida (usa AAAA-MM-DD)');
 
   for (const [nombre, hora] of [['inicio', hora_inicio], ['término', hora_termino]]) {
     const ok = HORA.test(hora ?? '') && !Number.isNaN(new Date(`2000-01-01T${hora}:00Z`).getTime());
-    if (!ok) throw new Error(`La hora de ${nombre} no es válida (usa HH:MM)`);
+    if (!ok) throw new ValidationError(`La hora de ${nombre} no es válida (usa HH:MM)`);
   }
   if (hora_termino <= hora_inicio) {
-    throw new Error('La hora de término debe ser posterior a la hora de inicio');
+    throw new ValidationError('La hora de término debe ser posterior a la de inicio (los eventos terminan el mismo día)');
   }
 }
 
@@ -91,7 +97,7 @@ export async function validarAgendaEvento(evento, nueva, id_dueno) {
     // Un kit que ya salió a terreno y no ha vuelto no puede quedar atado a otro horario
     const enTerreno = reservas.find((r) => r.salida && !r.salida.fecha_hora_retorno);
     if (enTerreno) {
-      throw new Error(
+      throw new ValidationError(
         `No se puede cambiar la fecha ni el horario: el kit "${enTerreno.kit.nombre}" ya salió a terreno y aún no vuelve`,
       );
     }
@@ -117,7 +123,7 @@ export async function validarAgendaEvento(evento, nueva, id_dueno) {
     if (cambioHorario) {
       const choqueKit = otrasReservas.find(seTraslapaConNuevo);
       if (choqueKit) {
-        throw new Error(
+        throw new ValidationError(
           `El kit "${choqueKit.kit.nombre}" ya está reservado para "${choqueKit.evento.tipo}" (${aHora(choqueKit.evento.hora_inicio)}–${aHora(choqueKit.evento.hora_termino)}) y se traslapa con el nuevo horario`,
         );
       }
@@ -168,7 +174,7 @@ export async function validarAgendaEvento(evento, nueva, id_dueno) {
       seTraslapan(nueva.hora_inicio, nueva.hora_termino, aHora(o.evento.hora_inicio), aHora(o.evento.hora_termino)),
     );
     if (choque) {
-      throw new Error(
+      throw new ValidationError(
         `${nombre} ya está asignado a "${choque.evento.tipo}" (${aHora(choque.evento.hora_inicio)}–${aHora(choque.evento.hora_termino)}) y se traslapa con el nuevo horario. Quítalo del evento o elige otro horario`,
       );
     }

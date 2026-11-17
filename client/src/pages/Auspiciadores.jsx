@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
 import {
   registrarAuspiciador,
   obtenerAuspiciadores,
@@ -26,13 +27,13 @@ export default function Auspiciadores() {
   });
 
   const [idEditando, setIdEditando] = useState(null);
-  const [mensaje, setMensaje] = useState('');
+  const [mensajeExitoModal, setMensajeExitoModal] = useState('');
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
 
-  // Pestaña activa: 'acuerdos' (gestión) o 'reporte' (RF-P4-08 solo lectura)
+  // Pestaña activa: 'acuerdos', 'reporte' o 'auspiciadores'
   const [pestanaActiva, setPestanaActiva] = useState('acuerdos');
 
-  // Filtros de mes y año para el reporte (por defecto mes y año actual)
+  // Filtros de mes y año para el reporte
   const fechaActual = new Date();
   const [filtroMes, setFiltroMes] = useState(String(fechaActual.getMonth() + 1));
   const [filtroAnio, setFiltroAnio] = useState(String(fechaActual.getFullYear()));
@@ -58,21 +59,18 @@ export default function Auspiciadores() {
     fecha_recibida: new Date().toISOString().split('T')[0]
   });
 
-  // Estado para el modal de Declarar Incobrable (RF-P4-06)
   const [modalIncobrable, setModalIncobrable] = useState({
     abierto: false,
     acuerdo: null,
     motivo: ''
   });
 
-  // Estado para la burbuja/modal de ver motivo
   const [modalVerMotivo, setModalVerMotivo] = useState({
     abierto: false,
     auspiciador: '',
     motivo: ''
   });
 
-  // Estado para el modal de Modificar Acuerdo
   const [modalEditarAcuerdo, setModalEditarAcuerdo] = useState({
     abierto: false,
     id_acuerdo: null,
@@ -127,8 +125,6 @@ export default function Auspiciadores() {
       telefono: item.telefono || '',
       id_dueno: item.id_dueno || 1
     });
-    setMensaje('');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const cancelarEdicion = () => {
@@ -140,27 +136,31 @@ export default function Auspiciadores() {
       telefono: '',
       id_dueno: 1
     });
-    setMensaje('');
+    setMostrarFormulario(false);
   };
 
   const manejarEnvio = async (e) => {
     e.preventDefault();
-    setMensaje("Guardando...");
 
     try {
       if (idEditando) {
         await modificarAuspiciador(idEditando, formData);
-        setMensaje("Auspiciador actualizado con éxito!");
+        setMensajeExitoModal('Auspiciador modificado correctamente en el sistema');
       } else {
         await registrarAuspiciador(formData);
-        setMensaje("Auspiciador registrado con éxito!");
+        setMensajeExitoModal('Auspiciador registrado con éxito en el sistema');
       }
 
+      setMostrarFormulario(false);
       cancelarEdicion();
       cargarAuspiciadores();
+
+      setTimeout(() => {
+        setMensajeExitoModal('');
+      }, 1300);
     } catch (error) {
       console.error(error);
-      setMensaje(error.message || "Hubo un error al guardar.");
+      alert(error.message || "Hubo un error al guardar.");
     }
   };
 
@@ -170,8 +170,11 @@ export default function Auspiciadores() {
 
     try {
       await eliminarAuspiciador(id);
-      setMensaje("Auspiciador eliminado con éxito.");
+      setMensajeExitoModal('Auspiciador eliminado exitosamente');
       cargarAuspiciadores();
+      setTimeout(() => {
+        setMensajeExitoModal('');
+      }, 1300);
     } catch (error) {
       console.error(error);
       alert(error.message || "No se puede eliminar el auspiciador.");
@@ -188,7 +191,6 @@ export default function Auspiciadores() {
     });
   };
 
-  // Corrección aquí: se reemplazó el fetch con localhost:3000 por modificarAuspiciador
   const confirmarCambioClasificacion = async (e) => {
     e.preventDefault();
     const { auspiciador, nuevoEstado, motivo } = modalClasificacion;
@@ -201,9 +203,12 @@ export default function Auspiciadores() {
         motivo_clasificacion: motivo
       });
 
-      setMensaje(`Clasificación de ${auspiciador.nombre} cambiada a ${nuevoEstado}.`);
       setModalClasificacion({ abierto: false, auspiciador: null, nuevoEstado: '', motivo: '' });
+      setMensajeExitoModal(`Clasificación actualizada a ${nuevoEstado === 'NO_CONFIABLE' ? 'No Confiable' : 'Confiable'}`);
       cargarAuspiciadores();
+      setTimeout(() => {
+        setMensajeExitoModal('');
+      }, 1300);
     } catch (error) {
       alert('Error al actualizar: ' + error.message);
     }
@@ -235,13 +240,16 @@ export default function Auspiciadores() {
       });
 
       setModalCumplimiento({ abierto: false, acuerdo: null, monto_recibido: '', fecha_recibida: '' });
+      setMensajeExitoModal('Cumplimiento de aporte registrado con éxito');
       cargarAcuerdos();
+      setTimeout(() => {
+        setMensajeExitoModal('');
+      }, 1300);
     } catch (error) {
       alert('Error al registrar cumplimiento: ' + error.message);
     }
   };
 
-  // Funciones para RF-P4-06 (Declarar Incobrable)
   const abrirModalIncobrable = (acuerdo) => {
     setModalIncobrable({
       abierto: true,
@@ -258,13 +266,16 @@ export default function Auspiciadores() {
     try {
       await declararIncobrable(id, motivo);
       setModalIncobrable({ abierto: false, acuerdo: null, motivo: '' });
+      setMensajeExitoModal('Aporte declarado como incobrable correctamente');
       cargarAcuerdos();
+      setTimeout(() => {
+        setMensajeExitoModal('');
+      }, 1300);
     } catch (error) {
       alert('Error al declarar incobrable: ' + error.message);
     }
   };
 
-  // Funciones para Editar y Eliminar Acuerdo
   const abrirModalEditarAcuerdo = (acuerdo) => {
     const fechaFormat = acuerdo.fecha_comprometida
       ? new Date(acuerdo.fecha_comprometida).toISOString().split('T')[0]
@@ -304,7 +315,11 @@ export default function Auspiciadores() {
         cant_menciones: '',
         fecha_comprometida: ''
       });
+      setMensajeExitoModal('Acuerdo modificado exitosamente');
       cargarAcuerdos();
+      setTimeout(() => {
+        setMensajeExitoModal('');
+      }, 1300);
     } catch (error) {
       alert('Error al modificar acuerdo: ' + error.message);
     }
@@ -316,18 +331,19 @@ export default function Auspiciadores() {
 
     try {
       await eliminarAcuerdo(idAcuerdo);
+      setMensajeExitoModal('Acuerdo eliminado exitosamente');
       cargarAcuerdos();
+      setTimeout(() => {
+        setMensajeExitoModal('');
+      }, 1300);
     } catch (error) {
       alert('Error al eliminar acuerdo: ' + error.message);
     }
   };
 
-  // Conteo de acuerdos vencidos para el banner (RF-P4-05)
   const acuerdosVencidos = listaAcuerdos.filter((a) => a.estado === 'VENCIDO');
 
-  // ---------- LÓGICA DE REPORTE CONSOLIDADO (RF-P4-08) ----------
   const reporteConsolidado = useMemo(() => {
-    // 1. Filtrar acuerdos por mes y año según fecha_comprometida
     const acuerdosFiltrados = listaAcuerdos.filter((acuerdo) => {
       const fecha = acuerdo.fecha_comprometida ? new Date(acuerdo.fecha_comprometida) : null;
       if (!fecha) return false;
@@ -338,13 +354,11 @@ export default function Auspiciadores() {
       return coincideAnio && coincideMes;
     });
 
-    // 2. Totales generales del periodo
     let totalComprometido = 0;
     let totalCumplido = 0;
     let totalVencido = 0;
     let totalIncobrable = 0;
 
-    // 3. Agrupación por auspiciador
     const mapaAuspiciadores = {};
 
     acuerdosFiltrados.forEach((acuerdo) => {
@@ -410,338 +424,136 @@ export default function Auspiciadores() {
   return (
     <div style={{ padding: '10px 0', width: '100%', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       
-      {/* Botones de acción principales */}
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
-        <button
-          type="button"
-          onClick={() => navigate('/auspiciadores/registrar-acuerdo')}
-          style={{
-            backgroundColor: '#0d6efd',
-            color: 'white',
-            padding: '9px 16px',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: '600'
-          }}
-        >
-          + Registrar acuerdo
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            if (mostrarFormulario) cancelarEdicion();
-            setMostrarFormulario(!mostrarFormulario);
-          }}
-          style={{
-            backgroundColor: mostrarFormulario ? '#dc3545' : '#198754',
-            color: 'white',
-            padding: '9px 16px',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: '600'
-          }}
-        >
-          {mostrarFormulario ? '✕ Cerrar formulario' : '+ Registrar auspiciador'}
-        </button>
+      {/* TÍTULO PRINCIPAL FUERA DEL CUBO */}
+      <div style={{ marginBottom: '20px' }}>
+        <h1 style={{ margin: '0 0 4px 0', fontSize: '24px', fontWeight: '700', color: '#0f172a' }}>
+          Auspiciadores
+        </h1>
+        <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
+          Gestión de auspiciadores, eventos, acuerdos de auspicio y control de aportes
+        </p>
       </div>
 
-      {/* BANNER DE ALERTA DE ACUERDOS VENCIDOS (RF-P4-05) */}
-      {!mostrarFormulario && acuerdosVencidos.length > 0 && (
-        <div style={{
-          backgroundColor: '#fef2f2',
-          borderLeft: '4px solid #ef4444',
-          borderRadius: '8px',
-          padding: '12px 18px',
-          marginBottom: '20px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-        }}>
-          <div>
-            <strong style={{ color: '#991b1b', fontSize: '14px' }}>
-              ⚠️ Alerta: Tienes {acuerdosVencidos.length} {acuerdosVencidos.length === 1 ? 'acuerdo vencido' : 'acuerdos vencidos'}
-            </strong>
-            <p style={{ margin: '3px 0 0 0', color: '#7f1d1d', fontSize: '13px' }}>
-              Se ha superado la fecha comprometida sin registrar el pago completo del aporte.
-            </p>
-          </div>
-        </div>
-      )}
+      {/* CUBO BLANCO CONTENEDOR GENERAL */}
+      <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
 
-      {/* FORMULARIO DE REGISTRO / EDICIÓN AUSPICIADOR */}
-      {mostrarFormulario ? (
-        <div>
-          <div style={{
-            marginBottom: '35px',
-            padding: '24px',
-            border: '1px solid #e2e8f0',
-            borderRadius: '12px',
-            backgroundColor: '#ffffff',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
-          }}>
-            <h2 style={{ marginTop: 0, marginBottom: '18px', fontSize: '20px' }}>
-              {idEditando ? 'Modificar Auspiciador' : 'Registrar Auspiciador'}
-            </h2>
-
-            {mensaje && (
-              <p style={{
-                fontWeight: 'bold',
-                color: mensaje.includes('éxito') || mensaje.includes('cambiada') ? '#198754' : '#dc3545',
-                marginBottom: '15px'
-              }}>
-                {mensaje}
-              </p>
-            )}
-
-            <form onSubmit={manejarEnvio} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '14px', fontWeight: '500' }}>Nombre del Auspiciador:</label>
-                <input
-                  type="text"
-                  name="nombre"
-                  value={formData.nombre}
-                  onChange={manejarCambio}
-                  required
-                  style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '14px', fontWeight: '500' }}>Rubro:</label>
-                <input
-                  type="text"
-                  name="rubro"
-                  value={formData.rubro}
-                  onChange={manejarCambio}
-                  required
-                  style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '14px', fontWeight: '500' }}>Nombre del Contacto:</label>
-                <input
-                  type="text"
-                  name="contacto"
-                  value={formData.contacto}
-                  onChange={manejarCambio}
-                  required
-                  style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '14px', fontWeight: '500' }}>Teléfono:</label>
-                <input
-                  type="text"
-                  name="telefono"
-                  value={formData.telefono}
-                  onChange={manejarCambio}
-                  required
-                  style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-                />
-              </div>
-
-              <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '10px', marginTop: '10px' }}>
-                <button
-                  type="submit"
-                  style={{
-                    padding: '10px 20px',
-                    backgroundColor: idEditando ? '#28a745' : '#0056b3',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontWeight: '600',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {idEditando ? 'Guardar Cambios' : 'Guardar Auspiciador'}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={cancelarEdicion}
-                  style={{
-                    padding: '10px 16px',
-                    backgroundColor: '#6c757d',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Cancelar
-                </button>
-              </div>
-            </form>
-          </div>
-
-          <div style={{
-            backgroundColor: '#ffffff',
-            borderRadius: '16px',
-            padding: '24px',
-            border: '1px solid #f1f5f9',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)'
-          }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', color: '#1e293b' }}>
-              Auspiciadores Registrados
-            </h3>
-
-            {listaAuspiciadores.length === 0 ? (
-              <p style={{ color: '#64748b' }}>No hay auspiciadores registrados aún.</p>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-                {listaAuspiciadores.map((item) => {
-                  const id = item.id_auspiciador || item.id;
-                  const esNoConfiable = item.clasificacion === 'NO_CONFIABLE';
-
-                  return (
-                    <div
-                      key={id}
-                      style={{
-                        border: esNoConfiable ? '1px solid #fca5a5' : '1px solid #dee2e6',
-                        borderRadius: '10px',
-                        padding: '16px',
-                        backgroundColor: esNoConfiable ? '#fffdfd' : '#ffffff',
-                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.02)'
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                        <h4 style={{ margin: 0, fontSize: '16px', color: '#0f172a' }}>{item.nombre}</h4>
-                        
-                        <button
-                          type="button"
-                          onClick={() => abrirModalCambio(item)}
-                          title="Haz clic para cambiar la clasificación"
-                          style={{
-                            border: 'none',
-                            padding: '4px 10px',
-                            borderRadius: '14px',
-                            fontSize: '12px',
-                            fontWeight: '600',
-                            cursor: 'pointer',
-                            backgroundColor: esNoConfiable ? '#fee2e2' : '#dcfce7',
-                            color: esNoConfiable ? '#991b1b' : '#166534',
-                          }}
-                        >
-                          {esNoConfiable ? '⚠️ No confiable' : '✓ Confiable'}
-                        </button>
-                      </div>
-
-                      <p style={{ margin: '4px 0', fontSize: '14px' }}><strong>Rubro:</strong> {item.rubro}</p>
-                      <p style={{ margin: '4px 0', fontSize: '14px' }}><strong>Contacto:</strong> {item.contacto}</p>
-                      <p style={{ margin: '4px 0', fontSize: '14px' }}><strong>Teléfono:</strong> {item.telefono}</p>
-
-                      {item.motivo_clasificacion && (
-                        <p style={{ margin: '6px 0 0 0', fontSize: '12px', color: '#64748b', fontStyle: 'italic' }}>
-                          <strong>Motivo:</strong> {item.motivo_clasificacion}
-                        </p>
-                      )}
-
-                      <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
-                        <button
-                          type="button"
-                          onClick={() => iniciarEdicion(item)}
-                          style={{
-                            backgroundColor: '#1b2a4a',
-                            color: 'white',
-                            border: 'none',
-                            padding: '6px 12px',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '13px'
-                          }}
-                        >
-                          Editar
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => manejarEliminar(id)}
-                          style={{
-                            backgroundColor: '#6c757d',
-                            color: 'white',
-                            border: 'none',
-                            padding: '6px 12px',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '13px'
-                          }}
-                        >
-                          Eliminar
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-      ) : (
-        /* VISTA PRINCIPAL CON PESTAÑAS (ACUERDOS VS REPORTE RF-P4-08) */
-        <div style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '16px',
-          padding: '24px',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
-          border: '1px solid #f1f5f9'
-        }}>
-          {/* BARRA DE PESTAÑAS */}
-          <div style={{ display: 'flex', gap: '10px', borderBottom: '2px solid #e2e8f0', marginBottom: '22px' }}>
+        {/* PESTAÑAS DENTRO DEL CUBO */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+          <div style={{ display: 'flex', gap: '24px' }}>
             <button
               type="button"
               onClick={() => setPestanaActiva('acuerdos')}
               style={{
+                padding: '8px 4px',
                 background: 'none',
                 border: 'none',
-                borderBottom: pestanaActiva === 'acuerdos' ? '3px solid #0d6efd' : '3px solid transparent',
-                padding: '10px 16px',
-                fontSize: '15px',
-                fontWeight: pestanaActiva === 'acuerdos' ? '700' : '500',
-                color: pestanaActiva === 'acuerdos' ? '#0d6efd' : '#64748b',
+                borderBottom: pestanaActiva === 'acuerdos' ? '2px solid #0f172a' : '2px solid transparent',
                 cursor: 'pointer',
-                marginBottom: '-2px'
+                fontSize: '14px',
+                fontWeight: '600',
+                color: pestanaActiva === 'acuerdos' ? '#0f172a' : '#64748b',
+                transition: 'all 0.2s'
               }}
             >
-               Acuerdos de Auspicio
+              Acuerdos de Auspicio
             </button>
 
             <button
               type="button"
               onClick={() => setPestanaActiva('reporte')}
               style={{
+                padding: '8px 4px',
                 background: 'none',
                 border: 'none',
-                borderBottom: pestanaActiva === 'reporte' ? '3px solid #0d6efd' : '3px solid transparent',
-                padding: '10px 16px',
-                fontSize: '15px',
-                fontWeight: pestanaActiva === 'reporte' ? '700' : '500',
-                color: pestanaActiva === 'reporte' ? '#0d6efd' : '#64748b',
+                borderBottom: pestanaActiva === 'reporte' ? '2px solid #0f172a' : '2px solid transparent',
                 cursor: 'pointer',
-                marginBottom: '-2px'
+                fontSize: '14px',
+                fontWeight: '600',
+                color: pestanaActiva === 'reporte' ? '#0f172a' : '#64748b',
+                transition: 'all 0.2s'
               }}
             >
-               Reporte Mensual de Aportes
+              Reporte Mensual de Aportes
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setPestanaActiva('auspiciadores')}
+              style={{
+                padding: '8px 4px',
+                background: 'none',
+                border: 'none',
+                borderBottom: pestanaActiva === 'auspiciadores' ? '2px solid #0f172a' : '2px solid transparent',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: pestanaActiva === 'auspiciadores' ? '#0f172a' : '#64748b',
+                transition: 'all 0.2s'
+              }}
+            >
+              Auspiciadores
             </button>
           </div>
+        </div>
 
-          {/* ======================================================== */}
-          {/* PESTAÑA 1: GESTIÓN OPERATIVA DE ACUERDOS                */}
-          {/* ======================================================== */}
-          {pestanaActiva === 'acuerdos' ? (
+        {/* BANNER DE ALERTA DE ACUERDOS VENCIDOS */}
+        {pestanaActiva === 'acuerdos' && acuerdosVencidos.length > 0 && (
+          <div style={{
+            backgroundColor: '#ffffff',
+            border: '1px solid #ef4444',
+            borderRadius: '12px',
+            padding: '16px 20px',
+            marginBottom: '24px',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '12px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+          }}>
+            <span style={{ color: '#ef4444', fontSize: '18px', marginTop: '2px' }}>⚠️</span>
             <div>
-              <div style={{ marginBottom: '18px' }}>
-                <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>Acuerdos de Auspicio</h2>
-                <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '13px' }}>
-                  Acuerdos por evento, glosa, cumplimiento de aporte y acciones
-                </p>
+              <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: '700', color: '#991b1b' }}>
+                Alerta: Tienes {acuerdosVencidos.length} {acuerdosVencidos.length === 1 ? 'acuerdo vencido' : 'acuerdos vencidos'}
+              </h4>
+              <p style={{ margin: 0, fontSize: '13px', color: '#7f1d1d' }}>
+                Se ha superado la fecha comprometida sin registrar el pago completo del aporte.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* CONTENIDO SEGÚN PESTAÑA ACTIVA */}
+        <div>
+          {pestanaActiva === 'acuerdos' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>Acuerdos de Auspicio</h2>
+                  <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '13px' }}>
+                    Acuerdos por evento, glosa, cumplimiento de aporte y acciones
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => navigate('/auspiciadores/registrar-acuerdo')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    backgroundColor: '#0f172a',
+                    color: 'white',
+                    padding: '9px 18px',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                  }}
+                >
+                  <span style={{ fontSize: '14px', fontWeight: 'bold' }}>+</span>
+                  <span>Registrar acuerdo</span>
+                </button>
               </div>
 
               {cargandoAcuerdos ? (
@@ -754,7 +566,7 @@ export default function Auspiciadores() {
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
                     <thead>
-                      <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#64748b', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                         <th style={{ padding: '12px 14px' }}>Auspiciador</th>
                         <th style={{ padding: '12px 14px' }}>Evento</th>
                         <th style={{ padding: '12px 14px' }}>Tipo de Pago</th>
@@ -892,7 +704,7 @@ export default function Auspiciadores() {
                                         onMouseEnter={(e) => (e.target.style.backgroundColor = '#f8fafc')}
                                         onMouseLeave={(e) => (e.target.style.backgroundColor = 'transparent')}
                                       >
-                                         {esCumplido ? 'Ver / Modificar Pago' : 'Registrar Pago / Entrega'}
+                                        {esCumplido ? 'Ver / Modificar Pago' : 'Registrar Pago / Entrega'}
                                       </button>
                                     )}
 
@@ -920,7 +732,7 @@ export default function Auspiciadores() {
                                         onMouseEnter={(e) => (e.target.style.backgroundColor = '#f8fafc')}
                                         onMouseLeave={(e) => (e.target.style.backgroundColor = 'transparent')}
                                       >
-                                         Ver motivo incobrable
+                                        Ver motivo incobrable
                                       </button>
                                     )}
 
@@ -943,7 +755,7 @@ export default function Auspiciadores() {
                                       onMouseEnter={(e) => (e.target.style.backgroundColor = '#f8fafc')}
                                       onMouseLeave={(e) => (e.target.style.backgroundColor = 'transparent')}
                                     >
-                                       Modificar Acuerdo
+                                      Modificar Acuerdo
                                     </button>
 
                                     {esVencido && (
@@ -967,7 +779,7 @@ export default function Auspiciadores() {
                                         onMouseEnter={(e) => (e.target.style.backgroundColor = '#fef2f2')}
                                         onMouseLeave={(e) => (e.target.style.backgroundColor = 'transparent')}
                                       >
-                                         Declarar Incobrable
+                                        Declarar Incobrable
                                       </button>
                                     )}
 
@@ -990,7 +802,7 @@ export default function Auspiciadores() {
                                       onMouseEnter={(e) => (e.target.style.backgroundColor = '#fef2f2')}
                                       onMouseLeave={(e) => (e.target.style.backgroundColor = 'transparent')}
                                     >
-                                       Eliminar Acuerdo
+                                      Eliminar Acuerdo
                                     </button>
                                   </div>
                                 )}
@@ -1004,10 +816,9 @@ export default function Auspiciadores() {
                 </div>
               )}
             </div>
-          ) : (
-            /* ======================================================== */
-            /* PESTAÑA 2: REPORTE DE AUSPICIADORES (RF-P4-08)           */
-            /* ======================================================== */
+          )}
+
+          {pestanaActiva === 'reporte' && (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '15px', marginBottom: '20px' }}>
                 <div>
@@ -1176,15 +987,268 @@ export default function Auspiciadores() {
               )}
             </div>
           )}
+
+          {pestanaActiva === 'auspiciadores' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>Auspiciadores Registrados</h2>
+                  <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '13px' }}>
+                    Listado de auspiciadores, rubro, contacto y estado de confianza
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    cancelarEdicion();
+                    setMostrarFormulario(true);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    backgroundColor: '#0f172a',
+                    color: 'white',
+                    padding: '9px 18px',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                  }}
+                >
+                  <span style={{ fontSize: '14px', fontWeight: 'bold' }}>+</span>
+                  <span>Registrar auspiciador</span>
+                </button>
+              </div>
+
+              {listaAuspiciadores.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '36px 15px', color: '#64748b', backgroundColor: '#f8fafc', borderRadius: '8px' }}>
+                  <p style={{ margin: 0, fontSize: '14px' }}>No hay auspiciadores registrados aún.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+                  {listaAuspiciadores.map((item) => {
+                    const id = item.id_auspiciador || item.id;
+                    const esNoConfiable = item.clasificacion === 'NO_CONFIABLE';
+
+                    return (
+                      <div
+                        key={id}
+                        style={{
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '12px',
+                          padding: '16px',
+                          backgroundColor: '#ffffff',
+                          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                          <h4 style={{ margin: 0, fontSize: '16px', color: '#0f172a' }}>{item.nombre}</h4>
+                          
+                          <button
+                            type="button"
+                            onClick={() => abrirModalCambio(item)}
+                            title="Haz clic para cambiar la clasificación"
+                            style={{
+                              border: 'none',
+                              padding: '4px 10px',
+                              borderRadius: '14px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              backgroundColor: esNoConfiable ? '#fee2e2' : '#dcfce7',
+                              color: esNoConfiable ? '#991b1b' : '#166534',
+                            }}
+                          >
+                            {esNoConfiable ? '⚠️ No confiable' : '✓ Confiable'}
+                          </button>
+                        </div>
+
+                        <p style={{ margin: '4px 0', fontSize: '13px', color: '#475569' }}><strong>Rubro:</strong> {item.rubro}</p>
+                        <p style={{ margin: '4px 0', fontSize: '13px', color: '#475569' }}><strong>Contacto:</strong> {item.contacto}</p>
+                        <p style={{ margin: '4px 0', fontSize: '13px', color: '#475569' }}><strong>Teléfono:</strong> {item.telefono}</p>
+
+                        {item.motivo_clasificacion && (
+                          <p style={{ margin: '6px 0 0 0', fontSize: '12px', color: '#64748b', fontStyle: 'italic' }}>
+                            <strong>Motivo:</strong> {item.motivo_clasificacion}
+                          </p>
+                        )}
+
+                        <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
+                          <button
+                            type="button"
+                            onClick={() => iniciarEdicion(item)}
+                            style={{
+                              backgroundColor: '#f1f5f9',
+                              border: '1px solid #cbd5e1',
+                              color: '#1e293b',
+                              padding: '5px 10px',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontSize: '12px',
+                              fontWeight: '600'
+                            }}
+                          >
+                            Modificar
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => manejarEliminar(id)}
+                            style={{
+                              backgroundColor: '#fee2e2',
+                              border: '1px solid #fca5a5',
+                              color: '#991b1b',
+                              padding: '5px 10px',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontSize: '12px',
+                              fontWeight: '600'
+                            }}
+                          >
+                            Eliminar
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+      </div>
+
+      {/* ================= MODAL DE ÉXITO GENERAL ================= */}
+      {mensajeExitoModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
+          <div style={{ backgroundColor: '#ffffff', borderRadius: '20px', padding: '32px', width: '100%', maxWidth: '480px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', textAlign: 'center', boxSizing: 'border-box' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+              <FaCheckCircle style={{ fontSize: '56px', color: '#166534' }} />
+              <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>¡Operación Exitosa!</h2>
+              <p style={{ margin: 0, fontSize: '15px', color: '#166534', fontWeight: '600' }}>{mensajeExitoModal}</p>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* MODAL 1: CUMPLIMIENTO */}
+      {/* ================= MODAL REGISTRAR / MODIFICAR AUSPICIADOR ================= */}
+      {mostrarFormulario && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.45)',
+          backdropFilter: 'blur(6px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '20px',
+            padding: '24px',
+            width: '100%',
+            maxWidth: '640px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            boxSizing: 'border-box'
+          }}>
+            <h2 style={{ marginTop: 0, marginBottom: '6px', fontSize: '18px', color: '#1e293b' }}>
+              {idEditando ? 'Modificar Auspiciador' : 'Registrar Auspiciador'}
+            </h2>
+            <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748b' }}>
+              Ingresa los datos correspondientes para el registro o actualización del auspiciador.
+            </p>
+
+            <form onSubmit={manejarEnvio} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Nombre del Auspiciador:</label>
+                <input
+                  type="text"
+                  name="nombre"
+                  value={formData.nombre}
+                  onChange={manejarCambio}
+                  required
+                  placeholder="Ej: Red Bull"
+                  style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Rubro:</label>
+                  <input
+                    type="text"
+                    name="rubro"
+                    value={formData.rubro}
+                    onChange={manejarCambio}
+                    required
+                    placeholder="Ej: Bebidas energéticas"
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Nombre del Contacto:</label>
+                  <input
+                    type="text"
+                    name="contacto"
+                    value={formData.contacto}
+                    onChange={manejarCambio}
+                    required
+                    placeholder="Ej: Juan Pérez"
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Teléfono:</label>
+                <input
+                  type="text"
+                  name="telefono"
+                  value={formData.telefono}
+                  onChange={manejarCambio}
+                  required
+                  placeholder="Ej: +56912345678"
+                  style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid #f1f5f9', paddingTop: '14px' }}>
+                <button
+                  type="button"
+                  onClick={cancelarEdicion}
+                  style={{ padding: '8px 16px', backgroundColor: '#e2e8f0', color: '#334155', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  style={{ padding: '8px 20px', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
+                >
+                  {idEditando ? 'Guardar Cambios' : 'Guardar Auspiciador'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL 1: CUMPLIMIENTO ================= */}
       {modalCumplimiento.abierto && (
         <div style={{
           position: 'fixed',
           inset: 0,
-          backgroundColor: 'rgba(15, 23, 42, 0.5)',
+          backgroundColor: 'rgba(15, 23, 42, 0.45)',
+          backdropFilter: 'blur(6px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -1222,7 +1286,7 @@ export default function Auspiciadores() {
                   style={{
                     width: '100%',
                     padding: '9px 12px',
-                    borderRadius: '6px',
+                    borderRadius: '8px',
                     border: '1px solid #cbd5e1',
                     fontSize: '14px',
                     boxSizing: 'border-box'
@@ -1239,13 +1303,14 @@ export default function Auspiciadores() {
                 </label>
                 <input
                   type="date"
+                  lang="es-CL"
                   value={modalCumplimiento.fecha_recibida}
                   onChange={(e) => setModalCumplimiento({ ...modalCumplimiento, fecha_recibida: e.target.value })}
                   required
                   style={{
                     width: '100%',
                     padding: '9px 12px',
-                    borderRadius: '6px',
+                    borderRadius: '8px',
                     border: '1px solid #cbd5e1',
                     fontSize: '14px',
                     boxSizing: 'border-box'
@@ -1261,10 +1326,11 @@ export default function Auspiciadores() {
                     backgroundColor: '#e2e8f0',
                     color: '#334155',
                     border: 'none',
-                    padding: '8px 14px',
-                    borderRadius: '6px',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
                     cursor: 'pointer',
-                    fontSize: '14px'
+                    fontSize: '14px',
+                    fontWeight: '600'
                   }}
                 >
                   Cancelar
@@ -1272,11 +1338,11 @@ export default function Auspiciadores() {
                 <button
                   type="submit"
                   style={{
-                    backgroundColor: '#0d6efd',
+                    backgroundColor: '#0f172a',
                     color: 'white',
                     border: 'none',
-                    padding: '8px 16px',
-                    borderRadius: '6px',
+                    padding: '8px 20px',
+                    borderRadius: '8px',
                     cursor: 'pointer',
                     fontSize: '14px',
                     fontWeight: '600'
@@ -1290,12 +1356,13 @@ export default function Auspiciadores() {
         </div>
       )}
 
-      {/* MODAL 2: CLASIFICACIÓN */}
+      {/* ================= MODAL 2: CLASIFICACIÓN ================= */}
       {modalClasificacion.abierto && (
         <div style={{
           position: 'fixed',
           inset: 0,
-          backgroundColor: 'rgba(15, 23, 42, 0.5)',
+          backgroundColor: 'rgba(15, 23, 42, 0.45)',
+          backdropFilter: 'blur(6px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -1319,7 +1386,7 @@ export default function Auspiciadores() {
             </p>
 
             <form onSubmit={confirmarCambioClasificacion}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '6px', color: '#334155' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#334155' }}>
                 Motivo del cambio (requerido):
               </label>
               <textarea
@@ -1331,7 +1398,7 @@ export default function Auspiciadores() {
                 style={{
                   width: '100%',
                   padding: '10px',
-                  borderRadius: '6px',
+                  borderRadius: '8px',
                   border: '1px solid #cbd5e1',
                   boxSizing: 'border-box',
                   fontSize: '14px',
@@ -1347,10 +1414,11 @@ export default function Auspiciadores() {
                     backgroundColor: '#e2e8f0',
                     color: '#334155',
                     border: 'none',
-                    padding: '8px 14px',
-                    borderRadius: '6px',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
                     cursor: 'pointer',
-                    fontSize: '14px'
+                    fontSize: '14px',
+                    fontWeight: '600'
                   }}
                 >
                   Cancelar
@@ -1361,8 +1429,8 @@ export default function Auspiciadores() {
                     backgroundColor: modalClasificacion.nuevoEstado === 'NO_CONFIABLE' ? '#dc2626' : '#166534',
                     color: 'white',
                     border: 'none',
-                    padding: '8px 16px',
-                    borderRadius: '6px',
+                    padding: '8px 20px',
+                    borderRadius: '8px',
                     cursor: 'pointer',
                     fontSize: '14px',
                     fontWeight: '600'
@@ -1376,12 +1444,13 @@ export default function Auspiciadores() {
         </div>
       )}
 
-      {/* MODAL 3: DECLARAR INCOBRABLE (RF-P4-06) */}
+      {/* ================= MODAL 3: DECLARAR INCOBRABLE ================= */}
       {modalIncobrable.abierto && (
         <div style={{
           position: 'fixed',
           inset: 0,
-          backgroundColor: 'rgba(15, 23, 42, 0.5)',
+          backgroundColor: 'rgba(15, 23, 42, 0.45)',
+          backdropFilter: 'blur(6px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -1407,19 +1476,19 @@ export default function Auspiciadores() {
 
             <form onSubmit={confirmarIncobrable}>
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '6px', color: '#334155' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#334155' }}>
                   Motivo por el cual se da por perdido el cobro (requerido):
                 </label>
                 <textarea
                   value={modalIncobrable.motivo}
                   onChange={(e) => setModalIncobrable({ ...modalIncobrable, motivo: e.target.value })}
-                  placeholder="Ej: Auspiciador no contesta correos ni llamadas tras reiteradas insistencias..."
+                  placeholder="Ej: Auspiciador no contesta correos ni llamadas..."
                   required
                   rows={3}
                   style={{
                     width: '100%',
                     padding: '10px',
-                    borderRadius: '6px',
+                    borderRadius: '8px',
                     border: '1px solid #cbd5e1',
                     boxSizing: 'border-box',
                     fontSize: '14px'
@@ -1435,10 +1504,11 @@ export default function Auspiciadores() {
                     backgroundColor: '#e2e8f0',
                     color: '#334155',
                     border: 'none',
-                    padding: '8px 14px',
-                    borderRadius: '6px',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
                     cursor: 'pointer',
-                    fontSize: '14px'
+                    fontSize: '14px',
+                    fontWeight: '600'
                   }}
                 >
                   Cancelar
@@ -1449,8 +1519,8 @@ export default function Auspiciadores() {
                     backgroundColor: '#dc2626',
                     color: 'white',
                     border: 'none',
-                    padding: '8px 16px',
-                    borderRadius: '6px',
+                    padding: '8px 20px',
+                    borderRadius: '8px',
                     cursor: 'pointer',
                     fontSize: '14px',
                     fontWeight: '600'
@@ -1464,13 +1534,14 @@ export default function Auspiciadores() {
         </div>
       )}
 
-      {/* MODAL 4: VER MOTIVO DE INCOBRABLE (BURBUJA MODAL) */}
+      {/* ================= MODAL 4: VER MOTIVO DE INCOBRABLE ================= */}
       {modalVerMotivo.abierto && (
         <div
           style={{
             position: 'fixed',
             inset: 0,
             backgroundColor: 'rgba(15, 23, 42, 0.45)',
+            backdropFilter: 'blur(6px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -1487,7 +1558,7 @@ export default function Auspiciadores() {
               padding: '24px',
               maxWidth: '420px',
               width: '100%',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05)'
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
@@ -1497,14 +1568,7 @@ export default function Auspiciadores() {
               <button
                 type="button"
                 onClick={() => setModalVerMotivo({ abierto: false, auspiciador: '', motivo: '' })}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '18px',
-                  color: '#94a3b8',
-                  cursor: 'pointer',
-                  padding: '2px 6px'
-                }}
+                style={{ background: 'none', border: 'none', fontSize: '18px', color: '#94a3b8', cursor: 'pointer' }}
               >
                 ✕
               </button>
@@ -1514,19 +1578,16 @@ export default function Auspiciadores() {
               Auspiciador: <strong style={{ color: '#1e293b' }}>{modalVerMotivo.auspiciador}</strong>
             </p>
 
-            <div
-              style={{
-                backgroundColor: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                borderRadius: '10px',
-                padding: '14px 16px',
-                fontSize: '14px',
-                color: '#334155',
-                lineHeight: '1.5',
-                whiteSpace: 'pre-wrap',
-                marginBottom: '20px'
-              }}
-            >
+            <div style={{
+              backgroundColor: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '10px',
+              padding: '14px 16px',
+              fontSize: '14px',
+              color: '#334155',
+              lineHeight: '1.5',
+              marginBottom: '20px'
+            }}>
               "{modalVerMotivo.motivo}"
             </div>
 
@@ -1535,7 +1596,7 @@ export default function Auspiciadores() {
                 type="button"
                 onClick={() => setModalVerMotivo({ abierto: false, auspiciador: '', motivo: '' })}
                 style={{
-                  backgroundColor: '#0d6efd',
+                  backgroundColor: '#0f172a',
                   color: '#ffffff',
                   border: 'none',
                   padding: '9px 20px',
@@ -1552,12 +1613,13 @@ export default function Auspiciadores() {
         </div>
       )}
 
-      {/* MODAL 5: MODIFICAR ACUERDO */}
+      {/* ================= MODAL 5: MODIFICAR ACUERDO ================= */}
       {modalEditarAcuerdo.abierto && (
         <div style={{
           position: 'fixed',
           inset: 0,
-          backgroundColor: 'rgba(15, 23, 42, 0.5)',
+          backgroundColor: 'rgba(15, 23, 42, 0.45)',
+          backdropFilter: 'blur(6px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -1589,14 +1651,7 @@ export default function Auspiciadores() {
                     onChange={(e) => setModalEditarAcuerdo({ ...modalEditarAcuerdo, glosa: e.target.value })}
                     required
                     rows={2}
-                    style={{
-                      width: '100%',
-                      padding: '9px 12px',
-                      borderRadius: '6px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '14px',
-                      boxSizing: 'border-box'
-                    }}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
                   />
                 </div>
 
@@ -1608,15 +1663,7 @@ export default function Auspiciadores() {
                     <select
                       value={modalEditarAcuerdo.tipo_aporte}
                       onChange={(e) => setModalEditarAcuerdo({ ...modalEditarAcuerdo, tipo_aporte: e.target.value })}
-                      style={{
-                        width: '100%',
-                        padding: '9px 12px',
-                        borderRadius: '6px',
-                        border: '1px solid #cbd5e1',
-                        fontSize: '14px',
-                        boxSizing: 'border-box',
-                        backgroundColor: '#ffffff'
-                      }}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box', backgroundColor: '#ffffff' }}
                     >
                       <option value="DINERO">DINERO</option>
                       <option value="CANJE">CANJE</option>
@@ -1632,14 +1679,7 @@ export default function Auspiciadores() {
                       value={modalEditarAcuerdo.monto_comprometido}
                       onChange={(e) => setModalEditarAcuerdo({ ...modalEditarAcuerdo, monto_comprometido: e.target.value })}
                       required
-                      style={{
-                        width: '100%',
-                        padding: '9px 12px',
-                        borderRadius: '6px',
-                        border: '1px solid #cbd5e1',
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
                     />
                   </div>
                 </div>
@@ -1653,15 +1693,8 @@ export default function Auspiciadores() {
                       type="text"
                       value={modalEditarAcuerdo.descripcion_canje}
                       onChange={(e) => setModalEditarAcuerdo({ ...modalEditarAcuerdo, descripcion_canje: e.target.value })}
-                      placeholder="Ej: 50 poleras, bebidas energéticas..."
-                      style={{
-                        width: '100%',
-                        padding: '9px 12px',
-                        borderRadius: '6px',
-                        border: '1px solid #cbd5e1',
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
+                      placeholder="Ej: 50 poleras..."
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
                     />
                   </div>
                 )}
@@ -1676,14 +1709,7 @@ export default function Auspiciadores() {
                       value={modalEditarAcuerdo.cant_menciones}
                       onChange={(e) => setModalEditarAcuerdo({ ...modalEditarAcuerdo, cant_menciones: e.target.value })}
                       placeholder="Opcional"
-                      style={{
-                        width: '100%',
-                        padding: '9px 12px',
-                        borderRadius: '6px',
-                        border: '1px solid #cbd5e1',
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
                     />
                   </div>
 
@@ -1693,17 +1719,11 @@ export default function Auspiciadores() {
                     </label>
                     <input
                       type="date"
+                      lang="es-CL"
                       value={modalEditarAcuerdo.fecha_comprometida}
                       onChange={(e) => setModalEditarAcuerdo({ ...modalEditarAcuerdo, fecha_comprometida: e.target.value })}
                       required
-                      style={{
-                        width: '100%',
-                        padding: '9px 12px',
-                        borderRadius: '6px',
-                        border: '1px solid #cbd5e1',
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
                     />
                   </div>
                 </div>
@@ -1721,30 +1741,13 @@ export default function Auspiciadores() {
                       cant_menciones: '',
                       fecha_comprometida: ''
                     })}
-                    style={{
-                      backgroundColor: '#e2e8f0',
-                      color: '#334155',
-                      border: 'none',
-                      padding: '8px 16px',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '14px'
-                    }}
+                    style={{ backgroundColor: '#e2e8f0', color: '#334155', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    style={{
-                      backgroundColor: '#28a745',
-                      color: 'white',
-                      border: 'none',
-                      padding: '8px 18px',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      fontWeight: '600'
-                    }}
+                    style={{ backgroundColor: '#0f172a', color: 'white', border: 'none', padding: '8px 20px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}
                   >
                     Guardar Cambios
                   </button>

@@ -8,6 +8,10 @@ import routes from './routes/index.js'; //gene
 import clienteRoutes from './routes/cliente.routes.js'; //jorge
 import asignacionRoutes from './routes/asignacion.routes.js'; //jorge
 import configuracionRoutes from './routes/configuracion.routes.js'; //jorge
+import viabilidadRoutes from './routes/viabilidad.routes.js'; //jorge
+import pagoClienteRoutes from './routes/pagoCliente.routes.js'; //jorge
+import kitEventoRoutes from './routes/kitEvento.routes.js'; //jorge
+import panelRoutes from './routes/panel.routes.js'; //jorge
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -30,10 +34,14 @@ app.use('/api', routes);//gene y nico
 
 app.use('/uploads', express.static('uploads')); // Para servir archivos subidos (evidencias de gastos, etc.)
 
-//JORGE
+//jorge
 app.use('/api/clientes', clienteRoutes);
 app.use('/api', asignacionRoutes); // personal disponible y asignación de personal a eventos
 app.use('/api/configuracion', configuracionRoutes); // margen de traslado
+app.use('/api/viabilidad', viabilidadRoutes); //viabilidad económica
+app.use('/api/pagos-cliente', pagoClienteRoutes); //pagos del cliente
+app.use('/api', kitEventoRoutes); // asignar kits a eventos
+app.use('/api/panel', panelRoutes); // panel de inicio por rol
 
 
 // Comentar, cuando esta en el server....

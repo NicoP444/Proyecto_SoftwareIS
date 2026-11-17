@@ -18,8 +18,17 @@ function prepararDatos(datos) {
   if (!telefono) throw new ValidationError('El teléfono es obligatorio', 'telefono');
   if (correo && !/^\S+@\S+\.\S+$/.test(correo)) {
     throw new ValidationError('El correo no es válido', 'correo');
-  }
+  } 
+  // Largos máximos (los mismos de la base de datos y de los campos del formulario)
+  if (nombre.length > 80) throw new ValidationError('El nombre no puede superar los 80 caracteres', 'nombre');
+  if (telefono.length > 20) throw new ValidationError('El teléfono no puede superar los 20 caracteres', 'telefono');
+  if (correo && correo.length > 120) throw new ValidationError('El correo no puede superar los 120 caracteres', 'correo');
 
+  // Teléfono: entre 8 y 15 dígitos (acepta +, espacios y guiones)
+  const digitos = telefono.replace(/\D/g, '').length;
+  if (digitos < 8 || digitos > 15 || !/^[+\d][\d\s-]*$/.test(telefono)) {
+    throw new ValidationError('El teléfono no es válido', 'telefono');
+  }
   return { rut, nombre, telefono, correo: correo || null };
 }
 

@@ -1,12 +1,16 @@
 import prisma from "../config/prisma.js";
 import { recalcularRemuneraciones } from './remuneracion.service.js';
-import { validarFormatoAgenda, validarAgendaEvento, aFecha, aHora } from './validacionesEvento.service.js';
+import { validarFormatoAgenda, validarAgendaEvento, aFecha, aHora, hoyTexto } from './validacionesEvento.service.js';
+import { ValidationError, NotFoundError } from '../utils/errores.js';
 
 const ID_DUENO_DEMO = 1;
 const HORAS_LIMITE_ADELANTO = 5;
 
-export async function listarEventos() {
-  return prisma.evento.findMany({
+// Campos que el Jefe de área técnica no puede ver (RF-P1-11 y RF-T-05)
+const CAMPOS_FINANCIEROS = ['precio_acordado', 'gastos_estimados'];
+
+export async function listarEventos(rol) {
+  const eventos = await prisma.evento.findMany({
     where: { id_dueno: ID_DUENO_DEMO },
     include: {
       cliente: true,
@@ -29,35 +33,54 @@ export async function listarEventos() {
     },
     orderBy: [{ fecha: 'asc' }, { hora_inicio: 'asc' }]
   });
+
+  // Dueño y Contador ven todo; el Jefe técnico recibe los eventos sin datos financieros
+  if (rol !== 'JEFE_TECNICO') return eventos;
+  return eventos.map((evento) => {
+    const publico = { ...evento };
+    CAMPOS_FINANCIEROS.forEach((campo) => delete publico[campo]);
+    return publico;
+  });
 }
 
 export async function crearEvento(datos) {
+  const tipo = String(datos.tipo ?? "").trim();
+  const direccion = String(datos.direccion ?? "").trim();
+  const observaciones = String(datos.observaciones ?? "").trim() || null;
   const cantidadCamaras = Number(datos.cantidad_camaras);
   const precio = Number(datos.precio_acordado);
   const idCliente = Number(datos.id_cliente);
 
-  if (!datos.direccion || !datos.direccion.trim()) {
-    throw new Error("Debe indicar la dirección del evento");
+  // 1. Validaciones de los datos (las mismas del PUT)
+  if (!tipo) throw new ValidationError("Debe indicar el tipo de evento");
+  if (tipo.length > 40) throw new ValidationError("El tipo de evento no puede superar los 40 caracteres");
+  if (!direccion) throw new ValidationError("Debe indicar la dirección del evento");
+  if (direccion.length > 120) throw new ValidationError("La dirección no puede superar los 120 caracteres");
+  if (observaciones && observaciones.length > 255) {
+    throw new ValidationError("Las observaciones no pueden superar los 255 caracteres");
   }
   if (!Number.isInteger(cantidadCamaras) || cantidadCamaras < 1) {
-    throw new Error("Debe indicar al menos 1 cámara");
+    throw new ValidationError("Debe indicar al menos 1 cámara");
   }
   if (!Number.isInteger(precio) || precio <= 0) {
-    throw new Error("El precio debe ser mayor a cero");
+    throw new ValidationError("El precio debe ser mayor a cero");
   }
   if (!Number.isInteger(idCliente) || idCliente <= 0) {
-    throw new Error("Debe seleccionar un cliente");
+    throw new ValidationError("Debe seleccionar un cliente");
   }
+  validarFormatoAgenda(datos); // fecha y horas válidas, y término posterior al inicio
+  if (datos.fecha < hoyTexto()) throw new ValidationError("La fecha del evento no puede ser anterior a hoy");
+
+  // 2. El cliente debe existir y ser del dueño
+  const cliente = await prisma.cliente.findFirst({
+    where: { id_cliente: idCliente, id_dueno: ID_DUENO_DEMO },
+  });
+  if (!cliente) throw new ValidationError("El cliente no existe");
 
   const inicio = new Date(`${datos.fecha}T${datos.hora_inicio}:00Z`);
   const termino = new Date(`${datos.fecha}T${datos.hora_termino}:00Z`);
 
-  if (termino <= inicio) {
-    throw new Error(
-      "La hora de término debe ser posterior a la hora de inicio",
-    );
-  }
-
+  // 3. Estado inicial según la duración (RF-P1-04)
   const duracionHoras = (termino - inicio) / (1000 * 60 * 60);
   const estado =
     duracionHoras >= HORAS_LIMITE_ADELANTO
@@ -66,14 +89,14 @@ export async function crearEvento(datos) {
 
   return prisma.evento.create({
     data: {
-      tipo: datos.tipo,
+      tipo,
       fecha: new Date(datos.fecha),
       hora_inicio: inicio,
       hora_termino: termino,
-      direccion: datos.direccion,
+      direccion,
       cantidad_camaras: cantidadCamaras,
       precio_acordado: precio,
-      observaciones: datos.observaciones || null,
+      observaciones,
       estado,
       id_cliente: idCliente,
       id_dueno: ID_DUENO_DEMO,
@@ -85,15 +108,15 @@ export async function crearEvento(datos) {
 export async function eliminarEvento(id, motivo) {
   const motivoLimpio = String(motivo ?? "").trim();
   if (!motivoLimpio) {
-    throw new Error("Debes indicar el motivo de la eliminación");
+    throw new ValidationError("Debes indicar el motivo de la eliminación");
   }
   if (motivoLimpio.length > 255) {
-    throw new Error("El motivo no puede superar los 255 caracteres");
+    throw new ValidationError("El motivo no puede superar los 255 caracteres");
   }
 
   const evento = await prisma.evento.findUnique({ where: { id_evento: id } });
   if (!evento) {
-    throw new Error("El evento no existe");
+    throw new NotFoundError("El evento no existe");
   }
 
   // Cuenta todo lo que impide eliminar el evento
@@ -119,7 +142,7 @@ export async function eliminarEvento(id, motivo) {
   if (remuneraciones > 0) motivos.push("pagos de remuneraciones");
 
   if (motivos.length > 0) {
-    throw new Error(
+    throw new ValidationError(
       `No se puede eliminar: el evento tiene ${motivos.join(", ")} registrados`,
     );
   }
@@ -160,21 +183,21 @@ export const actualizarEvento = async (id, datos) => {
   const idCliente = Number(datos.id_cliente);
 
   // 1. Validaciones de los datos (las mismas del POST, más largos máximos y fecha/hora reales)
-  if (!tipo) throw new Error("Debe indicar el tipo de evento");
-  if (tipo.length > 40) throw new Error("El tipo de evento no puede superar los 40 caracteres");
-  if (!direccion) throw new Error("Debe indicar la dirección del evento");
-  if (direccion.length > 120) throw new Error("La dirección no puede superar los 120 caracteres");
+  if (!tipo) throw new ValidationError("Debe indicar el tipo de evento");
+  if (tipo.length > 40) throw new ValidationError("El tipo de evento no puede superar los 40 caracteres");
+  if (!direccion) throw new ValidationError("Debe indicar la dirección del evento");
+  if (direccion.length > 120) throw new ValidationError("La dirección no puede superar los 120 caracteres");
   if (observaciones && observaciones.length > 255) {
-    throw new Error("Las observaciones no pueden superar los 255 caracteres");
+    throw new ValidationError("Las observaciones no pueden superar los 255 caracteres");
   }
   if (!Number.isInteger(cantidadCamaras) || cantidadCamaras < 1) {
-    throw new Error("Debe indicar al menos 1 cámara");
+    throw new ValidationError("Debe indicar al menos 1 cámara");
   }
   if (!Number.isInteger(precio) || precio <= 0) {
-    throw new Error("El precio debe ser mayor a cero");
+    throw new ValidationError("El precio debe ser mayor a cero");
   }
   if (!Number.isInteger(idCliente) || idCliente <= 0) {
-    throw new Error("Debe seleccionar un cliente");
+    throw new ValidationError("Debe seleccionar un cliente");
   }
   validarFormatoAgenda(datos); // fecha y horas válidas, y término posterior al inicio
 
@@ -186,18 +209,20 @@ export const actualizarEvento = async (id, datos) => {
     where: { id_evento, id_dueno: ID_DUENO_DEMO },
   });
   if (!existente) {
-    throw new Error("El evento no existe");
+    throw new NotFoundError("El evento no existe");
   }
   if (existente.estado === "CERRADO") {
-    throw new Error("La jornada está cerrada: el evento ya no puede modificarse");
+    throw new ValidationError("La jornada está cerrada: el evento ya no puede modificarse");
+  }
+  // Un evento ya pasado se puede corregir, pero no se puede mover a una fecha pasada
+  if (datos.fecha !== aFecha(existente.fecha) && datos.fecha < hoyTexto()) {
+    throw new ValidationError("No puedes mover el evento a una fecha anterior a hoy");
   }
 
   const cliente = await prisma.cliente.findFirst({
     where: { id_cliente: idCliente, id_dueno: ID_DUENO_DEMO },
   });
-  if (!cliente) {
-    throw new Error("El cliente no existe");
-  }
+  if (!cliente) throw new NotFoundError("El cliente no existe");
 
   // 3. Agenda, kits y personal: el cambio no puede romper lo ya comprometido
   const advertencias = await validarAgendaEvento(

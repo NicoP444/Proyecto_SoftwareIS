@@ -10,6 +10,7 @@ import {
 //seccion de gastos
 
 export default function PanelGastos({ idEvento, idContador, puedeEditar }) {
+  
   const [gastos, setGastos] = useState([]);
   const [trabajadores, setTrabajadores] = useState([]);
   const [error, setError] = useState('');

@@ -1,4 +1,8 @@
 import { useState, useEffect } from 'react';
+import { 
+  FaPlus, FaVideo, FaSlidersH, FaMicrophone, FaDesktop, 
+  FaExclamationTriangle, FaBoxOpen, FaCheckCircle, FaTrash 
+} from 'react-icons/fa';
 import {
   obtenerEquipos,
   registrarEquipo,
@@ -6,8 +10,12 @@ import {
   darDeBajaEquipo,
   eliminarEquipo
 } from '../services/equipoService';
+import { kitClientService } from '../services/kit.service';
 
 export default function Equipos() {
+  const [activeTab, setActiveTab] = useState('KITS');
+
+  // --- ESTADOS DE EQUIPOS / INVENTARIO ---
   const [formData, setFormData] = useState({
     nombre: '',
     categoria: 'CAMARA',
@@ -20,32 +28,103 @@ export default function Equipos() {
 
   const [listaEquipos, setListaEquipos] = useState([]);
   const [cargando, setCargando] = useState(true);
-  const [mensaje, setMensaje] = useState('');
+  const [guardandoEquipo, setGuardandoEquipo] = useState(false);
+  const [errorEquipo, setErrorEquipo] = useState('');
+  const [exitoEquipo, setExitoEquipo] = useState('');
+  const [exitoEditarEquipo, setExitoEditarEquipo] = useState('');
+  const [exitoBaja, setExitoBaja] = useState('');
+  const [exitoKit, setExitoKit] = useState('');
+  const [exitoCrearKit, setExitoCrearKit] = useState('');
+  const [exitoModificarKit, setExitoModificarKit] = useState('');
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
-
-  // Estado para el modal de edición (RF-P5-02)
   const [equipoEditando, setEquipoEditando] = useState(null);
-
-  // Estados para el modal de dar de baja (RF-P5-03)
   const [equipoBaja, setEquipoBaja] = useState(null);
   const [motivoBaja, setMotivoBaja] = useState('');
+  const [filtroCategoria, setFiltroCategoria] = useState('TODOS');
 
-  const cargarEquipos = async () => {
+  // --- ESTADOS DE KITS ---
+  const [kits, setKits] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [nombreKit, setNombreKit] = useState('');
+  const [nivelKit, setNivelKit] = useState('BASICO');
+  const [recargoPct, setRecargoPct] = useState(0);
+
+  // Selección por categoría para CREAR (con soporte para adicionales)
+  const [camaraSeleccionada, setCamaraSeleccionada] = useState('');
+  const [tripodeSeleccionado, setTripodeSeleccionado] = useState('');
+  const [microfonoSeleccionado, setMicrofonoSeleccionado] = useState('');
+  const [switchSeleccionado, setSwitchSeleccionado] = useState('');
+  const [equiposAdicionalesCrear, setEquiposAdicionalesCrear] = useState([]);
+
+  const [errorKit, setErrorKit] = useState('');
+  const [loadingKit, setLoadingKit] = useState(false);
+
+  // --- ESTADOS PARA MODIFICAR KIT (RF-P5-05) ---
+  const [kitEditando, setKitEditando] = useState(null);
+  const [nombreEditKit, setNombreEditKit] = useState('');
+  const [nivelEditKit, setNivelEditKit] = useState('BASICO');
+  const [recargoEditPct, setRecargoEditPct] = useState(0);
+  const [camaraEdit, setCamaraEdit] = useState('');
+  const [tripodeEdit, setTripodeEdit] = useState('');
+  const [microfonoEdit, setMicrofonoEdit] = useState('');
+  const [switchEdit, setSwitchEdit] = useState('');
+  const [equiposAdicionalesEditar, setEquiposAdicionalesEditar] = useState([]);
+  const [errorEditKit, setErrorEditKit] = useState('');
+  const [loadingEditKit, setLoadingEditKit] = useState(false);
+
+  const cargarDatos = async () => {
     try {
       setCargando(true);
-      const data = await obtenerEquipos();
-      setListaEquipos(Array.isArray(data) ? data : []);
+      const [dataEquipos, dataKits] = await Promise.all([
+        obtenerEquipos(),
+        kitClientService.obtenerKits()
+      ]);
+      setListaEquipos(Array.isArray(dataEquipos) ? dataEquipos : []);
+      setKits(Array.isArray(dataKits) ? dataKits : []);
     } catch (error) {
-      console.warn('Error al cargar equipos:', error.message);
-      setListaEquipos([]);
+      console.warn('Error al cargar datos:', error.message);
     } finally {
       setCargando(false);
     }
   };
 
   useEffect(() => {
-    cargarEquipos();
+    cargarDatos();
   }, []);
+
+  // Función helper para formatear categorías visualmente para el usuario
+  const formatearCategoria = (cat) => {
+    if (!cat) return '';
+    switch (cat.toUpperCase()) {
+      case 'CAMARA': return 'Cámara';
+      case 'TRIPODE': return 'Trípode';
+      case 'MICROFONO': return 'Micrófono';
+      case 'SWITCH_VIDEO': return 'Switch de Video';
+      case 'OTRO': return 'Otro';
+      default: return cat;
+    }
+  };
+
+  // Función segura para formatear fechas en los inputs
+  const formatearFechaInput = (fecha) => {
+    if (!fecha) return '';
+    if (typeof fecha === 'string') return fecha.split('T')[0];
+    try {
+      return new Date(fecha).toISOString().split('T')[0];
+    } catch {
+      return '';
+    }
+  };
+
+  const getIconoCategoria = (categoria) => {
+    switch (categoria?.toUpperCase()) {
+      case 'CAMARA': return <FaVideo className="text-blue-500" />;
+      case 'TRIPODE': return <FaSlidersH className="text-gray-500" />;
+      case 'MICROFONO': return <FaMicrophone className="text-indigo-500" />;
+      case 'SWITCH_VIDEO': return <FaDesktop className="text-slate-700" />;
+      default: return <FaBoxOpen />;
+    }
+  };
 
   const manejarCambio = (e) => {
     const { name, value } = e.target;
@@ -54,15 +133,12 @@ export default function Equipos() {
 
   const manejarEnvio = async (e) => {
     e.preventDefault();
-    setMensaje('Registrando equipo...');
-
+    setErrorEquipo('');
+    setExitoEquipo('');
+    setGuardandoEquipo(true);
     try {
-      await registrarEquipo({
-        ...formData,
-        valor_compra: Number(formData.valor_compra)
-      });
-
-      setMensaje('¡Equipo registrado con éxito en inventario!');
+      await registrarEquipo({ ...formData, valor_compra: Number(formData.valor_compra) });
+      setExitoEquipo('Equipo registrado con éxito en el inventario');
       setFormData({
         nombre: '',
         categoria: 'CAMARA',
@@ -72,29 +148,21 @@ export default function Equipos() {
         valor_compra: '',
         id_jefe: 1
       });
-      cargarEquipos();
+      cargarDatos();
+      setTimeout(() => {
+        setMostrarFormulario(false);
+        setExitoEquipo('');
+      }, 1200);
     } catch (error) {
-      console.error(error);
-      setMensaje(error.message || 'Error al registrar el equipo.');
+      setErrorEquipo(error.message || 'Error al registrar el equipo.');
+    } finally {
+      setGuardandoEquipo(false);
     }
-  };
-
-  // Abrir formulario de edición con los datos del equipo seleccionado (RF-P5-02)
-  const iniciarEdicion = (eq) => {
-    setEquipoEditando({
-      ...eq,
-      fecha_compra: eq.fecha_compra ? eq.fecha_compra.split('T')[0] : '',
-      valor_compra: eq.valor_compra ?? ''
-    });
-  };
-
-  const manejarCambioEdicion = (e) => {
-    const { name, value } = e.target;
-    setEquipoEditando({ ...equipoEditando, [name]: value });
   };
 
   const guardarEdicion = async (e) => {
     e.preventDefault();
+    setExitoEditarEquipo('');
     try {
       await actualizarEquipo(equipoEditando.codigo, {
         nombre: equipoEditando.nombre,
@@ -104,20 +172,15 @@ export default function Equipos() {
         fecha_compra: equipoEditando.fecha_compra,
         valor_compra: Number(equipoEditando.valor_compra)
       });
-
-      setMensaje('¡Equipo actualizado con éxito!');
-      setEquipoEditando(null);
-      await cargarEquipos();
+      setExitoEditarEquipo('Equipo modificado correctamente en el inventario');
+      await cargarDatos();
+      setTimeout(() => {
+        setEquipoEditando(null);
+        setExitoEditarEquipo('');
+      }, 1200);
     } catch (error) {
-      console.error(error);
       alert(error.message || 'Error al actualizar el equipo.');
     }
-  };
-
-  // Abrir modal de dar de baja (RF-P5-03)
-  const iniciarBaja = (eq) => {
-    setEquipoBaja(eq);
-    setMotivoBaja('');
   };
 
   const confirmarBaja = async (e) => {
@@ -126,551 +189,1188 @@ export default function Equipos() {
       alert('Debe indicar un motivo para dar de baja el equipo.');
       return;
     }
-
     try {
       const resp = await darDeBajaEquipo(equipoBaja.codigo, motivoBaja);
-
-      // Si no registra historial previo de incidentes o revisiones, ofrece eliminarlo definitivamente
-      if (resp?.sinHistorial) {
-        const deseaEliminar = window.confirm(
-          'El equipo quedó dado de baja y no posee historial de uso registrado. ¿Deseas eliminarlo de forma definitiva del inventario?'
-        );
-        if (deseaEliminar) {
-          await eliminarEquipo(equipoBaja.codigo);
-        }
+      let mensajeExito = 'Equipo dado de baja correctamente';
+      if (resp?.sinHistorial && window.confirm('Deseas eliminarlo definitivamente?')) {
+        await eliminarEquipo(equipoBaja.codigo);
+        mensajeExito = 'Equipo eliminado definitivamente del inventario';
       }
-
       setEquipoBaja(null);
       setMotivoBaja('');
-      await cargarEquipos();
+      setExitoBaja(mensajeExito);
+      await cargarDatos();
+      setTimeout(() => {
+        setExitoBaja('');
+      }, 1500);
     } catch (error) {
-      console.error('Error al dar de baja:', error);
-      alert(error.message || 'Error al procesar la baja del equipo.');
+      alert(error.message || 'Error al procesar la baja.');
     }
   };
+
+  const handleSubmitCrearKit = async (e) => {
+    e.preventDefault();
+    setErrorKit('');
+    setExitoCrearKit('');
+    setLoadingKit(true);
+    try {
+      const equiposArray = [
+        camaraSeleccionada,
+        tripodeSeleccionado,
+        microfonoSeleccionado,
+        switchSeleccionado,
+        ...equiposAdicionalesCrear
+      ].filter(Boolean);
+
+      const payload = {
+        nombre: nombreKit,
+        nivel: nivelKit,
+        recargo_pct: Number(recargoPct),
+        equipos: equiposArray
+      };
+
+      const resultado = await kitClientService.crearKit(payload);
+      setExitoCrearKit(resultado.mensaje || 'Kit creado exitosamente');
+      
+      setNombreKit('');
+      setNivelKit('BASICO');
+      setRecargoPct(0);
+      setCamaraSeleccionada('');
+      setTripodeSeleccionado('');
+      setMicrofonoSeleccionado('');
+      setSwitchSeleccionado('');
+      setEquiposAdicionalesCrear([]);
+      
+      await cargarDatos();
+      setTimeout(() => {
+        setIsModalOpen(false);
+        setExitoCrearKit('');
+      }, 1200);
+    } catch (err) {
+      setErrorKit(err.message || 'Error al crear el kit');
+    } finally {
+      setLoadingKit(false);
+    }
+  };
+
+  // --- LÓGICA DE MODIFICAR KIT (RF-P5-05) ---
+  const iniciarEdicionKit = (kit) => {
+    setKitEditando(kit);
+    setNombreEditKit(kit.nombre);
+    setNivelEditKit(kit.nivel);
+    setRecargoEditPct(kit.recargo_pct);
+    setErrorEditKit('');
+    setExitoModificarKit('');
+
+    const equiposKit = kit.equipos || [];
+    const camara = equiposKit.find(e => e.categoria === 'CAMARA')?.codigo || '';
+    const tripode = equiposKit.find(e => e.categoria === 'TRIPODE')?.codigo || '';
+    const microfono = equiposKit.find(e => e.categoria === 'MICROFONO')?.codigo || '';
+    const sw = equiposKit.find(e => e.categoria === 'SWITCH_VIDEO')?.codigo || '';
+
+    const principales = [camara, tripode, microfono, sw].filter(Boolean);
+    const adicionales = equiposKit
+      .map(e => e.codigo)
+      .filter(codigo => !principales.includes(codigo));
+
+    setCamaraEdit(camara);
+    setTripodeEdit(tripode);
+    setMicrofonoEdit(microfono);
+    setSwitchEdit(sw);
+    setEquiposAdicionalesEditar(adicionales);
+  };
+
+  const handleSubmitModificarKit = async (e) => {
+    e.preventDefault();
+    setErrorEditKit('');
+    setExitoModificarKit('');
+    setLoadingEditKit(true);
+
+    try {
+      const equiposArray = [
+        camaraEdit, 
+        tripodeEdit, 
+        microfonoEdit, 
+        switchEdit, 
+        ...equiposAdicionalesEditar
+      ].filter(Boolean);
+
+      const payload = {
+        nombre: nombreEditKit,
+        nivel: nivelEditKit,
+        recargo_pct: Number(recargoEditPct),
+        equipos: equiposArray
+      };
+
+      const resultado = await kitClientService.actualizarKit(kitEditando.id_kit, payload);
+      setExitoModificarKit(resultado.mensaje || 'Kit actualizado exitosamente');
+      await cargarDatos();
+      setTimeout(() => {
+        setKitEditando(null);
+        setExitoModificarKit('');
+      }, 1200);
+    } catch (err) {
+      setErrorEditKit(err.message || 'Error al actualizar el kit');
+    } finally {
+      setLoadingEditKit(false);
+    }
+  };
+
+  // --- LÓGICA DE ELIMINAR KIT (RF-P5-06) ---
+  const manejarEliminarKit = async (idKit, nombreKit) => {
+    if (!window.confirm(`Estás seguro de que deseas eliminar el kit "${nombreKit}"? Sus equipos pasarán a ser repuestos.`)) {
+      return;
+    }
+    try {
+      const resultado = await kitClientService.eliminarKit(idKit);
+      setExitoKit(resultado.mensaje || 'Kit eliminado exitosamente y sus equipos pasaron a ser repuestos');
+      await cargarDatos();
+      setTimeout(() => {
+        setExitoKit('');
+      }, 1500);
+    } catch (err) {
+      alert(err.message || 'Error al eliminar el kit');
+    }
+  };
+
+  // Equipos libres y operativos para CREAR un kit
+  const equiposDisponiblesParaKit = listaEquipos.filter(
+    eq => eq.estado?.toUpperCase() === 'OPERATIVO' && !eq.id_kit && !eq.kit
+  );
+
+  const camerasDisponibles = equiposDisponiblesParaKit.filter(eq => eq.categoria?.toUpperCase() === 'CAMARA');
+  const tripodesDisponibles = equiposDisponiblesParaKit.filter(eq => eq.categoria?.toUpperCase() === 'TRIPODE');
+  const microfonosDisponibles = equiposDisponiblesParaKit.filter(eq => eq.categoria?.toUpperCase() === 'MICROFONO');
+  const switchesDisponibles = equiposDisponiblesParaKit.filter(eq => eq.categoria?.toUpperCase() === 'SWITCH_VIDEO');
+
+  // Helper para MODIFICAR kit (permite equipos libres o los que ya pertenecen a este kit)
+  const obtenerEquiposParaEdicion = () => {
+    return listaEquipos.filter(eq => {
+      const esOperativo = eq.estado?.toUpperCase() === 'OPERATIVO';
+      const estaLibre = !eq.id_kit && !eq.kit;
+      const perteneceAEsteKit = kitEditando?.equipos?.some(e => e.codigo === eq.codigo);
+      return esOperativo && (estaLibre || perteneceAEsteKit);
+    });
+  };
+
+  // Filtrado de equipos por categoría seleccionada en la tabla
+  const equiposFiltrados = listaEquipos.filter(eq => {
+    if (filtroCategoria === 'TODOS') return true;
+    return eq.categoria?.toUpperCase() === filtroCategoria;
+  });
 
   return (
     <div style={{ padding: '10px 0', width: '100%', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       
-      {/* Botón superior para alternar formulario */}
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-        <button
-          type="button"
-          onClick={() => {
-            setMostrarFormulario(!mostrarFormulario);
-            setMensaje('');
-          }}
-          style={{
-            backgroundColor: mostrarFormulario ? '#dc3545' : '#0d6efd',
-            color: 'white',
-            padding: '9px 16px',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: '600'
-          }}
-        >
-          {mostrarFormulario ? '✕ Cerrar formulario' : '+ Registrar nuevo equipo'}
-        </button>
+      {/* CABECERA / TÍTULO PRINCIPAL FUERA DEL CUBO */}
+      <div style={{ marginBottom: '20px' }}>
+        <h1 style={{ margin: '0 0 4px 0', fontSize: '24px', fontWeight: '700', color: '#0f172a' }}>
+          Gestión de Kits y Equipos
+        </h1>
+        <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
+          Administración de kits técnicos, niveles de servicio y catálogo de inventario general
+        </p>
       </div>
 
-      {/* FORMULARIO DE REGISTRO (RF-P5-01) */}
+      {/* CUBO BLANCO CONTENEDOR GENERAL */}
+      <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
+
+        {/* PESTAÑAS SUPERIORES (Estilo Minimalista con Subrayado) Y BOTÓN DE ACCIÓN DENTRO DEL CUBO */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+          <div style={{ display: 'flex', gap: '24px' }}>
+            <button
+              onClick={() => setActiveTab('KITS')}
+              style={{
+                padding: '8px 4px',
+                background: 'none',
+                border: 'none',
+                borderBottom: activeTab === 'KITS' ? '2px solid #0f172a' : '2px solid transparent',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: activeTab === 'KITS' ? '#0f172a' : '#64748b',
+                transition: 'all 0.2s'
+              }}
+            >
+              KITS
+            </button>
+            <button
+              onClick={() => setActiveTab('EQUIPOS')}
+              style={{
+                padding: '8px 4px',
+                background: 'none',
+                border: 'none',
+                borderBottom: activeTab === 'EQUIPOS' ? '2px solid #0f172a' : '2px solid transparent',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: activeTab === 'EQUIPOS' ? '#0f172a' : '#64748b',
+                transition: 'all 0.2s'
+              }}
+            >
+              EQUIPOS
+            </button>
+          </div>
+
+          {activeTab === 'KITS' ? (
+            <button
+              onClick={() => {
+                setErrorKit('');
+                setExitoCrearKit('');
+                setIsModalOpen(true);
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                backgroundColor: '#0f172a',
+                color: 'white',
+                padding: '9px 18px',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+              }}
+            >
+              <span style={{ fontSize: '14px', fontWeight: 'bold' }}>+</span>
+              <span>Crear kit</span>
+            </button>
+          ) : activeTab === 'EQUIPOS' ? (
+            <button
+              type="button"
+              onClick={() => {
+                setErrorEquipo('');
+                setExitoEquipo('');
+                setMostrarFormulario(true);
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                backgroundColor: '#0f172a',
+                color: 'white',
+                padding: '9px 18px',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+              }}
+            >
+              <span style={{ fontSize: '14px', fontWeight: 'bold' }}>+</span>
+              <span>Registrar nuevo equipo</span>
+            </button>
+          ) : null}
+        </div>
+
+        {/* ================= VISTA KITS ================= */}
+        {activeTab === 'KITS' && (
+          <div>
+            {kits.length === 0 ? (
+              <div style={{ backgroundColor: '#f8fafc', borderRadius: '16px', padding: '48px', textAlign: 'center', border: '1px solid #e2e8f0', color: '#64748b' }}>
+                <FaBoxOpen style={{ fontSize: '40px', marginBottom: '12px', color: '#94a3b8' }} />
+                <h3 style={{ margin: '0 0 6px 0', fontSize: '16px', color: '#1e293b' }}>No hay kits creados</h3>
+                <p style={{ margin: 0, fontSize: '13px' }}>Haz clic en "+ Crear kit" para armar el primer kit con equipos operativos del inventario.</p>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+                {kits.map((kit) => (
+                  <div key={kit.id_kit} style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '20px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: '18px', color: '#1e293b' }}>{kit.nombre}</h3>
+                        <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#64748b' }}>
+                          {kit.nivel} · Recargo: {kit.recargo_pct}%
+                        </p>
+                      </div>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button
+                          onClick={() => iniciarEdicionKit(kit)}
+                          style={{ padding: '5px 12px', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', color: '#1e293b' }}
+                        >
+                          Modificar
+                        </button>
+                        <button
+                          onClick={() => manejarEliminarKit(kit.id_kit, kit.nombre)}
+                          style={{ padding: '5px 12px', backgroundColor: '#fee2e2', border: '1px solid #fca5a5', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', color: '#991b1b' }}
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', margin: '16px 0' }}>
+                      {kit.equipos?.map((eq, idx) => (
+                        <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: '#f8fafc', border: '1px solid #f1f5f9', borderRadius: '10px', padding: '8px' }}>
+                          <div style={{ padding: '8px', backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                            {getIconoCategoria(eq.categoria)}
+                          </div>
+                          <div style={{ overflow: 'hidden' }}>
+                            <p style={{ margin: 0, fontSize: '12px', fontWeight: '700', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{eq.nombre}</p>
+                            <p style={{ margin: 0, fontSize: '10px', color: '#64748b', textTransform: 'capitalize' }}>{formatearCategoria(eq.categoria)}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ backgroundColor: '#dcfce7', color: '#166534', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '600' }}>
+                        {kit.estado || 'DISPONIBLE'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ================= VISTA EQUIPOS / INVENTARIO ================= */}
+        {activeTab === 'EQUIPOS' && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>Inventario de Equipos</h2>
+                <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '13px' }}>
+                  Listado de equipos registrados, código correlativo y estado de asignación
+                </p>
+              </div>
+              <div>
+                <select
+                  value={filtroCategoria}
+                  onChange={(e) => setFiltroCategoria(e.target.value)}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '13px',
+                    backgroundColor: '#ffffff',
+                    color: '#1e293b',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+                  }}
+                >
+                  <option value="TODOS">Todas las categorías</option>
+                  <option value="CAMARA">Cámara</option>
+                  <option value="TRIPODE">Trípode</option>
+                  <option value="MICROFONO">Micrófono</option>
+                  <option value="SWITCH_VIDEO">Switch de Video</option>
+                  <option value="OTRO">Otro</option>
+                </select>
+              </div>
+            </div>
+
+            {cargando ? (
+              <p style={{ color: '#64748b', textAlign: 'center', padding: '20px 0' }}>Cargando inventario...</p>
+            ) : equiposFiltrados.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '36px 15px', color: '#64748b' }}>
+                <p style={{ margin: 0 }}>No hay equipos registrados en esta categoría.</p>
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#64748b', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      <th style={{ padding: '12px 14px' }}>Código</th>
+                      <th style={{ padding: '12px 14px' }}>Equipo</th>
+                      <th style={{ padding: '12px 14px' }}>Categoría</th>
+                      <th style={{ padding: '12px 14px' }}>Marca / Modelo</th>
+                      <th style={{ padding: '12px 14px' }}>Fecha Compra</th>
+                      <th style={{ padding: '12px 14px', textAlign: 'right' }}>Valor Compra</th>
+                      <th style={{ padding: '12px 14px', textAlign: 'center' }}>Estado</th>
+                      <th style={{ padding: '12px 14px', textAlign: 'center' }}>Kit</th>
+                      <th style={{ padding: '12px 14px', textAlign: 'center' }}>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {equiposFiltrados.map((eq) => {
+                      const fecha = eq.fecha_compra ? new Date(eq.fecha_compra).toLocaleDateString('es-CL') : '--';
+                      const esBaja = eq.estado === 'DADO_DE_BAJA';
+                      return (
+                        <tr key={eq.codigo} style={{ borderBottom: '1px solid #f1f5f9', opacity: esBaja ? 0.65 : 1 }}>
+                          <td style={{ padding: '14px', fontWeight: '700', color: '#0f172a' }}>{eq.codigo}</td>
+                          <td style={{ padding: '14px', fontWeight: '600', color: '#1e293b' }}>{eq.nombre}</td>
+                          <td style={{ padding: '14px', color: '#475569' }}>{formatearCategoria(eq.categoria)}</td>
+                          <td style={{ padding: '14px', color: '#64748b' }}>{eq.marca || '-'} {eq.modelo ? `(${eq.modelo})` : ''}</td>
+                          <td style={{ padding: '14px', color: '#475569' }}>{fecha}</td>
+                          <td style={{ padding: '14px', textAlign: 'right', fontWeight: '600', color: '#1e293b' }}>${Number(eq.valor_compra || 0).toLocaleString('es-CL')}</td>
+                          <td style={{ padding: '14px', textAlign: 'center' }}>
+                            <span style={{
+                              backgroundColor: esBaja ? '#f1f5f9' : eq.estado === 'OPERATIVO' ? '#dcfce7' : '#fee2e2',
+                              color: esBaja ? '#475569' : eq.estado === 'OPERATIVO' ? '#166534' : '#991b1b',
+                              padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '600'
+                            }}>
+                              {eq.estado}
+                            </span>
+                          </td>
+                          <td style={{ padding: '14px', textAlign: 'center', color: eq.kit ? '#0f172a' : '#64748b' }}>
+                            {eq.kit?.nombre || eq.kit || 'Repuesto (Sin kit)'}
+                          </td>
+                          <td style={{ padding: '14px', textAlign: 'center' }}>
+                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                              <button
+                                type="button"
+                                onClick={() => setEquipoEditando(eq)}
+                                style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '5px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', color: '#1e293b' }}
+                              >
+                                Modificar
+                              </button>
+                              {!esBaja && (
+                                <button
+                                  type="button"
+                                  onClick={() => setEquipoBaja(eq)}
+                                  style={{ backgroundColor: '#fee2e2', border: '1px solid #fca5a5', padding: '5px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', color: '#991b1b' }}
+                                >
+                                  Dar de baja
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+      </div>
+
+      {/* ================= MODAL REGISTRAR NUEVO EQUIPO ================= */}
       {mostrarFormulario && (
-        <div style={{
-          marginBottom: '28px',
-          padding: '24px',
-          border: '1px solid #e2e8f0',
-          borderRadius: '12px',
-          backgroundColor: '#ffffff',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
-        }}>
-          <h2 style={{ marginTop: 0, marginBottom: '8px', fontSize: '18px', color: '#1e293b' }}>
-            Registrar Equipo en Inventario 
-          </h2>
-          <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748b' }}>
-            El sistema generará automáticamente el código único según la categoría y asignará el estado Operativo.
-          </p>
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
+          <div style={{ backgroundColor: '#ffffff', borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '640px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
+            
+            {exitoEquipo ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+                <FaCheckCircle style={{ fontSize: '56px', color: '#166534' }} />
+                <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>¡Registro Exitoso!</h2>
+                <p style={{ margin: 0, fontSize: '15px', color: '#166534', fontWeight: '600' }}>{exitoEquipo}</p>
+              </div>
+            ) : (
+              <>
+                <h2 style={{ marginTop: 0, marginBottom: '6px', fontSize: '18px', color: '#1e293b' }}>
+                  Registrar Equipo en Inventario
+                </h2>
+                <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748b' }}>
+                  El sistema generará automáticamente el código único según la categoría y asignará el estado Operativo.
+                </p>
 
-          {mensaje && (
-            <p style={{
-              fontWeight: '600',
-              color: mensaje.includes('éxito') ? '#166534' : '#dc2626',
-              marginBottom: '14px',
-              fontSize: '14px'
-            }}>
-              {mensaje}
-            </p>
-          )}
+                {errorEquipo && (
+                  <div style={{ marginBottom: '14px', padding: '10px 14px', backgroundColor: '#fee2e2', color: '#991b1b', fontSize: '13px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <FaExclamationTriangle />
+                    <span>{errorEquipo}</span>
+                  </div>
+                )}
 
-          <form onSubmit={manejarEnvio} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Nombre del equipo:</label>
-              <input
-                type="text"
-                name="nombre"
-                placeholder="Ej: Sony Alpha 7 IV"
-                value={formData.nombre}
-                onChange={manejarCambio}
-                required
-                style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' }}
-              />
-            </div>
+                <form onSubmit={manejarEnvio} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div>
+                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Nombre del equipo:</label>
+                    <input
+                      type="text"
+                      name="nombre"
+                      placeholder="Ej: Sony Alpha 7 IV"
+                      value={formData.nombre}
+                      onChange={manejarCambio}
+                      required
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                    />
+                  </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Categoría:</label>
-              <select
-                name="categoria"
-                value={formData.categoria}
-                onChange={manejarCambio}
-                style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#ffffff' }}
-              >
-                <option value="CAMARA">CAMARA</option>
-                <option value="TRIPODE">TRIPODE</option>
-                <option value="MICROFONO">MICROFONO</option>
-                <option value="SWITCH_VIDEO">SWITCH_VIDEO</option>
-                <option value="OTRO">OTRO</option>
-              </select>
-            </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Categoría:</label>
+                      <select
+                        name="categoria"
+                        value={formData.categoria}
+                        onChange={manejarCambio}
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
+                      >
+                        <option value="CAMARA">Cámara</option>
+                        <option value="TRIPODE">Trípode</option>
+                        <option value="MICROFONO">Micrófono</option>
+                        <option value="SWITCH_VIDEO">Switch de Video</option>
+                        <option value="OTRO">Otro</option>
+                      </select>
+                    </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Marca:</label>
-              <input
-                type="text"
-                name="marca"
-                placeholder="Ej: Sony"
-                value={formData.marca}
-                onChange={manejarCambio}
-                style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' }}
-              />
-            </div>
+                    <div>
+                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Marca:</label>
+                      <input
+                        type="text"
+                        name="marca"
+                        placeholder="Ej: Sony"
+                        value={formData.marca}
+                        onChange={manejarCambio}
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Modelo:</label>
-              <input
-                type="text"
-                name="modelo"
-                placeholder="Ej: ILCE-7M4"
-                value={formData.modelo}
-                onChange={manejarCambio}
-                style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' }}
-              />
-            </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Modelo:</label>
+                      <input
+                        type="text"
+                        name="modelo"
+                        placeholder="Ej: ILCE-7M4"
+                        value={formData.modelo}
+                        onChange={manejarCambio}
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                      />
+                    </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Fecha de compra:</label>
-              <input
-                type="date"
-                name="fecha_compra"
-                value={formData.fecha_compra}
-                onChange={manejarCambio}
-                required
-                style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' }}
-              />
-            </div>
+                    <div>
+                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Fecha de compra:</label>
+                      <input
+                        type="date"
+                        name="fecha_compra"
+                        value={formData.fecha_compra}
+                        onChange={manejarCambio}
+                        required
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Valor de compra ($):</label>
-              <input
-                type="number"
-                name="valor_compra"
-                placeholder="Ej: 1800000"
-                value={formData.valor_compra}
-                onChange={manejarCambio}
-                required
-                style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' }}
-              />
-            </div>
+                  <div>
+                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Valor de compra ($):</label>
+                    <input
+                      type="number"
+                      name="valor_compra"
+                      placeholder="Ej: 1800000"
+                      value={formData.valor_compra}
+                      onChange={manejarCambio}
+                      required
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                    />
+                  </div>
 
-            <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '10px', marginTop: '8px' }}>
-              <button
-                type="submit"
-                style={{
-                  padding: '9px 20px',
-                  backgroundColor: '#198754',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  fontSize: '14px'
-                }}
-              >
-                Guardar Equipo
-              </button>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid #f1f5f9', paddingTop: '14px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setMostrarFormulario(false)}
+                      style={{ padding: '8px 16px', backgroundColor: '#e2e8f0', color: '#334155', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={guardandoEquipo}
+                      style={{ padding: '8px 20px', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
+                    >
+                      {guardandoEquipo ? 'Guardando...' : 'Guardar Equipo'}
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
 
-              <button
-                type="button"
-                onClick={() => setMostrarFormulario(false)}
-                style={{
-                  padding: '9px 16px',
-                  backgroundColor: '#6c757d',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '14px'
-                }}
-              >
-                Cancelar
-              </button>
-            </div>
-          </form>
+          </div>
         </div>
       )}
 
-      {/* MODAL / FORMULARIO FLOTANTE DE EDICIÓN (RF-P5-02) */}
+      {/* ================= MODAL MODIFICAR EQUIPO ================= */}
       {equipoEditando && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999
-        }}>
-          <div style={{
-            backgroundColor: '#ffffff',
-            borderRadius: '12px',
-            padding: '24px',
-            width: '90%',
-            maxWidth: '520px',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-          }}>
-            <h2 style={{ marginTop: 0, marginBottom: '6px', fontSize: '18px', color: '#1e293b' }}>
-              Modificar Equipo: {equipoEditando.codigo}
-            </h2>
-            <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748b' }}>
-              Actualiza los datos del equipo y su valor de compra.
-            </p>
-
-            <form onSubmit={guardarEdicion} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Nombre del equipo:</label>
-                <input
-                  type="text"
-                  name="nombre"
-                  value={equipoEditando.nombre}
-                  onChange={manejarCambioEdicion}
-                  required
-                  style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' }}
-                />
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
+          <div style={{ backgroundColor: '#ffffff', borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '640px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
+            
+            {exitoEditarEquipo ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+                <FaCheckCircle style={{ fontSize: '56px', color: '#166534' }} />
+                <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>¡Modificación Exitosa!</h2>
+                <p style={{ margin: 0, fontSize: '15px', color: '#166534', fontWeight: '600' }}>{exitoEditarEquipo}</p>
               </div>
+            ) : (
+              <>
+                <h2 style={{ marginTop: 0, marginBottom: '6px', fontSize: '18px', color: '#1e293b' }}>
+                  Modificar Equipo: {equipoEditando.codigo}
+                </h2>
+                <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748b' }}>
+                  Actualiza los datos generales del equipo (la categoría se mantiene fija).
+                </p>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Categoría:</label>
-                  <select
-                    name="categoria"
-                    value={equipoEditando.categoria}
-                    onChange={manejarCambioEdicion}
-                    style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#ffffff' }}
-                  >
-                    <option value="CAMARA">CAMARA</option>
-                    <option value="TRIPODE">TRIPODE</option>
-                    <option value="MICROFONO">MICROFONO</option>
-                    <option value="SWITCH_VIDEO">SWITCH_VIDEO</option>
-                    <option value="OTRO">OTRO</option>
-                  </select>
-                </div>
+                <form onSubmit={guardarEdicion} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div>
+                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Nombre del equipo:</label>
+                    <input
+                      type="text"
+                      name="nombre"
+                      value={equipoEditando.nombre || ''}
+                      onChange={(e) => setEquipoEditando({ ...equipoEditando, nombre: e.target.value })}
+                      required
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                    />
+                  </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Fecha de compra:</label>
-                  <input
-                    type="date"
-                    name="fecha_compra"
-                    value={equipoEditando.fecha_compra}
-                    onChange={manejarCambioEdicion}
-                    required
-                    style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' }}
-                  />
-                </div>
-              </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Categoría (Fija):</label>
+                      <input
+                        type="text"
+                        value={formatearCategoria(equipoEditando.categoria)}
+                        disabled
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#f1f5f9', color: '#64748b', boxSizing: 'border-box' }}
+                      />
+                    </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Marca:</label>
-                  <input
-                    type="text"
-                    name="marca"
-                    value={equipoEditando.marca || ''}
-                    onChange={manejarCambioEdicion}
-                    style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' }}
-                  />
-                </div>
+                    <div>
+                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Marca:</label>
+                      <input
+                        type="text"
+                        name="marca"
+                        value={equipoEditando.marca || ''}
+                        onChange={(e) => setEquipoEditando({ ...equipoEditando, marca: e.target.value })}
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Modelo:</label>
-                  <input
-                    type="text"
-                    name="modelo"
-                    value={equipoEditando.modelo || ''}
-                    onChange={manejarCambioEdicion}
-                    style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' }}
-                  />
-                </div>
-              </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Modelo:</label>
+                      <input
+                        type="text"
+                        name="modelo"
+                        value={equipoEditando.modelo || ''}
+                        onChange={(e) => setEquipoEditando({ ...equipoEditando, modelo: e.target.value })}
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                      />
+                    </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>
-                  Valor de compra ($):
-                </label>
-                <input
-                  type="number"
-                  name="valor_compra"
-                  value={equipoEditando.valor_compra}
-                  onChange={manejarCambioEdicion}
-                  required
-                  style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' }}
-                />
-              </div>
+                    <div>
+                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Fecha de compra:</label>
+                      <input
+                        type="date"
+                        name="fecha_compra"
+                        value={formatearFechaInput(equipoEditando.fecha_compra)}
+                        onChange={(e) => setEquipoEditando({ ...equipoEditando, fecha_compra: e.target.value })}
+                        required
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '14px' }}>
-                <button
-                  type="button"
-                  onClick={() => setEquipoEditando(null)}
-                  style={{
-                    padding: '8px 16px',
-                    backgroundColor: '#e2e8f0',
-                    color: '#334155',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontWeight: '600',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  style={{
-                    padding: '8px 18px',
-                    backgroundColor: '#0d6efd',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontWeight: '600',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Guardar Cambios
-                </button>
-              </div>
-            </form>
+                  <div>
+                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Valor de compra ($):</label>
+                    <input
+                      type="number"
+                      name="valor_compra"
+                      value={equipoEditando.valor_compra || ''}
+                      onChange={(e) => setEquipoEditando({ ...equipoEditando, valor_compra: e.target.value })}
+                      required
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid #f1f5f9', paddingTop: '14px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setEquipoEditando(null)}
+                      style={{ padding: '8px 16px', backgroundColor: '#e2e8f0', color: '#334155', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      style={{ padding: '8px 20px', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
+                    >
+                      Guardar Cambios
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
+
           </div>
         </div>
       )}
 
-      {/* MODAL DAR DE BAJA EQUIPO (RF-P5-03) */}
+      {/* ================= MODAL DAR DE BAJA / ELIMINAR EQUIPO ================= */}
       {equipoBaja && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999
-        }}>
-          <div style={{
-            backgroundColor: '#ffffff',
-            borderRadius: '12px',
-            padding: '24px',
-            width: '90%',
-            maxWidth: '460px',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-          }}>
-            <h2 style={{ marginTop: 0, marginBottom: '6px', fontSize: '18px', color: '#991b1b' }}>
-              Dar de baja: {equipoBaja.codigo}
-            </h2>
-            <p style={{ margin: '0 0 14px 0', fontSize: '13px', color: '#64748b' }}>
-              El equipo quedará inhabilitado para asignarse y saldrá de su kit si estaba asignado.
-            </p>
-
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
+          <div style={{ backgroundColor: '#ffffff', borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '460px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', boxSizing: 'border-box' }}>
+            <h2 style={{ marginTop: 0, marginBottom: '6px', fontSize: '18px', color: '#991b1b' }}>Dar de baja: {equipoBaja.codigo}</h2>
             <form onSubmit={confirmarBaja} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>
-                  Motivo de la baja:
-                </label>
-                <textarea
-                  rows="3"
-                  value={motivoBaja}
-                  onChange={(e) => setMotivoBaja(e.target.value)}
-                  placeholder="Ej: Falla irreparable en lente, obsoleto..."
-                  required
-                  style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', resize: 'vertical' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
-                <button
-                  type="button"
-                  onClick={() => setEquipoBaja(null)}
-                  style={{
-                    padding: '8px 16px',
-                    backgroundColor: '#e2e8f0',
-                    color: '#334155',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontWeight: '600',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  style={{
-                    padding: '8px 18px',
-                    backgroundColor: '#dc3545',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontWeight: '600',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Confirmar Baja
-                </button>
+              <textarea 
+                rows="3" 
+                value={motivoBaja} 
+                onChange={(e) => setMotivoBaja(e.target.value)} 
+                placeholder="Motivo de la baja..." 
+                required 
+                style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }} 
+              />
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button type="button" onClick={() => setEquipoBaja(null)} style={{ padding: '8px 16px', backgroundColor: '#e2e8f0', color: '#334155', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>Cancelar</button>
+                <button type="submit" style={{ padding: '8px 18px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>Confirmar Baja</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* TABLA PRINCIPAL DE INVENTARIO */}
-      <div style={{
-        backgroundColor: '#ffffff',
-        borderRadius: '16px',
-        padding: '24px',
-        border: '1px solid #f1f5f9',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)'
-      }}>
-        <div style={{ marginBottom: '18px' }}>
-          <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>Inventario de Equipos</h2>
-          <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '13px' }}>
-            Listado de equipos registrados, código correlativo y estado de asignación
-          </p>
-        </div>
-
-        {cargando ? (
-          <p style={{ color: '#64748b', textAlign: 'center', padding: '20px 0' }}>Cargando inventario...</p>
-        ) : listaEquipos.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '36px 15px', color: '#64748b' }}>
-            <p style={{ margin: 0 }}>No hay equipos registrados en el inventario.</p>
+      {/* ================= MODAL ÉXITO BAJA / ELIMINAR EQUIPO ================= */}
+      {exitoBaja && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
+          <div style={{ backgroundColor: '#ffffff', borderRadius: '20px', padding: '32px', width: '100%', maxWidth: '480px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', textAlign: 'center', boxSizing: 'border-box' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+              <FaCheckCircle style={{ fontSize: '56px', color: '#166534' }} />
+              <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>¡Operación Exitosa!</h2>
+              <p style={{ margin: 0, fontSize: '15px', color: '#166534', fontWeight: '600' }}>{exitoBaja}</p>
+            </div>
           </div>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
-              <thead>
-                <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#64748b', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  <th style={{ padding: '12px 14px' }}>Código</th>
-                  <th style={{ padding: '12px 14px' }}>Equipo</th>
-                  <th style={{ padding: '12px 14px' }}>Categoría</th>
-                  <th style={{ padding: '12px 14px' }}>Marca / Modelo</th>
-                  <th style={{ padding: '12px 14px' }}>Fecha Compra</th>
-                  <th style={{ padding: '12px 14px', textAlign: 'right' }}>Valor Compra</th>
-                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>Estado</th>
-                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>Kit</th>
-                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {listaEquipos.map((eq) => {
-                  const fecha = eq.fecha_compra
-                    ? new Date(eq.fecha_compra).toLocaleDateString('es-CL')
-                    : '--';
-                  const esBaja = eq.estado === 'DADO_DE_BAJA';
+        </div>
+      )}
 
-                  return (
-                    <tr key={eq.codigo} style={{ borderBottom: '1px solid #f1f5f9', opacity: esBaja ? 0.65 : 1 }}>
-                      <td style={{ padding: '14px', fontWeight: '700', color: '#0f172a' }}>
-                        {eq.codigo}
-                      </td>
-                      <td style={{ padding: '14px', fontWeight: '600', color: '#1e293b' }}>
-                        {eq.nombre}
-                      </td>
-                      <td style={{ padding: '14px', color: '#475569' }}>
-                        {eq.categoria}
-                      </td>
-                      <td style={{ padding: '14px', color: '#64748b' }}>
-                        {eq.marca || '-'} {eq.modelo ? `(${eq.modelo})` : ''}
-                      </td>
-                      <td style={{ padding: '14px', color: '#475569' }}>
-                        {fecha}
-                      </td>
-                      <td style={{ padding: '14px', textAlign: 'right', fontWeight: '600', color: '#1e293b' }}>
-                        ${Number(eq.valor_compra || 0).toLocaleString('es-CL')}
-                      </td>
-                      <td style={{ padding: '14px', textAlign: 'center' }}>
-                        <span style={{
-                          backgroundColor: esBaja ? '#f1f5f9' : eq.estado === 'OPERATIVO' ? '#dcfce7' : '#fee2e2',
-                          color: esBaja ? '#475569' : eq.estado === 'OPERATIVO' ? '#166534' : '#991b1b',
-                          padding: '4px 10px',
-                          borderRadius: '12px',
-                          fontSize: '12px',
-                          fontWeight: '600'
-                        }}>
-                          {eq.estado}
-                        </span>
-                      </td>
-                      <td style={{ padding: '14px', textAlign: 'center', color: eq.kit ? '#0f172a' : '#64748b' }}>
-                        {eq.kit?.nombre || 'Repuesto (Sin kit)'}
-                      </td>
-                      <td style={{ padding: '14px', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+      {/* ================= MODAL ÉXITO ELIMINAR KIT ================= */}
+      {exitoKit && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
+          <div style={{ backgroundColor: '#ffffff', borderRadius: '20px', padding: '32px', width: '100%', maxWidth: '480px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', textAlign: 'center', boxSizing: 'border-box' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+              <FaCheckCircle style={{ fontSize: '56px', color: '#166534' }} />
+              <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>¡Eliminación Exitosa!</h2>
+              <p style={{ margin: 0, fontSize: '15px', color: '#166534', fontWeight: '600' }}>{exitoKit}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL CREAR KIT ================= */}
+      {isModalOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
+          <div style={{ backgroundColor: '#ffffff', borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '640px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
+            
+            {exitoCrearKit ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+                <FaCheckCircle style={{ fontSize: '56px', color: '#166534' }} />
+                <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>¡Creación Exitosa!</h2>
+                <p style={{ margin: 0, fontSize: '15px', color: '#166534', fontWeight: '600' }}>{exitoCrearKit}</p>
+              </div>
+            ) : (
+              <>
+                <h2 style={{ marginTop: 0, marginBottom: '6px', fontSize: '18px', color: '#1e293b' }}>Crear Nuevo Kit</h2>
+                <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748b' }}>
+                  Selecciona los equipos base obligatorios y añade más equipos adicionales si lo necesitas.
+                </p>
+
+                {errorKit && (
+                  <div style={{ marginBottom: '14px', padding: '10px 14px', backgroundColor: '#fee2e2', color: '#991b1b', fontSize: '13px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <FaExclamationTriangle />
+                    <span>{errorKit}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmitCrearKit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div>
+                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Nombre del Kit:</label>
+                    <input
+                      type="text"
+                      maxLength={60}
+                      required
+                      value={nombreKit}
+                      onChange={(e) => setNombreKit(e.target.value)}
+                      placeholder="Ej. Kit Audiovisual Pro"
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Nivel:</label>
+                      <select
+                        value={nivelKit}
+                        onChange={(e) => setNivelKit(e.target.value)}
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
+                      >
+                        <option value="BASICO">Básico</option>
+                        <option value="ESTANDAR">Estándar</option>
+                        <option value="ALTA_GAMA">Alta Gama</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Recargo (%):</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="999.99"
+                        step="0.01"
+                        value={recargoPct}
+                        onChange={(e) => setRecargoPct(e.target.value)}
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* 4 SELECTORES PRINCIPALES OBLIGATORIOS */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Cámara (Obligatorio):</label>
+                      <select
+                        value={camaraSeleccionada}
+                        onChange={(e) => setCamaraSeleccionada(e.target.value)}
+                        required
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
+                      >
+                        <option value="">-- Seleccione Cámara --</option>
+                        {camerasDisponibles.map(eq => (
+                          <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Trípode (Obligatorio):</label>
+                      <select
+                        value={tripodeSeleccionado}
+                        onChange={(e) => setTripodeSeleccionado(e.target.value)}
+                        required
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
+                      >
+                        <option value="">-- Seleccione Trípode --</option>
+                        {tripodesDisponibles.map(eq => (
+                          <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Micrófono (Obligatorio):</label>
+                      <select
+                        value={microfonoSeleccionado}
+                        onChange={(e) => setMicrofonoSeleccionado(e.target.value)}
+                        required
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
+                      >
+                        <option value="">-- Seleccione Micrófono --</option>
+                        {microfonosDisponibles.map(eq => (
+                          <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Switch de video (Obligatorio):</label>
+                      <select
+                        value={switchSeleccionado}
+                        onChange={(e) => setSwitchSeleccionado(e.target.value)}
+                        required
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
+                      >
+                        <option value="">-- Seleccione Switch --</option>
+                        {switchesDisponibles.map(eq => (
+                          <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                  </div>
+
+                  {/* EQUIPOS ADICIONALES */}
+                  <div style={{ marginTop: '6px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <label style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>Equipos Adicionales (Opcional):</label>
+                      <button
+                        type="button"
+                        onClick={() => setEquiposAdicionalesCrear([...equiposAdicionalesCrear, ''])}
+                        style={{ padding: '4px 10px', backgroundColor: '#e0f2fe', color: '#0369a1', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}
+                      >
+                        + Añadir equipo
+                      </button>
+                    </div>
+
+                    {equiposAdicionalesCrear.map((codigoAdicional, index) => {
+                      const codigosYaUsados = [
+                        camaraSeleccionada, 
+                        tripodeSeleccionado, 
+                        microfonoSeleccionado, 
+                        switchSeleccionado, 
+                        ...equiposAdicionalesCrear
+                      ];
+                      const disponiblesExtra = equiposDisponiblesParaKit.filter(
+                        eq => !codigosYaUsados.includes(eq.codigo) || eq.codigo === codigoAdicional
+                      );
+
+                      return (
+                        <div key={index} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
+                          <select
+                            value={codigoAdicional}
+                            onChange={(e) => {
+                              const nuevos = [...equiposAdicionalesCrear];
+                              nuevos[index] = e.target.value;
+                              setEquiposAdicionalesCrear(nuevos);
+                            }}
+                            required
+                            style={{ flex: 1, padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: '#ffffff' }}
+                          >
+                            <option value="">-- Seleccionar equipo adicional --</option>
+                            {disponiblesExtra.map(eq => (
+                              <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre} ({formatearCategoria(eq.categoria)})</option>
+                            ))}
+                          </select>
                           <button
                             type="button"
-                            onClick={() => iniciarEdicion(eq)}
-                            style={{
-                              backgroundColor: '#f1f5f9',
-                              border: '1px solid #cbd5e1',
-                              padding: '5px 10px',
-                              borderRadius: '6px',
-                              cursor: 'pointer',
-                              fontSize: '12px',
-                              fontWeight: '600',
-                              color: '#1e293b'
+                            onClick={() => {
+                              const nuevos = equiposAdicionalesCrear.filter((_, i) => i !== index);
+                              setEquiposAdicionalesCrear(nuevos);
                             }}
+                            style={{ padding: '8px 10px', backgroundColor: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
                           >
-                             Modificar
+                            <FaTrash />
                           </button>
+                        </div>
+                      );
+                    })}
+                  </div>
 
-                          {!esBaja && (
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid #f1f5f9', paddingTop: '14px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setIsModalOpen(false)}
+                      style={{ padding: '8px 16px', backgroundColor: '#e2e8f0', color: '#334155', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={loadingKit}
+                      style={{ padding: '8px 20px', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
+                    >
+                      {loadingKit ? 'Guardando...' : 'Guardar Kit'}
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
+
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL MODIFICAR KIT (RF-P5-05) ================= */}
+      {kitEditando && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
+          <div style={{ backgroundColor: '#ffffff', borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '700px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
+            
+            {exitoModificarKit ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+                <FaCheckCircle style={{ fontSize: '56px', color: '#166534' }} />
+                <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>¡Actualización Exitosa!</h2>
+                <p style={{ margin: 0, fontSize: '15px', color: '#166534', fontWeight: '600' }}>{exitoModificarKit}</p>
+              </div>
+            ) : (
+              <>
+                <h2 style={{ marginTop: 0, marginBottom: '6px', fontSize: '18px', color: '#1e293b' }}>Modificar Kit: {kitEditando.nombre}</h2>
+                <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748b' }}>
+                  Actualiza la información o los equipos del kit.
+                </p>
+
+                {kitEditando.estado === 'EN_TERRENO' && (
+                  <div style={{ marginBottom: '14px', padding: '10px 14px', backgroundColor: '#fef3c7', color: '#92400e', fontSize: '13px', borderRadius: '8px' }}>
+                    Este kit está en terreno, por lo que no se permite cambiar su composición de equipos.
+                  </div>
+                )}
+
+                {errorEditKit && (
+                  <div style={{ marginBottom: '14px', padding: '10px 14px', backgroundColor: '#fee2e2', color: '#991b1b', fontSize: '13px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <FaExclamationTriangle />
+                    <span>{errorEditKit}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmitModificarKit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div>
+                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Nombre del Kit:</label>
+                    <input
+                      type="text"
+                      maxLength={60}
+                      required
+                      value={nombreEditKit}
+                      onChange={(e) => setNombreEditKit(e.target.value)}
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Nivel:</label>
+                      <select
+                        value={nivelEditKit}
+                        onChange={(e) => setNivelEditKit(e.target.value)}
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
+                      >
+                        <option value="BASICO">Básico</option>
+                        <option value="ESTANDAR">Estándar</option>
+                        <option value="ALTA_GAMA">Alta Gama</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Recargo (%):</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="999.99"
+                        step="0.01"
+                        value={recargoEditPct}
+                        onChange={(e) => setRecargoEditPct(e.target.value)}
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Cámara:</label>
+                      <select
+                        value={camaraEdit}
+                        onChange={(e) => setCamaraEdit(e.target.value)}
+                        disabled={kitEditando.estado === 'EN_TERRENO'}
+                        required
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: kitEditando.estado === 'EN_TERRENO' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
+                      >
+                        <option value="">-- Seleccione Cámara --</option>
+                        {obtenerEquiposParaEdicion().filter(eq => eq.categoria === 'CAMARA' || eq.codigo === camaraEdit).map(eq => (
+                          <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Trípode:</label>
+                      <select
+                        value={tripodeEdit}
+                        onChange={(e) => setTripodeEdit(e.target.value)}
+                        disabled={kitEditando.estado === 'EN_TERRENO'}
+                        required
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: kitEditando.estado === 'EN_TERRENO' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
+                      >
+                        <option value="">-- Seleccione Trípode --</option>
+                        {obtenerEquiposParaEdicion().filter(eq => eq.categoria === 'TRIPODE' || eq.codigo === tripodeEdit).map(eq => (
+                          <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Micrófono:</label>
+                      <select
+                        value={microfonoEdit}
+                        onChange={(e) => setMicrofonoEdit(e.target.value)}
+                        disabled={kitEditando.estado === 'EN_TERRENO'}
+                        required
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: kitEditando.estado === 'EN_TERRENO' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
+                      >
+                        <option value="">-- Seleccione Micrófono --</option>
+                        {obtenerEquiposParaEdicion().filter(eq => eq.categoria === 'MICROFONO' || eq.codigo === microfonoEdit).map(eq => (
+                          <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Switch de video:</label>
+                      <select
+                        value={switchEdit}
+                        onChange={(e) => setSwitchEdit(e.target.value)}
+                        disabled={kitEditando.estado === 'EN_TERRENO'}
+                        required
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: kitEditando.estado === 'EN_TERRENO' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
+                      >
+                        <option value="">-- Seleccione Switch --</option>
+                        {obtenerEquiposParaEdicion().filter(eq => eq.categoria === 'SWITCH_VIDEO' || eq.codigo === switchEdit).map(eq => (
+                          <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* ADICIONALES EN EDICIÓN */}
+                  <div style={{ marginTop: '6px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <label style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>Equipos Adicionales:</label>
+                      {kitEditando.estado !== 'EN_TERRENO' && (
+                        <button
+                          type="button"
+                          onClick={() => setEquiposAdicionalesEditar([...equiposAdicionalesEditar, ''])}
+                          style={{ padding: '4px 10px', backgroundColor: '#e0f2fe', color: '#0369a1', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}
+                        >
+                          + Añadir equipo
+                        </button>
+                      )}
+                    </div>
+
+                    {equiposAdicionalesEditar.map((codigoAdicional, index) => {
+                      const codigosUsados = [camaraEdit, tripodeEdit, microfonoEdit, switchEdit, ...equiposAdicionalesEditar];
+                      const disponiblesExtra = obtenerEquiposParaEdicion().filter(
+                        eq => !codigosUsados.includes(eq.codigo) || eq.codigo === codigoAdicional
+                      );
+
+                      return (
+                        <div key={index} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
+                          <select
+                            value={codigoAdicional}
+                            disabled={kitEditando.estado === 'EN_TERRENO'}
+                            onChange={(e) => {
+                              const nuevos = [...equiposAdicionalesEditar];
+                              nuevos[index] = e.target.value;
+                              setEquiposAdicionalesEditar(nuevos);
+                            }}
+                            required
+                            style={{ flex: 1, padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: '#ffffff' }}
+                          >
+                            <option value="">-- Seleccionar equipo adicional --</option>
+                            {disponiblesExtra.map(eq => (
+                              <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre} ({formatearCategoria(eq.categoria)})</option>
+                            ))}
+                          </select>
+                          {kitEditando.estado !== 'EN_TERRENO' && (
                             <button
                               type="button"
-                              onClick={() => iniciarBaja(eq)}
-                              style={{
-                                backgroundColor: '#fee2e2',
-                                border: '1px solid #fca5a5',
-                                padding: '5px 10px',
-                                borderRadius: '6px',
-                                cursor: 'pointer',
-                                fontSize: '12px',
-                                fontWeight: '600',
-                                color: '#991b1b'
+                              onClick={() => {
+                                const nuevos = equiposAdicionalesEditar.filter((_, i) => i !== index);
+                                setEquiposAdicionalesEditar(nuevos);
                               }}
+                              style={{ padding: '8px 10px', backgroundColor: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
                             >
-                               Dar de baja
+                              <FaTrash />
                             </button>
                           )}
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      );
+                    })}
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid #f1f5f9', paddingTop: '14px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setKitEditando(null)}
+                      style={{ padding: '8px 16px', backgroundColor: '#e2e8f0', color: '#334155', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={loadingEditKit || kitEditando.estado === 'EN_TERRENO'}
+                      style={{ padding: '8px 20px', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: kitEditando.estado === 'EN_TERRENO' ? 'not-allowed' : 'pointer', fontSize: '14px' }}
+                    >
+                      {loadingEditKit ? 'Guardando...' : 'Guardar Cambios'}
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
+
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
     </div>
   );
