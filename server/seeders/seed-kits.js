@@ -27,10 +27,12 @@ async function main() {
 
   const clientes = [];
   for (const c of clientesData) {
-    let cl = await prisma.cliente.findFirst({ where: { nombre: c.nombre } });
-    if (!cl) {
-      cl = await prisma.cliente.create({ data: { ...c, id_dueno: dueno.id_dueno } });
-    }
+    // El RUT es único: si ya existe (aunque con otro nombre), se reutiliza ese cliente
+    const cl = await prisma.cliente.upsert({
+      where: { rut: c.rut },
+      update: {},
+      create: { ...c, id_dueno: dueno.id_dueno },
+    });
     clientes.push(cl);
   }
 
@@ -235,7 +237,7 @@ async function main() {
 }
 
 main()
-  .catch((e) => console.error('Error al generar datos:', e))
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+  .catch((e) => {
+    console.error('Error al generar datos:', e);
+    process.exitCode = 1; // así "npm run seed:todo" se detiene si algo falla
+  })
