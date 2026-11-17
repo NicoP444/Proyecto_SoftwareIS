@@ -5,8 +5,11 @@ import { validarFormatoAgenda, validarAgendaEvento, aFecha, aHora } from './vali
 const ID_DUENO_DEMO = 1;
 const HORAS_LIMITE_ADELANTO = 5;
 
-export async function listarEventos() {
-  return prisma.evento.findMany({
+// Campos que el Jefe de área técnica no puede ver (RF-P1-11 y RF-T-05)
+const CAMPOS_FINANCIEROS = ['precio_acordado', 'gastos_estimados'];
+
+export async function listarEventos(rol) {
+  const eventos = await prisma.evento.findMany({
     where: { id_dueno: ID_DUENO_DEMO },
     include: {
       cliente: true,
@@ -28,6 +31,14 @@ export async function listarEventos() {
       }
     },
     orderBy: [{ fecha: 'asc' }, { hora_inicio: 'asc' }]
+  });
+
+  // Dueño y Contador ven todo; el Jefe técnico recibe los eventos sin datos financieros
+  if (rol !== 'JEFE_TECNICO') return eventos;
+  return eventos.map((evento) => {
+    const publico = { ...evento };
+    CAMPOS_FINANCIEROS.forEach((campo) => delete publico[campo]);
+    return publico;
   });
 }
 

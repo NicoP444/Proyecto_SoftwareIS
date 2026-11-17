@@ -2,7 +2,7 @@ import { listarEventos, crearEvento, eliminarEvento, actualizarEvento } from '..
 
 export async function getEventos(req, res, next) {
   try {
-    res.json(await listarEventos());
+    res.json(await listarEventos(req.user.rol));
   } catch (error) { next(error); }
 }
 
