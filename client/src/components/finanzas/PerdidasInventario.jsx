@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { listarPerdidasInventario } from '../../services/perdidasInventario.service.js';
+import '../../styles/CierreMensual.css';
 
 const MESES = [
   { valor: 1, nombre: 'Enero' },
@@ -17,9 +18,9 @@ const MESES = [
 ];
 
 const ETIQUETA_TIPO = {
-  DANO: { texto: 'DAÑO', bg: '#fef3c7', color: '#b45309' },
-  PERDIDA: { texto: 'PÉRDIDA', bg: '#fee2e2', color: '#b91c1c' },
-  ROBO: { texto: 'ROBO', bg: '#fee2e2', color: '#991b1b' },
+  DANO: { texto: 'DAÑO', clase: 'cm-badge-dano' },
+  PERDIDA: { texto: 'PÉRDIDA', clase: 'cm-badge-perdida' },
+  ROBO: { texto: 'ROBO', clase: 'cm-badge-robo' },
 };
 
 export default function PerdidasInventario() {
@@ -56,37 +57,15 @@ export default function PerdidasInventario() {
   const nombreMes = MESES.find((m) => m.valor === Number(mes))?.nombre || '';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+    <div className="cm-contenedor">
       {/* Selector de Período */}
-      <div
-        style={{
-          backgroundColor: '#ffffff',
-          padding: '1.1rem 1.5rem',
-          borderRadius: '12px',
-          border: '1px solid #e2e8f0',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '1rem',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <span style={{ fontWeight: '700', color: '#1e293b', fontSize: '0.92rem' }}>
-            Período Contable:
-          </span>
+      <div className="cm-periodo-barra">
+        <div className="cm-periodo-controles">
+          <span className="cm-periodo-label">Período Contable:</span>
           <select
             value={mes}
             onChange={(e) => setMes(Number(e.target.value))}
-            style={{
-              padding: '0.45rem 0.75rem',
-              borderRadius: '6px',
-              border: '1px solid #cbd5e1',
-              fontSize: '0.92rem',
-              fontWeight: '600',
-              color: '#0f172a',
-              backgroundColor: '#ffffff',
-            }}
+            className="cm-select-mes"
           >
             {MESES.map((m) => {
               const futuro = Number(anio) === anioActual && m.valor > mesActual;
@@ -111,106 +90,58 @@ export default function PerdidasInventario() {
                 setMes(mesActual);
               }
             }}
-            style={{
-              width: '88px',
-              padding: '0.45rem 0.65rem',
-              borderRadius: '6px',
-              border: '1px solid #cbd5e1',
-              fontSize: '0.92rem',
-              fontWeight: '600',
-              color: '#0f172a',
-            }}
+            className="cm-input-anio"
           />
         </div>
 
-        <span style={{ fontWeight: '800', color: '#b91c1c', fontSize: '1rem' }}>
+        <span className="cm-total-perdido-cab">
           Total Perdido en el Mes: ${totalPerdidas.toLocaleString('es-CL')}
         </span>
       </div>
 
-      {error && (
-        <div
-          style={{
-            padding: '0.85rem 1.1rem',
-            backgroundColor: '#fee2e2',
-            color: '#991b1b',
-            borderRadius: '8px',
-            fontSize: '0.9rem',
-          }}
-        >
-          {error}
-        </div>
-      )}
+      {error && <div className="cm-alerta-error">{error}</div>}
 
       {/* Tabla RF-P8-03 */}
-      <div
-        style={{
-          backgroundColor: '#ffffff',
-          padding: '1.5rem',
-          borderRadius: '12px',
-          border: '1px solid #e2e8f0',
-        }}
-      >
-        <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.05rem', fontWeight: '700', color: '#0f172a' }}>
+      <div className="cm-card">
+        <h3 className="cm-card-titulo">
           Reporte de Pérdidas de Inventario — {nombreMes} {anio}
         </h3>
 
         {cargando ? (
-          <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Cargando incidentes del mes...</p>
+          <p className="cm-texto-carga">Cargando incidentes del mes...</p>
         ) : incidentes.length === 0 ? (
-          <div
-            style={{
-              padding: '1.5rem',
-              textAlign: 'center',
-              backgroundColor: '#f8fafc',
-              borderRadius: '8px',
-              color: '#64748b',
-              fontSize: '0.9rem',
-            }}
-          >
+          <div className="cm-vacio">
             No hay incidentes de pérdida, daño o robo registrados en este mes.
           </div>
         ) : (
-          <div style={{ overflowX: 'auto', maxHeight: '460px', overflowY: 'auto', border: '1px solid #f1f5f9', borderRadius: '8px' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+          <div className="cm-tabla-scroll-lg">
+            <table className="cm-tabla">
               <thead>
-                <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.78rem', textAlign: 'left', position: 'sticky', top: 0, backgroundColor: '#ffffff', zIndex: 1 }}>
-                  <th style={{ padding: '0.7rem 0.5rem' }}>EQUIPO</th>
-                  <th style={{ padding: '0.7rem 0.5rem' }}>TIPO</th>
-                  <th style={{ padding: '0.7rem 0.5rem' }}>ORIGEN</th>
-                  <th style={{ padding: '0.7rem 0.5rem' }}>RESPONSABLE</th>
-                  <th style={{ padding: '0.7rem 0.5rem', textAlign: 'right' }}>VALOR</th>
+                <tr>
+                  <th>EQUIPO</th>
+                  <th>TIPO</th>
+                  <th>ORIGEN</th>
+                  <th>RESPONSABLE</th>
+                  <th className="cm-th-der">VALOR</th>
                 </tr>
               </thead>
               <tbody>
                 {incidentes.map((inc) => {
                   const badge = ETIQUETA_TIPO[inc.tipo] || {
                     texto: inc.tipo,
-                    bg: '#f1f5f9',
-                    color: '#475569',
+                    clase: '',
                   };
                   return (
-                    <tr key={inc.id_incidente} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '0.85rem 0.5rem', fontWeight: '600', color: '#0f172a' }}>
-                        {inc.equipo}
-                      </td>
-                      <td style={{ padding: '0.85rem 0.5rem' }}>
-                        <span
-                          style={{
-                            padding: '0.2rem 0.65rem',
-                            borderRadius: '9999px',
-                            fontSize: '0.74rem',
-                            fontWeight: '700',
-                            backgroundColor: badge.bg,
-                            color: badge.color,
-                          }}
-                        >
+                    <tr key={inc.id_incidente}>
+                      <td className="cm-td-fuerte">{inc.equipo}</td>
+                      <td>
+                        <span className={`cm-badge-tipo ${badge.clase}`}>
                           {badge.texto}
                         </span>
                       </td>
-                      <td style={{ padding: '0.85rem 0.5rem', color: '#475569' }}>{inc.origen}</td>
-                      <td style={{ padding: '0.85rem 0.5rem', color: '#475569' }}>{inc.responsable}</td>
-                      <td style={{ padding: '0.85rem 0.5rem', textAlign: 'right', fontWeight: '700', color: '#b91c1c' }}>
+                      <td className="cm-td-texto">{inc.origen}</td>
+                      <td className="cm-td-texto">{inc.responsable}</td>
+                      <td className="cm-td-monto-neg">
                         ${inc.valor.toLocaleString('es-CL')}
                       </td>
                     </tr>

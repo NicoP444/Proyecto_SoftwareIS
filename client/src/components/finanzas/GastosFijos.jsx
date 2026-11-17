@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { listarGastosFijos, registrarGastoFijo } from '../../services/gastosFijos.service.js';
 import { API_URL } from '../../services/config.js';
+import '../../styles/CierreMensual.css';
 
 const MESES = [
   { valor: 1, nombre: 'Enero' },
@@ -98,38 +99,22 @@ export default function GastosFijos() {
   const nombreMesActual = MESES.find((m) => m.valor === Number(mes))?.nombre || '';
   const serverBaseUrl = API_URL.replace(/\/api\/?$/, '');
 
+  const claseEstadoBadge = mesCerrado
+    ? 'cm-badge-rojo'
+    : !esMesActual
+      ? 'cm-badge-amarillo'
+      : 'cm-badge-verde';
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+    <div className="cm-contenedor">
       {/* Selector de Período Contable */}
-      <div
-        style={{
-          backgroundColor: '#ffffff',
-          padding: '1.1rem 1.5rem',
-          borderRadius: '12px',
-          border: '1px solid #e2e8f0',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '1rem',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <span style={{ fontWeight: '700', color: '#1e293b', fontSize: '0.92rem' }}>
-            Período Contable:
-          </span>
+      <div className="cm-periodo-barra">
+        <div className="cm-periodo-controles">
+          <span className="cm-periodo-label">Período Contable:</span>
           <select
             value={mes}
             onChange={(e) => setMes(Number(e.target.value))}
-            style={{
-              padding: '0.45rem 0.75rem',
-              borderRadius: '6px',
-              border: '1px solid #cbd5e1',
-              fontSize: '0.92rem',
-              fontWeight: '600',
-              color: '#0f172a',
-              backgroundColor: '#ffffff',
-            }}
+            className="cm-select-mes"
           >
             {MESES.map((m) => {
               const futuro = Number(anio) === anioActual && m.valor > mesActual;
@@ -154,120 +139,35 @@ export default function GastosFijos() {
                 setMes(mesActual);
               }
             }}
-            style={{
-              width: '88px',
-              padding: '0.45rem 0.65rem',
-              borderRadius: '6px',
-              border: '1px solid #cbd5e1',
-              fontSize: '0.92rem',
-              fontWeight: '600',
-              color: '#0f172a',
-            }}
+            className="cm-input-anio"
           />
         </div>
 
-        <span
-          style={{
-            padding: '0.3rem 0.85rem',
-            borderRadius: '9999px',
-            fontSize: '0.75rem',
-            fontWeight: '700',
-            backgroundColor: mesCerrado
-              ? '#fee2e2'
-              : !esMesActual
-              ? '#fef3c7'
-              : '#dcfce7',
-            color: mesCerrado
-              ? '#b91c1c'
-              : !esMesActual
-              ? '#b45309'
-              : '#15803d',
-          }}
-        >
-          {mesCerrado
-            ? 'MES CERRADO'
-            : !esMesActual
-            ? 'HISTORIAL'
-            : 'MES ACTUAL ABIERTO'}
+        <span className={`cm-badge ${claseEstadoBadge}`}>
+          {mesCerrado ? 'MES CERRADO' : !esMesActual ? 'HISTORIAL' : 'MES ACTUAL ABIERTO'}
         </span>
       </div>
 
       {/* Alertas */}
-      {error && (
-        <div
-          style={{
-            padding: '0.85rem 1.1rem',
-            backgroundColor: '#fee2e2',
-            color: '#991b1b',
-            border: '1px solid #fecaca',
-            borderRadius: '8px',
-            fontSize: '0.9rem',
-          }}
-        >
-          {error}
-        </div>
-      )}
-
-      {exito && (
-        <div
-          style={{
-            padding: '0.85rem 1.1rem',
-            backgroundColor: '#dcfce7',
-            color: '#166534',
-            border: '1px solid #bbf7d0',
-            borderRadius: '8px',
-            fontSize: '0.9rem',
-          }}
-        >
-          {exito}
-        </div>
-      )}
+      {error && <div className="cm-alerta-error">{error}</div>}
+      {exito && <div className="cm-alerta-exito">{exito}</div>}
 
       {/* Formulario RF-P8-01 */}
-      <div
-        style={{
-          backgroundColor: '#ffffff',
-          padding: '1.5rem',
-          borderRadius: '12px',
-          border: '1px solid #e2e8f0',
-        }}
-      >
-        <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.1rem', fontWeight: '700', color: '#0f172a' }}>
-          Registrar Gasto Fijo Mensual
-        </h3>
-        <p style={{ margin: '0 0 1rem 0', fontSize: '0.86rem', color: '#64748b' }}>
+      <div className="cm-card">
+        <h3 className="cm-card-titulo-lg">Registrar Gasto Fijo Mensual</h3>
+        <p className="cm-card-sub">
           Gastos recurrentes no asociados a un evento (ej. internet satelital, bodega, suscripciones).
         </p>
 
         {!esMesActual && (
-          <div
-            style={{
-              marginBottom: '1rem',
-              padding: '0.65rem 0.9rem',
-              backgroundColor: '#fffbeb',
-              border: '1px solid #fde68a',
-              borderRadius: '6px',
-              fontSize: '0.84rem',
-              color: '#92400e',
-            }}
-          >
+          <div className="cm-alerta-historial">
             Estás consultando el historial de un período anterior. Solo se permite registrar gastos fijos en el mes en curso.
           </div>
         )}
 
-        <form
-          onSubmit={handleSubmit}
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '2fr 1.2fr 1.5fr auto',
-            gap: '0.85rem',
-            alignItems: 'end',
-          }}
-        >
+        <form onSubmit={handleSubmit} className="cm-form-gastos">
           <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#475569', marginBottom: '0.35rem' }}>
-              DESCRIPCIÓN *
-            </label>
+            <label className="cm-label">DESCRIPCIÓN *</label>
             <input
               type="text"
               required
@@ -276,23 +176,12 @@ export default function GastosFijos() {
               value={descripcion}
               onChange={(e) => setDescripcion(e.target.value)}
               disabled={formularioBloqueado}
-              style={{
-                width: '100%',
-                height: '40px',
-                padding: '0 0.75rem',
-                borderRadius: '6px',
-                border: '1px solid #cbd5e1',
-                fontSize: '0.9rem',
-                boxSizing: 'border-box',
-                backgroundColor: formularioBloqueado ? '#f8fafc' : '#ffffff',
-              }}
+              className="cm-input"
             />
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#475569', marginBottom: '0.35rem' }}>
-              MONTO ($) *
-            </label>
+            <label className="cm-label">MONTO ($) *</label>
             <input
               type="number"
               required
@@ -303,62 +192,16 @@ export default function GastosFijos() {
               value={monto}
               onChange={(e) => setMonto(e.target.value)}
               disabled={formularioBloqueado}
-              style={{
-                width: '100%',
-                height: '40px',
-                padding: '0 0.75rem',
-                borderRadius: '6px',
-                border: '1px solid #cbd5e1',
-                fontSize: '0.9rem',
-                boxSizing: 'border-box',
-                backgroundColor: formularioBloqueado ? '#f8fafc' : '#ffffff',
-              }}
+              className="cm-input"
             />
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#475569', marginBottom: '0.35rem' }}>
-              COMPROBANTE (OPCIONAL)
-            </label>
+            <label className="cm-label">COMPROBANTE (OPCIONAL)</label>
 
-            <label
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.6rem',
-                width: '100%',
-                padding: '0.42rem 0.65rem',
-                borderRadius: '6px',
-                border: '1px solid #cbd5e1',
-                backgroundColor: formularioBloqueado ? '#f8fafc' : '#ffffff',
-                cursor: formularioBloqueado ? 'not-allowed' : 'pointer',
-                boxSizing: 'border-box',
-                height: '40px',
-                overflow: 'hidden',
-              }}
-            >
-              <span
-                style={{
-                  padding: '0.22rem 0.6rem',
-                  backgroundColor: '#d7e1ff',
-                  color: '#333c87',
-                  borderRadius: '4px',
-                  fontSize: '0.78rem',
-                  fontWeight: '600',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                Subir archivo
-              </span>
-              <span
-                style={{
-                  fontSize: '0.82rem',
-                  color: archivo ? '#0f172a' : '#2f5488',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
+            <label className={`cm-file-box ${formularioBloqueado ? 'bloqueado' : ''}`}>
+              <span className="cm-file-btn">Subir archivo</span>
+              <span className={`cm-file-nombre ${archivo ? 'cargado' : ''}`}>
                 {archivo ? archivo.name : 'PDF o imagen (máx. 5MB)'}
               </span>
               <input
@@ -366,7 +209,7 @@ export default function GastosFijos() {
                 accept="image/jpeg,image/png,image/webp,.pdf"
                 onChange={(e) => setArchivo(e.target.files?.[0] || null)}
                 disabled={formularioBloqueado}
-                style={{ display: 'none' }}
+                className="cm-file-hidden"
               />
             </label>
           </div>
@@ -374,81 +217,52 @@ export default function GastosFijos() {
           <button
             type="submit"
             disabled={formularioBloqueado}
-            style={{
-              height: '40px',
-              padding: '0 1.25rem',
-              backgroundColor: formularioBloqueado ? '#94a3b8' : '#333c87',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '6px',
-              fontWeight: '600',
-              fontSize: '0.88rem',
-              cursor: formularioBloqueado ? 'not-allowed' : 'pointer',
-              whiteSpace: 'nowrap',
-            }}
+            className="cm-btn-primario"
           >
             {guardando ? 'Guardando...' : '+ Registrar Gasto Fijo'}
           </button>
         </form>
       </div>
 
-      {/* Tabla de Gastos Fijos del mes (scroll a partir de 8 filas) */}
-      <div
-        style={{
-          backgroundColor: '#ffffff',
-          padding: '1.5rem',
-          borderRadius: '12px',
-          border: '1px solid #e2e8f0',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '700', color: '#0f172a' }}>
+      {/* Tabla de Gastos Fijos del mes */}
+      <div className="cm-card">
+        <div className="cm-card-cab-flex">
+          <h3>
             Gastos Fijos de {nombreMesActual} {anio}
           </h3>
-          <span style={{ fontWeight: '800', color: '#333c87', fontSize: '1rem' }}>
+          <span className="cm-total-azul">
             Total Gastos Fijos: ${Number(totalGastos || 0).toLocaleString('es-CL')}
           </span>
         </div>
 
         {cargando ? (
-          <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Cargando gastos fijos...</p>
+          <p className="cm-texto-carga">Cargando gastos fijos...</p>
         ) : gastos.length === 0 ? (
-          <div
-            style={{
-              padding: '1.5rem',
-              textAlign: 'center',
-              backgroundColor: '#f8fafc',
-              borderRadius: '8px',
-              color: '#64748b',
-              fontSize: '0.9rem',
-            }}
-          >
+          <div className="cm-vacio">
             No hay gastos fijos registrados para este mes.
           </div>
         ) : (
-          <div style={{ overflowX: 'auto', maxHeight: '380px', overflowY: 'auto', border: '1px solid #f1f5f9', borderRadius: '8px' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+          <div className="cm-tabla-scroll">
+            <table className="cm-tabla">
               <thead>
-                <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.78rem', textAlign: 'left', position: 'sticky', top: 0, backgroundColor: '#ffffff', zIndex: 1 }}>
-                  <th style={{ padding: '0.7rem 0.5rem' }}>DESCRIPCIÓN</th>
-                  <th style={{ padding: '0.7rem 0.5rem' }}>EVIDENCIA</th>
-                  <th style={{ padding: '0.7rem 0.5rem' }}>REGISTRADO POR</th>
-                  <th style={{ padding: '0.7rem 0.5rem', textAlign: 'right' }}>MONTO</th>
+                <tr>
+                  <th>DESCRIPCIÓN</th>
+                  <th>EVIDENCIA</th>
+                  <th>REGISTRADO POR</th>
+                  <th className="cm-th-der">MONTO</th>
                 </tr>
               </thead>
               <tbody>
                 {gastos.map((g) => (
-                  <tr key={g.id_gasto_fijo} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '0.85rem 0.5rem', fontWeight: '600', color: '#0f172a' }}>
-                      {g.descripcion}
-                    </td>
-                    <td style={{ padding: '0.85rem 0.5rem', color: '#64748b' }}>
+                  <tr key={g.id_gasto_fijo}>
+                    <td className="cm-td-fuerte">{g.descripcion}</td>
+                    <td className="cm-td-suave">
                       {g.evidencia ? (
                         <a
                           href={`${serverBaseUrl}${g.evidencia}`}
                           target="_blank"
                           rel="noreferrer"
-                          style={{ color: '#333c87', fontWeight: '600', textDecoration: 'underline' }}
+                          className="cm-enlace"
                         >
                           Ver comprobante
                         </a>
@@ -456,10 +270,8 @@ export default function GastosFijos() {
                         'Sin evidencia'
                       )}
                     </td>
-                    <td style={{ padding: '0.85rem 0.5rem', color: '#475569' }}>
-                      {g.contador?.nombre || 'Contador'}
-                    </td>
-                    <td style={{ padding: '0.85rem 0.5rem', textAlign: 'right', fontWeight: '700', color: '#0f172a' }}>
+                    <td className="cm-td-texto">{g.contador?.nombre || 'Contador'}</td>
+                    <td className="cm-td-monto">
                       ${Number(g.monto || 0).toLocaleString('es-CL')}
                     </td>
                   </tr>
