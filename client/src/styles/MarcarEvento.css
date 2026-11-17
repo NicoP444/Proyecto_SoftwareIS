@@ -1,0 +1,244 @@
+/* Estilos exclusivos de MarcarEventoRealizado, BotonMarcarRealizado y EventosPendientesCierre (RF-P7-01) */
+
+/* ---------- Página MarcarEventoRealizado ---------- */
+.mev-btn-volver {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 16px;
+  background-color: #333c87;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mev-panel {
+  background-color: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #eef2f6;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  padding: 1.5rem;
+}
+
+.mev-mensaje {
+  padding: 0.85rem 1rem;
+  margin-bottom: 1.25rem;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+.mev-mensaje-exito {
+  background-color: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.mev-mensaje-error {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.mev-cargando {
+  padding: 3rem;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.92rem;
+}
+
+.mev-vacio {
+  padding: 2.5rem;
+  text-align: center;
+  background-color: #f8fafc;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+.mev-tabla-scroll {
+  overflow-x: auto;
+  max-height: 460px;
+  overflow-y: auto;
+  border: 1px solid #f1f5f9;
+  border-radius: 10px;
+}
+
+.mev-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.88rem;
+}
+
+.mev-tabla thead tr {
+  border-bottom: 1px solid #e2e8f0;
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  position: sticky;
+  top: 0;
+  background-color: #ffffff;
+  z-index: 1;
+}
+
+.mev-tabla th {
+  padding: 0.75rem 0.75rem;
+}
+
+.mev-th-centro,
+.mev-td-centro {
+  text-align: center;
+}
+
+.mev-tabla tbody tr {
+  border-bottom: 1px solid #f8fafc;
+}
+
+.mev-tabla td {
+  padding: 0.85rem 0.75rem;
+}
+
+.mev-td-id {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.mev-evento-tipo {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.mev-evento-cliente {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.mev-td-fecha {
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.mev-td-hora {
+  color: #475569;
+  white-space: nowrap;
+}
+
+.mev-td-personal {
+  color: #334155;
+}
+
+.mev-btn-realizado {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0.45rem 0.9rem;
+  background-color: #16a34a;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.82rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: background-color 0.15s ease;
+}
+
+.mev-btn-realizado:hover:not(:disabled) {
+  background-color: #15803d;
+}
+
+.mev-btn-realizado:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* ---------- BotonMarcarRealizado ---------- */
+.mev-boton-wrap {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.mev-boton-estado {
+  padding: 0.45rem 0.9rem;
+  background-color: #9ca3af;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  cursor: not-allowed;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: background-color 0.2s;
+}
+
+.mev-boton-estado.listo {
+  background-color: #16a34a;
+  cursor: pointer;
+}
+
+.mev-boton-estado.listo:disabled {
+  cursor: not-allowed;
+}
+
+.mev-boton-error {
+  color: #dc2626;
+  font-size: 0.75rem;
+}
+
+/* ---------- EventosPendientesCierre (Tarjeta en Home) ---------- */
+.mev-home-panel {
+  margin-top: 1.5rem;
+}
+
+.mev-home-cargando {
+  padding: 1rem;
+  color: #6b7280;
+}
+
+.mev-home-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  margin-top: 0.5rem;
+}
+
+.mev-home-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.9rem 1.2rem;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.mev-home-card-cab {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.mev-home-card-titulo {
+  color: #111827;
+  font-size: 0.95rem;
+}
+
+.mev-home-card-fecha {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.mev-home-card-detalle {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: #4b5563;
+}

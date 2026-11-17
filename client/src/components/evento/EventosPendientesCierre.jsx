@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { listarEventosConfirmados } from "../../services/marcarEvento.service.js";
-import BotonMarcarRealizado from "./BotonMarcarRealizado.jsx";
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { listarEventosConfirmados } from '../../services/marcarEvento.service.js';
+import BotonMarcarRealizado from './BotonMarcarRealizado.jsx';
+import '../../styles/MarcarEvento.css';
 
 export default function EventosPendientesCierre() {
   const navigate = useNavigate();
@@ -16,7 +17,7 @@ export default function EventosPendientesCierre() {
         // Se cortan a 3 elementos únicamente para la tarjeta compacta del Home
         setEventosConfirmados(lista.slice(0, 3));
       })
-      .catch((err) => console.error("Error al cargar eventos:", err))
+      .catch((err) => console.error('Error al cargar eventos:', err))
       .finally(() => setCargandoConfirmados(false));
   };
 
@@ -25,7 +26,7 @@ export default function EventosPendientesCierre() {
   }, []);
 
   return (
-    <section className="panel" style={{ marginTop: "1.5rem" }}>
+    <section className="panel mev-home-panel">
       <div className="panel-head">
         <h3>
           <svg
@@ -43,14 +44,14 @@ export default function EventosPendientesCierre() {
         </h3>
         <button
           className="panel-link"
-          onClick={() => navigate("/marcar-evento")}
+          onClick={() => navigate('/marcar-evento')}
         >
           Ver todos →
         </button>
       </div>
 
       {cargandoConfirmados ? (
-        <div style={{ padding: "1rem", color: "#6b7280" }}>Cargando eventos...</div>
+        <div className="mev-home-cargando">Cargando eventos...</div>
       ) : eventosConfirmados.length === 0 ? (
         <div className="empty">
           <svg
@@ -67,34 +68,23 @@ export default function EventosPendientesCierre() {
           No hay eventos confirmados pendientes de cierre
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.8rem", marginTop: "0.5rem" }}>
+        <div className="mev-home-lista">
           {eventosConfirmados.map((ev) => (
-            <div
-              key={ev.id_evento}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "0.9rem 1.2rem",
-                backgroundColor: "#ffffff",
-                border: "1px solid #e5e7eb",
-                borderRadius: "8px",
-              }}
-            >
+            <div key={ev.id_evento} className="mev-home-card">
               <div>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-                  <strong style={{ color: "#111827", fontSize: "0.95rem" }}>
+                <div className="mev-home-card-cab">
+                  <strong className="mev-home-card-titulo">
                     #{ev.id_evento} {ev.tipo}
                   </strong>
-                  <span style={{ fontSize: "0.8rem", color: "#6b7280" }}>
-                    {new Date(ev.fecha).toLocaleDateString("es-CL", { timeZone: "UTC" })}
+                  <span className="mev-home-card-fecha">
+                    {new Date(ev.fecha).toLocaleDateString('es-CL', { timeZone: 'UTC' })}
                   </span>
                 </div>
-                <p style={{ margin: "0.25rem 0 0", fontSize: "0.85rem", color: "#4b5563" }}>
-                  Cliente: {ev.cliente?.nombre || "General"} | Término:{" "}
+                <p className="mev-home-card-detalle">
+                  Cliente: {ev.cliente?.nombre || 'General'} | Término:{' '}
                   {new Date(ev.hora_termino).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
+                    hour: '2-digit',
+                    minute: '2-digit',
                   })}
                 </p>
               </div>

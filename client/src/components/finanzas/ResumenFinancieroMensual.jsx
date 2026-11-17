@@ -5,6 +5,7 @@ import {
   obtenerRegistrosMesCerrado,
   corregirMontoMesCerrado,
 } from '../../services/corregirMesCerrado.service.js';
+import '../../styles/CierreMensual.css';
 
 const MESES = [
   { valor: 1, nombre: 'Enero' },
@@ -141,38 +142,18 @@ export default function ResumenFinancieroMensual() {
   const acuerdosVencidos = validacion?.advertencias?.acuerdos_vencidos || [];
   const remunPendientes = validacion?.advertencias?.remuneraciones_pendientes || [];
 
+  const claseResultado = esGanancia ? 'positivo' : esPerdida ? 'negativo' : 'neutro';
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+    <div className="cm-contenedor">
       {/* Selector de Período */}
-      <div
-        style={{
-          backgroundColor: '#ffffff',
-          padding: '1.1rem 1.5rem',
-          borderRadius: '12px',
-          border: '1px solid #e2e8f0',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '1rem',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <span style={{ fontWeight: '700', color: '#1e293b', fontSize: '0.92rem' }}>
-            Período Contable:
-          </span>
+      <div className="cm-periodo-barra">
+        <div className="cm-periodo-controles">
+          <span className="cm-periodo-label">Período Contable:</span>
           <select
             value={mes}
             onChange={(e) => setMes(Number(e.target.value))}
-            style={{
-              padding: '0.45rem 0.75rem',
-              borderRadius: '6px',
-              border: '1px solid #cbd5e1',
-              fontSize: '0.92rem',
-              fontWeight: '600',
-              color: '#0f172a',
-              backgroundColor: '#ffffff',
-            }}
+            className="cm-select-mes"
           >
             {MESES.map((m) => {
               const futuro = Number(anio) === anioActual && m.valor > mesActual;
@@ -197,203 +178,122 @@ export default function ResumenFinancieroMensual() {
                 setMes(mesActual);
               }
             }}
-            style={{
-              width: '88px',
-              padding: '0.45rem 0.65rem',
-              borderRadius: '6px',
-              border: '1px solid #cbd5e1',
-              fontSize: '0.92rem',
-              fontWeight: '600',
-              color: '#0f172a',
-            }}
+            className="cm-input-anio"
           />
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <span
-            style={{
-              padding: '0.3rem 0.85rem',
-              borderRadius: '9999px',
-              fontSize: '0.75rem',
-              fontWeight: '700',
-              backgroundColor: mesCerrado ? '#fee2e2' : '#dcfce7',
-              color: mesCerrado ? '#b91c1c' : '#15803d',
-            }}
-          >
+        <div className="cm-badges-grupo">
+          <span className={`cm-badge ${mesCerrado ? 'cm-badge-rojo' : 'cm-badge-verde'}`}>
             {mesCerrado ? 'MES CERRADO' : 'MES ABIERTO'}
           </span>
 
           <span
-            style={{
-              padding: '0.3rem 0.85rem',
-              borderRadius: '9999px',
-              fontSize: '0.75rem',
-              fontWeight: '800',
-              backgroundColor: esGanancia ? '#dcfce7' : esPerdida ? '#fee2e2' : '#f1f5f9',
-              color: esGanancia ? '#15803d' : esPerdida ? '#b91c1c' : '#475569',
-            }}
+            className={`cm-badge cm-badge-extra ${
+              esGanancia ? 'cm-badge-verde' : esPerdida ? 'cm-badge-rojo' : 'cm-badge-gris'
+            }`}
           >
             {esGanancia ? 'MES CON GANANCIA' : esPerdida ? 'MES CON PÉRDIDA' : 'EN EQUILIBRIO'}
           </span>
         </div>
       </div>
 
-      {error && (
-        <div
-          style={{
-            padding: '0.85rem 1.1rem',
-            backgroundColor: '#fee2e2',
-            color: '#991b1b',
-            borderRadius: '8px',
-            fontSize: '0.9rem',
-          }}
-        >
-          {error}
-        </div>
-      )}
-
-      {exito && (
-        <div
-          style={{
-            padding: '0.85rem 1.1rem',
-            backgroundColor: '#dcfce7',
-            color: '#166534',
-            borderRadius: '8px',
-            fontSize: '0.9rem',
-          }}
-        >
-          {exito}
-        </div>
-      )}
+      {error && <div className="cm-alerta-error">{error}</div>}
+      {exito && <div className="cm-alerta-exito">{exito}</div>}
 
       {/* Tarjetas KPI */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
-        <div style={{ backgroundColor: '#ffffff', padding: '1.1rem 1.25rem', borderRadius: '12px', border: '1px solid #e2e8f0', borderTop: '4px solid #16a34a' }}>
-          <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#64748b' }}>
-            Total Ingresos ({nombreMes})
-          </span>
-          <div style={{ fontSize: '1.45rem', fontWeight: '800', color: '#15803d', marginTop: '0.25rem' }}>
+      <div className="cm-kpis">
+        <div className="cm-kpi cm-kpi-verde">
+          <span className="cm-kpi-label">Total Ingresos ({nombreMes})</span>
+          <div className="cm-kpi-valor positivo">
             +${Number(datos?.total_ingresos || 0).toLocaleString('es-CL')}
           </div>
         </div>
 
-        <div style={{ backgroundColor: '#ffffff', padding: '1.1rem 1.25rem', borderRadius: '12px', border: '1px solid #e2e8f0', borderTop: '4px solid #dc2626' }}>
-          <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#64748b' }}>
-            Total Egresos y Pérdidas
-          </span>
-          <div style={{ fontSize: '1.45rem', fontWeight: '800', color: '#b91c1c', marginTop: '0.25rem' }}>
+        <div className="cm-kpi cm-kpi-rojo">
+          <span className="cm-kpi-label">Total Egresos y Pérdidas</span>
+          <div className="cm-kpi-valor negativo">
             -${Number(datos?.total_egresos || 0).toLocaleString('es-CL')}
           </div>
         </div>
 
         <div
-          style={{
-            backgroundColor: '#ffffff',
-            padding: '1.1rem 1.25rem',
-            borderRadius: '12px',
-            border: '1px solid #e2e8f0',
-            borderTop: `4px solid ${esGanancia ? '#16a34a' : esPerdida ? '#dc2626' : '#333c87'}`,
-          }}
+          className={`cm-kpi ${
+            esGanancia ? 'cm-kpi-verde' : esPerdida ? 'cm-kpi-rojo' : ''
+          }`}
         >
-          <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#64748b' }}>
-            Utilidad Neta del Mes
-          </span>
-          <div
-            style={{
-              fontSize: '1.45rem',
-              fontWeight: '800',
-              color: esGanancia ? '#15803d' : esPerdida ? '#b91c1c' : '#0f172a',
-              marginTop: '0.25rem',
-            }}
-          >
+          <span className="cm-kpi-label">Utilidad Neta del Mes</span>
+          <div className={`cm-kpi-valor ${claseResultado}`}>
             {utilidadNeta < 0 ? '-' : ''}${Math.abs(utilidadNeta).toLocaleString('es-CL')}
           </div>
         </div>
       </div>
 
       {/* Estado de Resultados detallado (RF-P8-02) */}
-      <div
-        style={{
-          backgroundColor: '#ffffff',
-          padding: '1.5rem',
-          borderRadius: '12px',
-          border: '1px solid #e2e8f0',
-        }}
-      >
-        <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.05rem', fontWeight: '700', color: '#0f172a' }}>
+      <div className="cm-card">
+        <h3 className="cm-card-titulo">
           Estado de Resultados — {nombreMes} {anio}
         </h3>
 
         {cargando ? (
-          <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Calculando resumen financiero...</p>
+          <p className="cm-texto-carga">Calculando resumen financiero...</p>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.92rem' }}>
+          <table className="cm-tabla-er">
             <thead>
-              <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.78rem', textAlign: 'left' }}>
-                <th style={{ padding: '0.7rem 0.5rem' }}>CONCEPTO</th>
-                <th style={{ padding: '0.7rem 0.5rem' }}>TIPO</th>
-                <th style={{ padding: '0.7rem 0.5rem', textAlign: 'right' }}>MONTO</th>
+              <tr>
+                <th>CONCEPTO</th>
+                <th>TIPO</th>
+                <th className="cm-th-der">MONTO</th>
               </tr>
             </thead>
             <tbody>
-              <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                <td style={{ padding: '0.8rem 0.5rem', fontWeight: '600', color: '#0f172a' }}>Ingresos de clientes</td>
-                <td style={{ padding: '0.8rem 0.5rem', color: '#15803d', fontWeight: '600' }}>Ingreso</td>
-                <td style={{ padding: '0.8rem 0.5rem', textAlign: 'right', fontWeight: '700', color: '#15803d' }}>
+              <tr>
+                <td className="cm-td-fuerte">Ingresos de clientes</td>
+                <td className="cm-td-positivo">Ingreso</td>
+                <td className="cm-td-monto-pos">
                   +${Number(datos?.ingresos_clientes || 0).toLocaleString('es-CL')}
                 </td>
               </tr>
-              <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                <td style={{ padding: '0.8rem 0.5rem', fontWeight: '600', color: '#0f172a' }}>Aportes de auspiciadores</td>
-                <td style={{ padding: '0.8rem 0.5rem', color: '#15803d', fontWeight: '600' }}>Ingreso</td>
-                <td style={{ padding: '0.8rem 0.5rem', textAlign: 'right', fontWeight: '700', color: '#15803d' }}>
+              <tr>
+                <td className="cm-td-fuerte">Aportes de auspiciadores</td>
+                <td className="cm-td-positivo">Ingreso</td>
+                <td className="cm-td-monto-pos">
                   +${Number(datos?.aportes_auspiciadores || 0).toLocaleString('es-CL')}
                 </td>
               </tr>
-              <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                <td style={{ padding: '0.8rem 0.5rem', fontWeight: '600', color: '#0f172a' }}>Remuneraciones pagadas</td>
-                <td style={{ padding: '0.8rem 0.5rem', color: '#b91c1c', fontWeight: '600' }}>Egreso</td>
-                <td style={{ padding: '0.8rem 0.5rem', textAlign: 'right', fontWeight: '700', color: '#b91c1c' }}>
+              <tr>
+                <td className="cm-td-fuerte">Remuneraciones pagadas</td>
+                <td className="cm-td-negativo">Egreso</td>
+                <td className="cm-td-monto-neg">
                   -${Number(datos?.remuneraciones || 0).toLocaleString('es-CL')}
                 </td>
               </tr>
-              <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                <td style={{ padding: '0.8rem 0.5rem', fontWeight: '600', color: '#0f172a' }}>Gastos de eventos</td>
-                <td style={{ padding: '0.8rem 0.5rem', color: '#b91c1c', fontWeight: '600' }}>Egreso</td>
-                <td style={{ padding: '0.8rem 0.5rem', textAlign: 'right', fontWeight: '700', color: '#b91c1c' }}>
+              <tr>
+                <td className="cm-td-fuerte">Gastos de eventos</td>
+                <td className="cm-td-negativo">Egreso</td>
+                <td className="cm-td-monto-neg">
                   -${Number(datos?.gastos_eventos || 0).toLocaleString('es-CL')}
                 </td>
               </tr>
-              <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                <td style={{ padding: '0.8rem 0.5rem', fontWeight: '600', color: '#0f172a' }}>Gastos fijos mensuales</td>
-                <td style={{ padding: '0.8rem 0.5rem', color: '#b91c1c', fontWeight: '600' }}>Egreso</td>
-                <td style={{ padding: '0.8rem 0.5rem', textAlign: 'right', fontWeight: '700', color: '#b91c1c' }}>
+              <tr>
+                <td className="cm-td-fuerte">Gastos fijos mensuales</td>
+                <td className="cm-td-negativo">Egreso</td>
+                <td className="cm-td-monto-neg">
                   -${Number(datos?.gastos_fijos || 0).toLocaleString('es-CL')}
                 </td>
               </tr>
-              <tr style={{ borderBottom: '2px solid #cbd5e1' }}>
-                <td style={{ padding: '0.8rem 0.5rem', fontWeight: '600', color: '#0f172a' }}>Pérdidas de inventario</td>
-                <td style={{ padding: '0.8rem 0.5rem', color: '#b91c1c', fontWeight: '600' }}>Pérdida</td>
-                <td style={{ padding: '0.8rem 0.5rem', textAlign: 'right', fontWeight: '700', color: '#b91c1c' }}>
+              <tr className="cm-fila-borde-doble">
+                <td className="cm-td-fuerte">Pérdidas de inventario</td>
+                <td className="cm-td-negativo">Pérdida</td>
+                <td className="cm-td-monto-neg">
                   -${Number(datos?.perdidas_inventario || 0).toLocaleString('es-CL')}
                 </td>
               </tr>
-              <tr style={{ backgroundColor: '#f8fafc' }}>
-                <td style={{ padding: '0.95rem 0.5rem', fontWeight: '800', color: '#0f172a', fontSize: '0.98rem' }}>
-                  UTILIDAD NETA DEL PERÍODO
-                </td>
-                <td style={{ padding: '0.95rem 0.5rem', fontWeight: '800', color: esGanancia ? '#15803d' : esPerdida ? '#b91c1c' : '#475569' }}>
+              <tr className="cm-fila-total">
+                <td className="cm-total-concepto">UTILIDAD NETA DEL PERÍODO</td>
+                <td className={`cm-total-tipo ${claseResultado}`}>
                   {esGanancia ? 'GANANCIA' : esPerdida ? 'PÉRDIDA' : 'EQUILIBRIO'}
                 </td>
-                <td
-                  style={{
-                    padding: '0.95rem 0.5rem',
-                    textAlign: 'right',
-                    fontWeight: '800',
-                    fontSize: '1.05rem',
-                    color: esGanancia ? '#15803d' : esPerdida ? '#b91c1c' : '#0f172a',
-                  }}
-                >
+                <td className={`cm-total-monto ${claseResultado}`}>
                   {utilidadNeta < 0 ? '-' : ''}${Math.abs(utilidadNeta).toLocaleString('es-CL')}
                 </td>
               </tr>
@@ -403,21 +303,14 @@ export default function ResumenFinancieroMensual() {
       </div>
 
       {/* Bloque de Cierre Contable del Mes (RF-P8-05) */}
-      <div
-        style={{
-          backgroundColor: '#ffffff',
-          padding: '1.5rem',
-          borderRadius: '12px',
-          border: '1px solid #e2e8f0',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+      <div className="cm-card">
+        <div className="cm-cierre-cab">
           <div>
-            <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.05rem', fontWeight: '700', color: '#0f172a' }}>
+            <h3 className="cm-card-titulo-sin-margen">
               Cierre Contable del Mes — {nombreMes} {anio}
             </h3>
             {mesCerrado ? (
-              <p style={{ margin: 0, fontSize: '0.88rem', color: '#475569' }}>
+              <p className="cm-cierre-info-cerrado">
                 Cerrado el{' '}
                 <strong>
                   {datos?.fecha_cierre
@@ -432,7 +325,7 @@ export default function ResumenFinancieroMensual() {
                 . Resumen fijado.
               </p>
             ) : (
-              <p style={{ margin: 0, fontSize: '0.88rem', color: '#64748b' }}>
+              <p className="cm-cierre-info-abierto">
                 Fija los resultados del período una vez finalizados todos los eventos del mes.
               </p>
             )}
@@ -443,16 +336,7 @@ export default function ResumenFinancieroMensual() {
               type="button"
               onClick={handleCerrarMes}
               disabled={!validacion?.puede_cerrar || cerrando}
-              style={{
-                padding: '0.7rem 1.35rem',
-                backgroundColor: !validacion?.puede_cerrar || cerrando ? '#94a3b8' : '#333c87',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '8px',
-                fontWeight: '700',
-                fontSize: '0.9rem',
-                cursor: !validacion?.puede_cerrar || cerrando ? 'not-allowed' : 'pointer',
-              }}
+              className="cm-btn-cierre"
             >
               {cerrando ? 'Cerrando mes...' : `Cerrar ${nombreMes} ${anio}`}
             </button>
@@ -461,20 +345,11 @@ export default function ResumenFinancieroMensual() {
 
         {/* Bloqueos y advertencias previas al cierre */}
         {!mesCerrado && !cargando && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem' }}>
+          <div className="cm-validaciones-lista">
             {eventosAbiertos.length > 0 && (
-              <div
-                style={{
-                  padding: '0.85rem 1rem',
-                  backgroundColor: '#fee2e2',
-                  border: '1px solid #fecaca',
-                  borderRadius: '8px',
-                  color: '#991b1b',
-                  fontSize: '0.86rem',
-                }}
-              >
+              <div className="cm-bloqueo-caja">
                 <strong>Bloqueo de cierre:</strong> Hay {eventosAbiertos.length} evento(s) en este mes que aún no están cerrados (Realizado o Cerrado):
-                <ul style={{ margin: '0.4rem 0 0 1.2rem', padding: 0 }}>
+                <ul className="cm-lista-items">
                   {eventosAbiertos.map((ev) => (
                     <li key={ev.id_evento}>
                       Evento #{ev.id_evento} · {ev.tipo} ({new Date(ev.fecha).toLocaleDateString('es-CL', { timeZone: 'UTC' })}) — Estado: <strong>{ev.estado}</strong>
@@ -485,18 +360,9 @@ export default function ResumenFinancieroMensual() {
             )}
 
             {acuerdosVencidos.length > 0 && (
-              <div
-                style={{
-                  padding: '0.85rem 1rem',
-                  backgroundColor: '#fffbeb',
-                  border: '1px solid #fde68a',
-                  borderRadius: '8px',
-                  color: '#92400e',
-                  fontSize: '0.86rem',
-                }}
-              >
+              <div className="cm-advertencia-caja">
                 <strong>Advertencia — Acuerdos vencidos ({acuerdosVencidos.length}):</strong>
-                <ul style={{ margin: '0.4rem 0 0 1.2rem', padding: 0 }}>
+                <ul className="cm-lista-items">
                   {acuerdosVencidos.map((a) => (
                     <li key={a.id_acuerdo}>
                       {a.auspiciador} (Venció el {new Date(a.fecha_fin).toLocaleDateString('es-CL', { timeZone: 'UTC' })})
@@ -507,18 +373,9 @@ export default function ResumenFinancieroMensual() {
             )}
 
             {remunPendientes.length > 0 && (
-              <div
-                style={{
-                  padding: '0.85rem 1rem',
-                  backgroundColor: '#fffbeb',
-                  border: '1px solid #fde68a',
-                  borderRadius: '8px',
-                  color: '#92400e',
-                  fontSize: '0.86rem',
-                }}
-              >
+              <div className="cm-advertencia-caja">
                 <strong>Advertencia — Remuneraciones sin pagar ({remunPendientes.length}):</strong>
-                <ul style={{ margin: '0.4rem 0 0 1.2rem', padding: 0 }}>
+                <ul className="cm-lista-items">
                   {remunPendientes.map((r) => (
                     <li key={r.id_asignacion}>
                       {r.trabajador} en {r.evento} (${r.monto_pactado.toLocaleString('es-CL')})
@@ -531,67 +388,31 @@ export default function ResumenFinancieroMensual() {
         )}
       </div>
 
-      {/* Bloque RF-P8-06: Corregir un mes cerrado (solo visible cuando el mes está CERRADO) */}
+      {/* Bloque RF-P8-06: Corregir un mes cerrado */}
       {mesCerrado && (
-        <div
-          style={{
-            backgroundColor: '#ffffff',
-            padding: '1.5rem',
-            borderRadius: '12px',
-            border: '1px solid #e2e8f0',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1.25rem',
-          }}
-        >
+        <div className="cm-card cm-card-col">
           <div>
-            <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.05rem', fontWeight: '700', color: '#0f172a' }}>
+            <h3 className="cm-card-titulo-sin-margen">
               Corrección Auditada de Mes Cerrado — {nombreMes} {anio}
             </h3>
-            <p style={{ margin: 0, fontSize: '0.86rem', color: '#64748b' }}>
+            <p className="cm-card-sub-0">
               Exclusivo Contador: permite corregir montos tras el cierre exigiendo motivo obligatorio y recalculando el evento y el período.
             </p>
           </div>
 
           {detalleCorreccion.registros.length === 0 ? (
-            <div
-              style={{
-                padding: '1rem',
-                backgroundColor: '#f8fafc',
-                borderRadius: '8px',
-                color: '#64748b',
-                fontSize: '0.88rem',
-              }}
-            >
+            <div className="cm-vacio-izq">
               No existen movimientos financieros individuales registrados en este mes cerrado para modificar.
             </div>
           ) : (
-            <form
-              onSubmit={handleCorregirMonto}
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '2fr 1fr 2fr auto',
-                gap: '0.85rem',
-                alignItems: 'end',
-              }}
-            >
+            <form onSubmit={handleCorregirMonto} className="cm-form-correccion">
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#475569', marginBottom: '0.35rem' }}>
-                  REGISTRO A CORREGIR *
-                </label>
+                <label className="cm-label">REGISTRO A CORREGIR *</label>
                 <select
                   required
                   value={claveSeleccionada}
                   onChange={(e) => handleSeleccionarRegistro(e.target.value)}
-                  style={{
-                    width: '100%',
-                    height: '40px',
-                    padding: '0 0.7rem',
-                    borderRadius: '6px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '0.88rem',
-                    backgroundColor: '#ffffff',
-                  }}
+                  className="cm-select"
                 >
                   <option value="">-- Seleccionar movimiento --</option>
                   {detalleCorreccion.registros.map((r) => (
@@ -603,9 +424,7 @@ export default function ResumenFinancieroMensual() {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#475569', marginBottom: '0.35rem' }}>
-                  NUEVO MONTO ($) *
-                </label>
+                <label className="cm-label">NUEVO MONTO ($) *</label>
                 <input
                   type="number"
                   required
@@ -615,22 +434,12 @@ export default function ResumenFinancieroMensual() {
                   onChange={(e) => setNuevoMonto(e.target.value)}
                   disabled={!claveSeleccionada}
                   placeholder="Ej: 150000"
-                  style={{
-                    width: '100%',
-                    height: '40px',
-                    padding: '0 0.7rem',
-                    borderRadius: '6px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '0.88rem',
-                    boxSizing: 'border-box',
-                  }}
+                  className="cm-input"
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#475569', marginBottom: '0.35rem' }}>
-                  MOTIVO DE CORRECCIÓN *
-                </label>
+                <label className="cm-label">MOTIVO DE CORRECCIÓN *</label>
                 <input
                   type="text"
                   required
@@ -639,97 +448,54 @@ export default function ResumenFinancieroMensual() {
                   onChange={(e) => setMotivo(e.target.value)}
                   disabled={!claveSeleccionada}
                   placeholder="Ej: Error de digitación informado por Dueño"
-                  style={{
-                    width: '100%',
-                    height: '40px',
-                    padding: '0 0.7rem',
-                    borderRadius: '6px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '0.88rem',
-                    boxSizing: 'border-box',
-                  }}
+                  className="cm-input"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={!claveSeleccionada || !nuevoMonto || !motivo.trim() || corrigiendo}
-                style={{
-                  height: '40px',
-                  padding: '0 1.2rem',
-                  backgroundColor:
-                    !claveSeleccionada || !nuevoMonto || !motivo.trim() || corrigiendo
-                      ? '#94a3b8'
-                      : '#333c87',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontWeight: '700',
-                  fontSize: '0.84rem',
-                  cursor:
-                    !claveSeleccionada || !nuevoMonto || !motivo.trim() || corrigiendo
-                      ? 'not-allowed'
-                      : 'pointer',
-                  whiteSpace: 'nowrap',
-                }}
+                className="cm-btn-primario"
               >
                 {corrigiendo ? 'Corrigiendo...' : 'Aplicar Corrección'}
               </button>
             </form>
           )}
 
-          {/* Historial de cambios auditados (Postcondición RF-P8-06) */}
+          {/* Historial de cambios auditados */}
           <div>
-            <h4 style={{ margin: '0 0 0.65rem 0', fontSize: '0.92rem', fontWeight: '700', color: '#1e293b' }}>
+            <h4 className="cm-hist-titulo">
               Historial de Correcciones en este Período ({detalleCorreccion.historial.length})
             </h4>
 
             {detalleCorreccion.historial.length === 0 ? (
-              <div
-                style={{
-                  padding: '0.85rem 1rem',
-                  backgroundColor: '#f8fafc',
-                  borderRadius: '8px',
-                  color: '#64748b',
-                  fontSize: '0.84rem',
-                }}
-              >
+              <div className="cm-hist-vacio">
                 No se han registrado modificaciones posteriores al cierre.
               </div>
             ) : (
-              <div style={{ overflowX: 'auto', maxHeight: '300px', overflowY: 'auto', border: '1px solid #f1f5f9', borderRadius: '8px' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.86rem' }}>
+              <div className="cm-tabla-scroll-sm">
+                <table className="cm-tabla-hist">
                   <thead>
-                    <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.75rem', textAlign: 'left', position: 'sticky', top: 0, backgroundColor: '#ffffff' }}>
-                      <th style={{ padding: '0.6rem 0.5rem' }}>FECHA Y HORA</th>
-                      <th style={{ padding: '0.6rem 0.5rem' }}>REGISTRO</th>
-                      <th style={{ padding: '0.6rem 0.5rem' }}>ANTERIOR</th>
-                      <th style={{ padding: '0.6rem 0.5rem' }}>NUEVO</th>
-                      <th style={{ padding: '0.6rem 0.5rem' }}>MOTIVO</th>
-                      <th style={{ padding: '0.6rem 0.5rem' }}>CONTADOR</th>
+                    <tr>
+                      <th>FECHA Y HORA</th>
+                      <th>REGISTRO</th>
+                      <th>ANTERIOR</th>
+                      <th>NUEVO</th>
+                      <th>MOTIVO</th>
+                      <th>CONTADOR</th>
                     </tr>
                   </thead>
                   <tbody>
                     {detalleCorreccion.historial.map((h) => (
-                      <tr key={h.id_cambio} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '0.7rem 0.5rem', color: '#64748b' }}>
+                      <tr key={h.id_cambio}>
+                        <td className="cm-td-suave">
                           {new Date(h.fecha_hora).toLocaleString('es-CL')}
                         </td>
-                        <td style={{ padding: '0.7rem 0.5rem', fontWeight: '600', color: '#0f172a' }}>
-                          {h.dato}
-                        </td>
-                        <td style={{ padding: '0.7rem 0.5rem', color: '#b91c1c', fontWeight: '600' }}>
-                          {h.valor_anterior}
-                        </td>
-                        <td style={{ padding: '0.7rem 0.5rem', color: '#15803d', fontWeight: '700' }}>
-                          {h.valor_nuevo}
-                        </td>
-                        <td style={{ padding: '0.7rem 0.5rem', color: '#334155' }}>
-                          {h.motivo}
-                        </td>
-                        <td style={{ padding: '0.7rem 0.5rem', color: '#475569' }}>
-                          {h.contador}
-                        </td>
+                        <td className="cm-td-fuerte">{h.dato}</td>
+                        <td className="cm-td-negativo">{h.valor_anterior}</td>
+                        <td className="cm-td-positivo">{h.valor_nuevo}</td>
+                        <td className="cm-td-texto-oscuro">{h.motivo}</td>
+                        <td className="cm-td-texto">{h.contador}</td>
                       </tr>
                     ))}
                   </tbody>

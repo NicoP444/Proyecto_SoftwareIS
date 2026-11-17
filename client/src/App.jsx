@@ -11,7 +11,6 @@ import SalidaKits from "./pages/SalidaKits";
 import Plantilla from "./components/Plantilla";
 import RutaPorRol from "./components/RutaPorRol";
 import Calendario from "./pages/Calendario";
-import ResumenIncidentesEventoPage from './pages/ResumenIncidentesEventoPage.jsx';
 import Equipos from "./pages/Equipos";
 import MarcarEventoRealizado from './pages/MarcarEventoRealizado.jsx';
 import ConsultarInventario from './pages/ConsultarInventario.jsx';
@@ -65,15 +64,6 @@ export default function App() {
           element={
             <RutaProtegida>
               <Incidentes />
-            </RutaProtegida>
-          }
-        />
-
-        <Route
-          path="/resumen-incidentes"
-          element={
-            <RutaProtegida>
-              <ResumenIncidentesEventoPage />
             </RutaProtegida>
           }
         />

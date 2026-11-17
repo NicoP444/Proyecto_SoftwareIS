@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  registrarIncidente, 
-  obtenerIncidentes, 
-  obtenerEquipos, 
-  obtenerEventos 
+import {
+  registrarIncidente,
+  obtenerIncidentes,
+  obtenerEquipos,
+  obtenerEventos,
 } from '../services/incidente.service.js';
 import { obtenerKitsPorEvento } from '../services/salidaKit.service.js';
+import '../styles/Incidentes.css';
 
 export default function Incidentes() {
   const [incidentes, setIncidentes] = useState([]);
@@ -140,17 +141,18 @@ export default function Incidentes() {
       const payload = {
         ...formData,
         id_evento: formData.id_evento ? Number(formData.id_evento) : null,
-        id_trabajador: formData.id_evento && formData.id_trabajador ? Number(formData.id_trabajador) : null,
+        id_trabajador:
+          formData.id_evento && formData.id_trabajador ? Number(formData.id_trabajador) : null,
         costo_reparacion: formData.tipo === 'DANO' ? Number(formData.costo_reparacion) : undefined,
       };
 
       await registrarIncidente(payload);
-      
-      setMensaje({ 
-        tipo: 'exito', 
-        texto: 'Incidente registrado correctamente. El estado del equipo ha sido actualizado.' 
+
+      setMensaje({
+        tipo: 'exito',
+        texto: 'Incidente registrado correctamente. El estado del equipo ha sido actualizado.',
       });
-      
+
       setFormData({
         codigo: '',
         tipo: 'DANO',
@@ -170,7 +172,10 @@ export default function Incidentes() {
     } catch (error) {
       setMensaje({
         tipo: 'error',
-        texto: error.response?.data?.message || error.message || 'Error al intentar registrar el incidente en el sistema.',
+        texto:
+          error.response?.data?.message ||
+          error.message ||
+          'Error al intentar registrar el incidente en el sistema.',
       });
     } finally {
       setCargando(false);
@@ -178,63 +183,29 @@ export default function Incidentes() {
   };
 
   const renderBadgeIncidente = (tipo) => {
-    let bg = '#fee2e2';
-    let text = '#dc2626';
+    let claseVariante = '';
     let label = tipo;
 
     switch (tipo) {
       case 'DANO':
         label = 'Dañado';
-        bg = '#fef3c7';
-        text = '#b45309';
+        claseVariante = 'inc-badge-dano';
         break;
       case 'PERDIDA':
         label = 'Perdido';
-        bg = '#fee2e2';
-        text = '#dc2626';
+        claseVariante = 'inc-badge-perdida';
         break;
       case 'ROBO':
         label = 'Robado';
-        bg = '#fee2e2';
-        text = '#991b1b';
+        claseVariante = 'inc-badge-robo';
         break;
       default:
         break;
     }
 
     return (
-      <span
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '6px',
-          width: '110px',
-          minWidth: '110px',
-          maxWidth: '110px',
-          height: '24px',
-          padding: '0 8px',
-          boxSizing: 'border-box',
-          borderRadius: '9999px',
-          fontSize: '0.72rem',
-          fontWeight: '700',
-          lineHeight: '1',
-          whiteSpace: 'nowrap',
-          backgroundColor: bg,
-          color: text,
-          letterSpacing: '0.02em',
-          flexShrink: 0,
-        }}
-      >
-        <span
-          style={{
-            width: '6px',
-            height: '6px',
-            borderRadius: '50%',
-            backgroundColor: text,
-            flexShrink: 0,
-          }}
-        />
+      <span className={`inc-badge ${claseVariante}`}>
+        <span className="inc-badge-punto" />
         <span>{label}</span>
       </span>
     );
@@ -260,52 +231,30 @@ export default function Incidentes() {
 
   return (
     <div>
-      <div style={{ marginBottom: '1.25rem' }}>
-        <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '700', color: '#0f172a' }}>
-          Registro de Incidentes
-        </h3>
+      <div className="inc-cabecera">
+        <h3>Registro de Incidentes</h3>
       </div>
 
       {mensaje && (
         <div
-          style={{
-            padding: '0.85rem 1rem',
-            marginBottom: '1.25rem',
-            borderRadius: '8px',
-            fontSize: '0.88rem',
-            fontWeight: '500',
-            backgroundColor: mensaje.tipo === 'exito' ? '#dcfce7' : '#fee2e2',
-            color: mensaje.tipo === 'exito' ? '#15803d' : '#991b1b',
-            border: mensaje.tipo === 'exito' ? '1px solid #bbf7d0' : '1px solid #fecaca',
-          }}
+          className={`inc-mensaje ${
+            mensaje.tipo === 'exito' ? 'inc-mensaje-exito' : 'inc-mensaje-error'
+          }`}
         >
           {mensaje.texto}
         </div>
       )}
 
       {/* Formulario de registro */}
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', backgroundColor: '#ffffff', padding: '1.25rem', border: '1px solid #e2e8f0', borderRadius: '10px', marginBottom: '1.75rem' }}>
+      <form onSubmit={handleSubmit} className="inc-form">
         {/* Fila 1: Tipo y Evento */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+        <div className="inc-fila-grid">
           <div>
-            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Tipo de Incidente
-            </label>
+            <label className="inc-label">Tipo de Incidente</label>
             <select
               value={formData.tipo}
               onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
-              style={{
-                width: '100%',
-                padding: '0.6rem 0.85rem',
-                borderRadius: '8px',
-                border: '1px solid #e2e8f0',
-                backgroundColor: '#ffffff',
-                fontSize: '0.88rem',
-                color: '#0f172a',
-                boxSizing: 'border-box',
-                outline: 'none',
-                cursor: 'pointer',
-              }}
+              className="inc-select"
             >
               <option value="DANO">Dañado</option>
               <option value="PERDIDA">Perdido</option>
@@ -314,11 +263,9 @@ export default function Incidentes() {
           </div>
 
           {/* Buscador con scroll interno para Evento Asociado */}
-          <div style={{ position: 'relative' }}>
-            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Evento Asociado
-            </label>
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+          <div className="inc-evento-wrap">
+            <label className="inc-label">Evento Asociado</label>
+            <div className="inc-evento-input-box">
               <input
                 type="text"
                 value={busquedaEvento}
@@ -328,7 +275,12 @@ export default function Incidentes() {
                   const val = e.target.value;
                   setBusquedaEvento(val);
                   if (formData.id_evento) {
-                    setFormData((prev) => ({ ...prev, id_evento: '', codigo: '', id_trabajador: '' }));
+                    setFormData((prev) => ({
+                      ...prev,
+                      id_evento: '',
+                      codigo: '',
+                      id_trabajador: '',
+                    }));
                     setEquipoSeleccionado(null);
                     setEquiposDelEvento([]);
                     setNombreResponsable('');
@@ -336,35 +288,16 @@ export default function Incidentes() {
                   setMostrarListaEventos(true);
                 }}
                 placeholder="-- Sin evento / Incidente en Bodega (Buscar...) --"
-                style={{
-                  width: '100%',
-                  padding: '0.6rem 2.2rem 0.6rem 0.85rem',
-                  borderRadius: '8px',
-                  border: `1px solid ${
-                    busquedaEvento.trim() && !formData.id_evento ? '#f59e0b' : '#e2e8f0'
-                  }`,
-                  backgroundColor: '#ffffff',
-                  fontSize: '0.88rem',
-                  color: '#0f172a',
-                  boxSizing: 'border-box',
-                  outline: 'none',
-                }}
+                className={`inc-evento-input ${
+                  busquedaEvento.trim() && !formData.id_evento ? 'aviso' : ''
+                }`}
               />
               {busquedaEvento && (
                 <button
                   type="button"
                   onClick={() => handleEventoChange('', '')}
                   title="Volver a Incidente en Bodega"
-                  style={{
-                    position: 'absolute',
-                    right: '8px',
-                    background: 'none',
-                    border: 'none',
-                    color: '#64748b',
-                    cursor: 'pointer',
-                    fontWeight: '700',
-                    fontSize: '0.95rem',
-                  }}
+                  className="inc-evento-limpiar"
                 >
                   ✕
                 </button>
@@ -372,39 +305,18 @@ export default function Incidentes() {
             </div>
 
             {mostrarListaEventos && (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  right: 0,
-                  marginTop: '4px',
-                  maxHeight: '210px',
-                  overflowY: 'auto',
-                  backgroundColor: '#ffffff',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: '8px',
-                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                  zIndex: 25,
-                }}
-              >
+              <div className="inc-evento-dropdown">
                 <div
                   onMouseDown={() => handleEventoChange('', '')}
-                  style={{
-                    padding: '0.6rem 0.85rem',
-                    fontSize: '0.86rem',
-                    cursor: 'pointer',
-                    borderBottom: '1px solid #e2e8f0',
-                    backgroundColor: !formData.id_evento ? '#f8fafc' : '#ffffff',
-                    color: '#475569',
-                    fontWeight: '600',
-                  }}
+                  className={`inc-evento-opcion-bodega ${
+                    !formData.id_evento ? 'activo' : ''
+                  }`}
                 >
                   -- Sin evento / Incidente en Bodega --
                 </div>
 
                 {eventosFiltrados.length === 0 ? (
-                  <div style={{ padding: '0.65rem 0.85rem', fontSize: '0.84rem', color: '#991b1b' }}>
+                  <div className="inc-evento-vacio">
                     No se encontraron eventos con "{busquedaEvento}"
                   </div>
                 ) : (
@@ -415,21 +327,11 @@ export default function Incidentes() {
                       <div
                         key={ev.id_evento}
                         onMouseDown={() => handleEventoChange(String(ev.id_evento), etiqueta)}
-                        style={{
-                          padding: '0.6rem 0.85rem',
-                          fontSize: '0.86rem',
-                          cursor: 'pointer',
-                          borderBottom: '1px solid #f1f5f9',
-                          backgroundColor: seleccionado ? '#eef2ff' : '#ffffff',
-                          color: '#0f172a',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                        }}
+                        className={`inc-evento-opcion ${seleccionado ? 'seleccionado' : ''}`}
                       >
-                        <span style={{ fontWeight: seleccionado ? '700' : '500' }}>{etiqueta}</span>
+                        <span>{etiqueta}</span>
                         {ev.fecha && (
-                          <span style={{ fontSize: '0.75rem', color: '#64748b', marginLeft: '8px', whiteSpace: 'nowrap' }}>
+                          <span className="inc-evento-opcion-fecha">
                             {new Date(ev.fecha).toLocaleDateString('es-CL', { timeZone: 'UTC' })}
                           </span>
                         )}
@@ -442,29 +344,16 @@ export default function Incidentes() {
           </div>
         </div>
 
-        {/* Fila 2: Equipo y Responsable (100% automático y bloqueado a edición manual) */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+        {/* Fila 2: Equipo y Responsable */}
+        <div className="inc-fila-grid">
           <div>
-            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Equipo Afectado
-            </label>
+            <label className="inc-label">Equipo Afectado</label>
             {equipos.length > 0 || formData.id_evento ? (
               <select
                 value={formData.codigo}
                 onChange={(e) => handleEquipoChange(e.target.value)}
                 required
-                style={{
-                  width: '100%',
-                  padding: '0.6rem 0.85rem',
-                  borderRadius: '8px',
-                  border: '1px solid #e2e8f0',
-                  backgroundColor: '#ffffff',
-                  fontSize: '0.88rem',
-                  color: '#0f172a',
-                  boxSizing: 'border-box',
-                  outline: 'none',
-                  cursor: 'pointer',
-                }}
+                className="inc-select"
               >
                 <option value="">
                   {formData.id_evento && listaEquiposMostrados.length === 0
@@ -473,7 +362,8 @@ export default function Incidentes() {
                 </option>
                 {listaEquiposMostrados.map((eq) => (
                   <option key={eq.codigo} value={eq.codigo}>
-                    {eq.codigo} - {eq.nombre}{eq.nombreKit ? ` (${eq.nombreKit})` : ''}
+                    {eq.codigo} - {eq.nombre}
+                    {eq.nombreKit ? ` (${eq.nombreKit})` : ''}
                   </option>
                 ))}
               </select>
@@ -484,46 +374,22 @@ export default function Incidentes() {
                 value={formData.codigo}
                 onChange={(e) => setFormData({ ...formData, codigo: e.target.value })}
                 required
-                style={{
-                  width: '100%',
-                  padding: '0.6rem 0.85rem',
-                  borderRadius: '8px',
-                  border: '1px solid #e2e8f0',
-                  backgroundColor: '#f8fafc',
-                  fontSize: '0.88rem',
-                  color: '#0f172a',
-                  boxSizing: 'border-box',
-                  outline: 'none',
-                }}
+                className="inc-input inc-input-suave"
               />
             )}
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Trabajador Responsable
-            </label>
+            <label className="inc-label">Trabajador Responsable</label>
             <input
               type="text"
               disabled
               readOnly
               value={textoResponsable}
-              style={{
-                width: '100%',
-                padding: '0.6rem 0.85rem',
-                borderRadius: '8px',
-                border: `1px solid ${nombreResponsable ? '#bbf7d0' : '#e2e8f0'}`,
-                backgroundColor: nombreResponsable ? '#f0fdf4' : '#f1f5f9',
-                fontSize: '0.88rem',
-                fontWeight: nombreResponsable ? '600' : '400',
-                color: nombreResponsable ? '#15803d' : '#64748b',
-                cursor: 'not-allowed',
-                boxSizing: 'border-box',
-                outline: 'none',
-              }}
+              className={`inc-input-resp ${nombreResponsable ? 'asignado' : ''}`}
             />
             {nombreResponsable && (
-              <span style={{ fontSize: '0.78rem', color: '#15803d', marginTop: '4px', display: 'block', fontWeight: '500' }}>
+              <span className="inc-nota-resp">
                 ✓ Asignado automáticamente según salida de {equipoSeleccionado?.nombreKit}
               </span>
             )}
@@ -533,9 +399,7 @@ export default function Incidentes() {
         {/* Fila 3: Costo o valorización */}
         {formData.tipo === 'DANO' ? (
           <div>
-            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Costo Estimado de Reparación ($)
-            </label>
+            <label className="inc-label">Costo Estimado de Reparación ($)</label>
             <input
               type="number"
               min="0"
@@ -543,33 +407,21 @@ export default function Incidentes() {
               value={formData.costo_reparacion}
               onChange={(e) => setFormData({ ...formData, costo_reparacion: e.target.value })}
               required
-              style={{
-                width: '100%',
-                padding: '0.6rem 0.85rem',
-                borderRadius: '8px',
-                border: '1px solid #e2e8f0',
-                backgroundColor: '#ffffff',
-                fontSize: '0.88rem',
-                color: '#0f172a',
-                boxSizing: 'border-box',
-                outline: 'none',
-              }}
+              className="inc-input"
             />
           </div>
         ) : (
-          <div style={{ backgroundColor: '#f8fafc', padding: '0.85rem 1rem', borderRadius: '8px', borderLeft: '4px solid #333c87', borderTop: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: '0.85rem', color: '#475569' }}>
-              La pérdida o robo se valorizará automáticamente según el <strong>valor de compra</strong> registrado en inventario.
-              {equipoSeleccionado && ` (Valor activo: $${Number(equipoSeleccionado.valor_compra || 0).toLocaleString('es-CL')})`}
-            </span>
+          <div className="inc-aviso-valor">
+            La pérdida o robo se valorizará automáticamente según el{' '}
+            <strong>valor de compra</strong> registrado en inventario.
+            {equipoSeleccionado &&
+              ` (Valor activo: $${Number(equipoSeleccionado.valor_compra || 0).toLocaleString('es-CL')})`}
           </div>
         )}
 
         {/* Fila 4: Descripción */}
         <div>
-          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            Descripción del Incidente
-          </label>
+          <label className="inc-label">Descripción del Incidente</label>
           <textarea
             rows="3"
             maxLength={255}
@@ -577,40 +429,16 @@ export default function Incidentes() {
             value={formData.descripcion}
             onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
             required
-            style={{
-              width: '100%',
-              padding: '0.6rem 0.85rem',
-              borderRadius: '8px',
-              border: '1px solid #e2e8f0',
-              backgroundColor: '#ffffff',
-              fontSize: '0.88rem',
-              color: '#0f172a',
-              boxSizing: 'border-box',
-              outline: 'none',
-              fontFamily: 'inherit',
-            }}
+            className="inc-textarea"
           />
         </div>
 
         {/* Botón de envío */}
-        <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '0.25rem' }}>
+        <div className="inc-form-acciones">
           <button
             type="submit"
             disabled={cargando}
-            style={{
-              padding: '0.65rem 1.4rem',
-              backgroundColor: '#333c87',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '0.88rem',
-              fontWeight: '600',
-              cursor: cargando ? 'not-allowed' : 'pointer',
-              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-              transition: 'background-color 0.15s ease',
-            }}
-            onMouseEnter={(e) => !cargando && (e.currentTarget.style.backgroundColor = '#272e6b')}
-            onMouseLeave={(e) => !cargando && (e.currentTarget.style.backgroundColor = '#333c87')}
+            className="inc-btn-registrar"
           >
             {cargando ? 'Registrando...' : 'Registrar Incidente'}
           </button>
@@ -619,57 +447,49 @@ export default function Incidentes() {
 
       {/* Historial de Incidentes Registrados */}
       <div>
-        <div style={{ marginBottom: '0.75rem' }}>
-          <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '700', color: '#0f172a' }}>
-            Historial de Incidentes Registrados
-          </h3>
+        <div className="inc-historial-cab">
+          <h3>Historial de Incidentes Registrados</h3>
         </div>
 
-        <div style={{ overflowX: 'auto', maxHeight: '280px', overflowY: 'auto', border: '1px solid #f1f5f9', borderRadius: '10px' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
+        <div className="inc-tabla-scroll">
+          <table className="inc-tabla">
             <thead>
-              <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.75rem', fontWeight: '700', letterSpacing: '0.05em', position: 'sticky', top: 0, backgroundColor: '#ffffff', zIndex: 1 }}>
-                <th style={{ padding: '0.75rem 0.5rem' }}>FECHA</th>
-                <th style={{ padding: '0.75rem 0.5rem' }}>EQUIPO</th>
-                <th style={{ padding: '0.75rem 0.5rem' }}>TIPO</th>
-                <th style={{ padding: '0.75rem 0.5rem' }}>VALOR / COSTO</th>
-                <th style={{ padding: '0.75rem 0.5rem' }}>RESPONSABLE</th>
-                <th style={{ padding: '0.75rem 0.5rem' }}>DESCRIPCIÓN</th>
+              <tr>
+                <th>FECHA</th>
+                <th>EQUIPO</th>
+                <th>TIPO</th>
+                <th>VALOR / COSTO</th>
+                <th>RESPONSABLE</th>
+                <th>DESCRIPCIÓN</th>
               </tr>
             </thead>
             <tbody>
               {incidentes.length === 0 ? (
                 <tr>
-                  <td colSpan="6" style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
+                  <td colSpan="6" className="inc-tabla-vacio">
                     No hay incidentes registrados en el sistema.
                   </td>
                 </tr>
               ) : (
                 incidentes.map((inc) => (
-                  <tr key={inc.id_incidente} style={{ borderBottom: '1px solid #f8fafc' }}>
-                    <td style={{ padding: '0.85rem 0.5rem', color: '#64748b', whiteSpace: 'nowrap' }}>
+                  <tr key={inc.id_incidente}>
+                    <td className="inc-td-fecha">
                       {new Date(inc.fecha).toLocaleDateString('es-CL')}
                     </td>
-                    <td style={{ padding: '0.85rem 0.5rem', color: '#0f172a' }}>
+                    <td className="inc-td-equipo">
                       <strong>{inc.codigo}</strong>
                       {inc.equipo?.nombre && (
-                        <span style={{ color: '#64748b', fontSize: '0.82rem', marginLeft: '6px' }}>
-                          ({inc.equipo.nombre})
-                        </span>
+                        <span className="inc-td-equipo-nombre">({inc.equipo.nombre})</span>
                       )}
                     </td>
-                    <td style={{ padding: '0.85rem 0.5rem' }}>
-                      {renderBadgeIncidente(inc.tipo)}
-                    </td>
-                    <td style={{ padding: '0.85rem 0.5rem', fontWeight: '700', color: '#0f172a' }}>
+                    <td>{renderBadgeIncidente(inc.tipo)}</td>
+                    <td className="inc-td-valor">
                       ${Number(inc.valor || 0).toLocaleString('es-CL')}
                     </td>
-                    <td style={{ padding: '0.85rem 0.5rem', color: '#334155' }}>
+                    <td className="inc-td-resp">
                       {inc.trabajador?.nombre || 'Bodega / General'}
                     </td>
-                    <td style={{ padding: '0.85rem 0.5rem', color: '#64748b' }}>
-                      {inc.descripcion}
-                    </td>
+                    <td className="inc-td-desc">{inc.descripcion}</td>
                   </tr>
                 ))
               )}

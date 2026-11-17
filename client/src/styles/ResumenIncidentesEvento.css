@@ -1,0 +1,194 @@
+/* Estilos exclusivos de ResumenIncidentesEvento (RF-P6-06) */
+
+/* ---------- Componente incrustable ResumenIncidentesEvento ---------- */
+.rie-cargando {
+  color: #6b7280;
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+.rie-error {
+  color: #dc2626;
+  font-size: 0.9rem;
+}
+
+.rie-sin-incidentes {
+  margin-top: 1rem;
+  padding: 0.85rem 1.2rem;
+  background-color: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  color: #475569;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.rie-caja {
+  margin-top: 1.2rem;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background-color: #ffffff;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.rie-cabecera {
+  padding: 0.75rem 1rem;
+  background-color: #fef2f2;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #fecaca;
+}
+
+.rie-cabecera-titulo {
+  font-weight: 700;
+  color: #991b1b;
+  font-size: 0.95rem;
+}
+
+.rie-cabecera-total {
+  font-weight: 700;
+  color: #b91c1c;
+  font-size: 1rem;
+}
+
+.rie-tabla-wrap {
+  padding: 0.75rem 1rem;
+}
+
+.rie-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.rie-tabla thead tr {
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+  color: #64748b;
+}
+
+.rie-tabla th {
+  padding: 0.5rem 0;
+}
+
+.rie-th-der,
+.rie-td-valor {
+  text-align: right;
+}
+
+.rie-tabla tbody tr {
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.rie-tabla td {
+  padding: 0.6rem 0;
+}
+
+.rie-td-equipo {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.rie-td-codigo {
+  color: #64748b;
+  font-size: 0.8rem;
+  margin-left: 6px;
+}
+
+.rie-badge {
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background-color: #fef9c3;
+  color: #854d0e;
+}
+
+.rie-badge-robo {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.rie-badge-perdida {
+  background-color: #ffedd5;
+  color: #9a3412;
+}
+
+.rie-td-desc {
+  color: #334155;
+}
+
+.rie-td-valor {
+  font-weight: 700;
+  color: #b91c1c;
+}
+
+/* ---------- Vista auxiliar ResumenIncidentesEventoPage (si sigue en rutas) ---------- */
+.rie-page-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f3f4f6;
+}
+
+.rie-page-contenido {
+  flex: 1;
+  padding: 2rem 3rem;
+  margin-left: 240px;
+}
+
+.rie-page-card {
+  background-color: #ffffff;
+  border-radius: 10px;
+  padding: 2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.rie-page-titulo {
+  font-size: 1.6rem;
+  font-weight: bold;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+}
+
+.rie-page-subtitulo {
+  color: #64748b;
+  font-size: 0.95rem;
+  margin-bottom: 1.5rem;
+}
+
+.rie-page-filtro {
+  margin-bottom: 1.5rem;
+  max-width: 450px;
+}
+
+.rie-page-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #334151;
+}
+
+.rie-page-cargando {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.rie-page-select {
+  width: 100%;
+  padding: 0.65rem;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  font-size: 0.95rem;
+  background-color: #ffffff;
+}
+
+.rie-page-placeholder {
+  padding: 1.5rem;
+  background-color: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  font-size: 0.9rem;
+}

@@ -1,0 +1,617 @@
+/* Estilos exclusivos del módulo P8 - Cierre Financiero Mensual (GastosFijos, PerdidasInventario, ResumenFinancieroMensual, ResumenInventario) */
+
+.cm-contenedor {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* ---------- Selector de Período Contable ---------- */
+.cm-periodo-barra {
+  background-color: #ffffff;
+  padding: 1.1rem 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.cm-periodo-controles {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.cm-periodo-label {
+  font-weight: 700;
+  color: #1e293b;
+  font-size: 0.92rem;
+}
+
+.cm-select-mes {
+  padding: 0.45rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #0f172a;
+  background-color: #ffffff;
+}
+
+.cm-input-anio {
+  width: 88px;
+  padding: 0.45rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.cm-badges-grupo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.cm-badge {
+  padding: 0.3rem 0.85rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.cm-badge-extra {
+  font-weight: 800;
+}
+
+.cm-badge-verde { background-color: #dcfce7; color: #15803d; }
+.cm-badge-rojo { background-color: #fee2e2; color: #b91c1c; }
+.cm-badge-amarillo { background-color: #fef3c7; color: #b45309; }
+.cm-badge-gris { background-color: #f1f5f9; color: #475569; }
+
+.cm-total-perdido-cab {
+  font-weight: 800;
+  color: #b91c1c;
+  font-size: 1rem;
+}
+
+/* ---------- Alertas ---------- */
+.cm-alerta-error {
+  padding: 0.85rem 1.1rem;
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.cm-alerta-exito {
+  padding: 0.85rem 1.1rem;
+  background-color: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.cm-alerta-historial {
+  margin-bottom: 1rem;
+  padding: 0.65rem 0.9rem;
+  background-color: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 6px;
+  font-size: 0.84rem;
+  color: #92400e;
+}
+
+/* ---------- Tarjetas / Paneles ---------- */
+.cm-card {
+  background-color: #ffffff;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.cm-card-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.cm-card-titulo {
+  margin: 0 0 1rem 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.cm-card-titulo-sin-margen {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.cm-card-titulo-lg {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.cm-card-sub {
+  margin: 0 0 1rem 0;
+  font-size: 0.86rem;
+  color: #64748b;
+}
+
+.cm-card-sub-0 {
+  margin: 0;
+  font-size: 0.86rem;
+  color: #64748b;
+}
+
+.cm-card-cab-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.cm-card-cab-flex h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.cm-total-azul {
+  font-weight: 800;
+  color: #333c87;
+  font-size: 1rem;
+}
+
+.cm-texto-carga {
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.cm-vacio {
+  padding: 1.5rem;
+  text-align: center;
+  background-color: #f8fafc;
+  border-radius: 8px;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.cm-vacio-izq {
+  padding: 1rem;
+  background-color: #f8fafc;
+  border-radius: 8px;
+  color: #64748b;
+  font-size: 0.88rem;
+}
+
+/* ---------- KPIs ---------- */
+.cm-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.cm-kpi {
+  background-color: #ffffff;
+  padding: 1.1rem 1.25rem;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  border-top: 4px solid #333c87;
+}
+
+.cm-kpi-verde { border-top-color: #16a34a; }
+.cm-kpi-rojo { border-top-color: #dc2626; }
+
+.cm-kpi-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.cm-kpi-valor {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin-top: 0.25rem;
+}
+
+.cm-kpi-valor.positivo { color: #15803d; }
+.cm-kpi-valor.negativo { color: #b91c1c; }
+
+/* ---------- Formularios (Gastos Fijos y Corrección) ---------- */
+.cm-form-gastos {
+  display: grid;
+  grid-template-columns: 2fr 1.2fr 1.5fr auto;
+  gap: 0.85rem;
+  align-items: end;
+}
+
+.cm-form-correccion {
+  display: grid;
+  grid-template-columns: 2fr 1fr 2fr auto;
+  gap: 0.85rem;
+  align-items: end;
+}
+
+@media (max-width: 900px) {
+  .cm-form-gastos,
+  .cm-form-correccion {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cm-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 0.35rem;
+}
+
+.cm-input,
+.cm-select {
+  width: 100%;
+  height: 40px;
+  padding: 0 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+  background-color: #ffffff;
+}
+
+.cm-input:disabled,
+.cm-select:disabled {
+  background-color: #f8fafc;
+}
+
+.cm-file-box {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.42rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  cursor: pointer;
+  box-sizing: border-box;
+  height: 40px;
+  overflow: hidden;
+}
+
+.cm-file-box.bloqueado {
+  background-color: #f8fafc;
+  cursor: not-allowed;
+}
+
+.cm-file-btn {
+  padding: 0.22rem 0.6rem;
+  background-color: #d7e1ff;
+  color: #333c87;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.cm-file-nombre {
+  font-size: 0.82rem;
+  color: #2f5488;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cm-file-nombre.cargado {
+  color: #0f172a;
+}
+
+.cm-file-hidden {
+  display: none;
+}
+
+.cm-btn-primario {
+  height: 40px;
+  padding: 0 1.25rem;
+  background-color: #333c87;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.cm-btn-primario:disabled {
+  background-color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.cm-btn-cierre {
+  padding: 0.7rem 1.35rem;
+  background-color: #333c87;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.cm-btn-cierre:disabled {
+  background-color: #94a3b8;
+  cursor: not-allowed;
+}
+
+/* ---------- Tablas ---------- */
+.cm-tabla-scroll {
+  overflow-x: auto;
+  max-height: 380px;
+  overflow-y: auto;
+  border: 1px solid #f1f5f9;
+  border-radius: 8px;
+}
+
+.cm-tabla-scroll-lg {
+  overflow-x: auto;
+  max-height: 460px;
+  overflow-y: auto;
+  border: 1px solid #f1f5f9;
+  border-radius: 8px;
+}
+
+.cm-tabla-scroll-sm {
+  overflow-x: auto;
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #f1f5f9;
+  border-radius: 8px;
+}
+
+.cm-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.cm-tabla-er {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.cm-tabla-hist {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+
+.cm-tabla thead tr,
+.cm-tabla-er thead tr,
+.cm-tabla-hist thead tr {
+  border-bottom: 1px solid #e2e8f0;
+  color: #64748b;
+  font-size: 0.78rem;
+  text-align: left;
+  position: sticky;
+  top: 0;
+  background-color: #ffffff;
+  z-index: 1;
+}
+
+.cm-tabla th,
+.cm-tabla-er th {
+  padding: 0.7rem 0.5rem;
+}
+
+.cm-tabla-hist th {
+  padding: 0.6rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.cm-th-der,
+.cm-td-der {
+  text-align: right;
+}
+
+.cm-tabla tbody tr,
+.cm-tabla-er tbody tr,
+.cm-tabla-hist tbody tr {
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.cm-tabla td {
+  padding: 0.85rem 0.5rem;
+}
+
+.cm-tabla-er td {
+  padding: 0.8rem 0.5rem;
+}
+
+.cm-tabla-hist td {
+  padding: 0.7rem 0.5rem;
+}
+
+.cm-td-fuerte {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.cm-td-suave {
+  color: #64748b;
+}
+
+.cm-td-texto {
+  color: #475569;
+}
+
+.cm-td-texto-oscuro {
+  color: #334155;
+}
+
+.cm-td-monto {
+  text-align: right;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.cm-td-positivo {
+  color: #15803d;
+  font-weight: 600;
+}
+
+.cm-td-monto-pos {
+  text-align: right;
+  font-weight: 700;
+  color: #15803d;
+}
+
+.cm-td-negativo {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.cm-td-monto-neg {
+  text-align: right;
+  font-weight: 700;
+  color: #b91c1c;
+}
+
+.cm-fila-borde-doble {
+  border-bottom: 2px solid #cbd5e1 !important;
+}
+
+.cm-fila-total {
+  background-color: #f8fafc;
+}
+
+.cm-fila-total td {
+  padding: 0.95rem 0.5rem;
+  font-weight: 800;
+}
+
+.cm-total-concepto {
+  color: #0f172a;
+  font-size: 0.98rem;
+}
+
+.cm-total-monto {
+  text-align: right;
+  font-size: 1.05rem;
+  color: #0f172a;
+}
+
+.cm-total-monto.positivo,
+.cm-total-tipo.positivo {
+  color: #15803d;
+}
+
+.cm-total-monto.negativo,
+.cm-total-tipo.negativo {
+  color: #b91c1c;
+}
+
+.cm-total-tipo.neutro {
+  color: #475569;
+}
+
+.cm-enlace {
+  color: #333c87;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+/* ---------- Badges de tipo de pérdida ---------- */
+.cm-badge-tipo {
+  padding: 0.2rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+.cm-badge-dano { background-color: #fef3c7; color: #b45309; }
+.cm-badge-perdida { background-color: #fee2e2; color: #b91c1c; }
+.cm-badge-robo { background-color: #fee2e2; color: #991b1b; }
+
+/* ---------- Cierre Contable y Alertas de Validación ---------- */
+.cm-cierre-cab {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.cm-cierre-info-cerrado {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #475569;
+}
+
+.cm-cierre-info-abierto {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #64748b;
+}
+
+.cm-validaciones-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.cm-bloqueo-caja {
+  padding: 0.85rem 1rem;
+  background-color: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #991b1b;
+  font-size: 0.86rem;
+}
+
+.cm-advertencia-caja {
+  padding: 0.85rem 1rem;
+  background-color: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  color: #92400e;
+  font-size: 0.86rem;
+}
+
+.cm-lista-items {
+  margin: 0.4rem 0 0 1.2rem;
+  padding: 0;
+}
+
+.cm-hist-titulo {
+  margin: 0 0 0.65rem 0;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.cm-hist-vacio {
+  padding: 0.85rem 1rem;
+  background-color: #f8fafc;
+  border-radius: 8px;
+  color: #64748b;
+  font-size: 0.84rem;
+}
