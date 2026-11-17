@@ -147,7 +147,7 @@ export const listarPersonalConEstado = async ({ id_dueno, fecha, hora_inicio, ho
 };
 
 // ---------- Trabajadores asignados a un evento ----------
-export const listarAsignaciones = async (id_evento) => {
+export const listarAsignaciones = async (id_evento, id_dueno) => {
   const evento = await prisma.evento.findFirst({ where: { id_evento, id_dueno } });
   if (!evento) throw new NotFoundError('El evento no existe');
 

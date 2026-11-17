@@ -40,7 +40,7 @@ export const getPersonalDisponible = async (req, res) => {
 // GET /api/eventos/:id/asignaciones
 export const getAsignaciones = async (req, res) => {
   try {
-    return res.json(await listarAsignaciones(Number(req.params.id)));
+    return res.json(await listarAsignaciones(Number(req.params.id), req.user.id_dueno));
   } catch (error) {
     return manejarError(res, error);
   }
