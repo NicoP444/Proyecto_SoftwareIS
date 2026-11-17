@@ -1,0 +1,88 @@
+/* Estilos exclusivos de AlertasKitsSinRetorno (RF-P6-05) */
+
+.akr-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.akr-cabecera h3 {
+  margin: 0;
+}
+
+.akr-acciones {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.akr-btn-incidente {
+  padding: 0.45rem 0.85rem;
+  background-color: #f8fafc;
+  color: #333c87;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.akr-btn-retornos {
+  padding: 0.45rem 0.85rem;
+  background-color: #333c87;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.akr-cargando {
+  padding: 1rem;
+  color: #6b7280;
+}
+
+.akr-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  margin-top: 0.5rem;
+}
+
+.akr-alerta-card {
+  padding: 0.9rem 1.1rem;
+  background-color: #fef2f2;
+  border: 1px solid #f87171;
+  border-radius: 8px;
+}
+
+.akr-alerta-cab {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.akr-alerta-titulo {
+  color: #991b1b;
+  font-size: 1rem;
+}
+
+.akr-badge-retraso {
+  background-color: #dc2626;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: bold;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+}
+
+.akr-alerta-detalle {
+  margin: 0.3rem 0 0;
+  font-size: 0.88rem;
+  color: #4b5563;
+}
