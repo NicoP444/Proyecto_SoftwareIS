@@ -15,7 +15,7 @@ const router = Router();
 router.use(autenticar);
 
 router.get('/', permitirRoles('JEFE_TECNICO', 'DUENO', 'CONTADOR'), listarIncidentes);
-router.post('/', permitirRoles('JEFE_TECNICO', 'DUENO'), crearIncidenteMiddleware, registrarIncidente);
-router.get('/evento/:id_evento', permitirRoles('JEFE_TECNICO', 'DUENO', 'CONTADOR'), listarIncidentesEventoMiddleware, obtenerIncidentesPorEvento);
+router.post('/', permitirRoles('JEFE_TECNICO'), crearIncidenteMiddleware, registrarIncidente);
+router.get('/evento/:id_evento', permitirRoles('DUENO', 'CONTADOR'), listarIncidentesEventoMiddleware, obtenerIncidentesPorEvento);
 
 export default router;

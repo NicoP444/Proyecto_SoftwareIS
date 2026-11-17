@@ -5,7 +5,7 @@ import { autenticar, permitirRoles } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
-router.use(autenticar, permitirRoles('JEFE_TECNICO', 'DUENO'));
+router.use(autenticar, permitirRoles('JEFE_TECNICO'));
 
 // Ruta propia para listar eventos con kits listos
 router.get('/eventos', obtenerEventosConReservas);

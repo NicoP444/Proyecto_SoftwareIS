@@ -8,7 +8,7 @@ import { autenticar, permitirRoles } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
-router.use(autenticar, permitirRoles('DUENO', 'JEFE_TECNICO'));
+router.use(autenticar, permitirRoles('DUENO'));
 
 // Listar eventos confirmados listos para revisar/finalizar
 router.get('/confirmados', listarEventosConfirmados);

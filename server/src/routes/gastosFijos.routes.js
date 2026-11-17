@@ -12,7 +12,7 @@ import { autenticar, permitirRoles } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
-router.use(autenticar, permitirRoles('CONTADOR', 'DUENO'));
+router.use(autenticar, permitirRoles('CONTADOR'));
 
 router.get('/', verificarPeriodoCierre, listarGastosFijos);
 router.post('/', subirEvidenciaGastoFijo, verificarCrearGastoFijo, registrarGastoFijo);

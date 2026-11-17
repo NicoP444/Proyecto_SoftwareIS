@@ -5,7 +5,7 @@ import { autenticar, permitirRoles } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
-router.use(autenticar, permitirRoles('CONTADOR', 'DUENO'));
+router.use(autenticar, permitirRoles('CONTADOR'));
 
 router.get('/validar', verificarPeriodoCierre, validarPreCierreMes);
 router.post('/cerrar', verificarPeriodoCierre, cerrarMesContable);

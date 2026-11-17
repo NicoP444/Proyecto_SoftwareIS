@@ -1,17 +1,20 @@
 import 'dotenv/config';
+import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 async function main() {
+  const hash = await bcrypt.hash('123456', 10);
+
   // 1. Crear o actualizar Contador de prueba
   const contador = await prisma.contador.upsert({
     where: { correo: 'contador@sixseven.cl' },
-    update: { estado: 'ACTIVO' },
+    update: { estado: 'ACTIVO', contrasena: hash },
     create: {
       nombre: 'Camila Contador',
       correo: 'contador@sixseven.cl',
-      contrasena: 'password123',
+      contrasena: hash,
       estado: 'ACTIVO',
     },
   });
@@ -19,11 +22,11 @@ async function main() {
   // 2. Crear o actualizar Jefe de Área Técnica de prueba
   const jefe = await prisma.jefeAreaTecnica.upsert({
     where: { correo: 'jefe@sixseven.cl' },
-    update: { estado: 'ACTIVO' },
+    update: { estado: 'ACTIVO', contrasena: hash },
     create: {
       nombre: 'Javier Jefe Técnico',
       correo: 'jefe@sixseven.cl',
-      contrasena: 'password123',
+      contrasena: hash,
       estado: 'ACTIVO',
     },
   });
