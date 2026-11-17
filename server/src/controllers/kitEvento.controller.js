@@ -9,7 +9,7 @@ import {
 // GET /api/eventos/:id/kits
 export const getKitsEvento = async (req, res) => {
   try {
-    return res.json(await listarKitsEvento(Number(req.params.id)));
+    return res.json(await listarKitsEvento(Number(req.params.id), req.user.id_dueno));
   } catch (error) {
     return manejarError(res, error);
   }
@@ -18,7 +18,7 @@ export const getKitsEvento = async (req, res) => {
 // RF-P1-05: GET /api/eventos/:id/kits-disponibles?id_dueno=1
 export const getKitsDisponibles = async (req, res) => {
   try {
-    return res.json(await listarKitsDisponibles(Number(req.params.id)));
+    return res.json(await listarKitsDisponibles(Number(req.params.id), req.user.id_dueno));
   } catch (error) {
     return manejarError(res, error);
   }
