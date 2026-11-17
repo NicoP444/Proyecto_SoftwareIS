@@ -148,7 +148,7 @@ export const listarPersonalConEstado = async ({ id_dueno, fecha, hora_inicio, ho
 
 // ---------- Trabajadores asignados a un evento ----------
 export const listarAsignaciones = async (id_evento) => {
-  const evento = await prisma.evento.findUnique({ where: { id_evento } });
+  const evento = await prisma.evento.findFirst({ where: { id_evento, id_dueno } });
   if (!evento) throw new NotFoundError('El evento no existe');
 
   return prisma.asignacionPersonal.findMany({
@@ -259,9 +259,9 @@ export const asignarTrabajador = async (id_evento, { id_trabajador, id_rol, id_d
 };
 
 // ---------- Quitar a un trabajador del evento (cuando cambia la dotación) ----------
-export const quitarAsignacion = async (id_evento, id_asignacion) => {
+export const quitarAsignacion = async (id_evento, id_asignacion, id_dueno) => {
   const asignacion = await prisma.asignacionPersonal.findFirst({
-    where: { id_asignacion, id_evento },
+    where: { id_asignacion, id_evento, id_dueno },
     include: {
       evento: true,
       trabajador: { select: { nombre: true } },
