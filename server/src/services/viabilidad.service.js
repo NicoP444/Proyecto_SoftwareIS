@@ -2,13 +2,13 @@ import prisma from '../config/prisma.js';
 import { ValidationError, NotFoundError } from '../utils/errores.js';
 import { calcularMonto } from './remuneracion.service.js';
 
-// TODO: reemplazar por el id del dueño autenticado (JWT), igual que en los otros servicios
-const ID_DUENO_DEMO = 1;
+// Dueño: solo sus eventos. Contador no tiene id_dueno en el token: ve los eventos de la empresa
+const delDueno = (idDueno) => (idDueno ? { id_dueno: idDueno } : {});
 
 // RF-P1-06: resultado estimado de un evento (solo lee la base de datos)
-export async function calcularViabilidad(id_evento) {
+export async function calcularViabilidad(id_evento, idDueno) {
   const evento = await prisma.evento.findFirst({
-    where: { id_evento, id_dueno: ID_DUENO_DEMO },
+    where: { id_evento, ...delDueno(idDueno) },
   });
   if (!evento) throw new NotFoundError('El evento no existe');
 
@@ -49,14 +49,14 @@ export async function calcularViabilidad(id_evento) {
 }
 
 // Guarda los gastos estimados que ingresa el Dueño y devuelve la viabilidad recalculada
-export async function guardarGastosEstimados(id_evento, { gastos_estimados, motivo }) {
+export async function guardarGastosEstimados(id_evento, { gastos_estimados, motivo }, idDueno) {
   const gastos = Number(gastos_estimados);
   if (!Number.isInteger(gastos) || gastos < 0) {
     throw new ValidationError('Los gastos estimados deben ser un número entero igual o mayor a cero', 'gastos_estimados');
   }
 
   const evento = await prisma.evento.findFirst({
-    where: { id_evento, id_dueno: ID_DUENO_DEMO },
+    where: { id_evento, id_dueno: idDueno },
   });
   if (!evento) throw new NotFoundError('El evento no existe');
   if (evento.estado === 'CERRADO') {
@@ -73,12 +73,12 @@ export async function guardarGastosEstimados(id_evento, { gastos_estimados, moti
           valor_anterior: String(evento.gastos_estimados),
           valor_nuevo: String(gastos),
           motivo: String(motivo ?? '').trim().slice(0, 255) || 'Ajuste de gastos estimados',
-          id_dueno: ID_DUENO_DEMO,
+          id_dueno: idDueno,
           id_evento,
         },
       }),
     ]);
   }
 
-  return calcularViabilidad(id_evento);
+  return calcularViabilidad(id_evento, idDueno);
 }
