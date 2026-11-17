@@ -9,6 +9,11 @@ const HORA = /^\d{2}:\d{2}$/; // HH:MM
 // Prisma entrega fechas y horas como Date: las pasamos a texto para compararlas fácil
 export const aHora = (d) => d.toISOString().slice(11, 16); // "09:00"
 export const aFecha = (d) => d.toISOString().slice(0, 10); // "2026-11-10"
+// Hoy como "AAAA-MM-DD" (sin toISOString, para que no se corra el día por la zona horaria)
+export const hoyTexto = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 const aMinutos = (hhmm) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
 
 // Dos franjas se traslapan si una empieza antes de que la otra termine (y al revés)

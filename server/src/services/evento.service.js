@@ -1,6 +1,6 @@
 import prisma from "../config/prisma.js";
 import { recalcularRemuneraciones } from './remuneracion.service.js';
-import { validarFormatoAgenda, validarAgendaEvento, aFecha, aHora } from './validacionesEvento.service.js';
+import { validarFormatoAgenda, validarAgendaEvento, aFecha, aHora, hoyTexto } from './validacionesEvento.service.js';
 
 const ID_DUENO_DEMO = 1;
 const HORAS_LIMITE_ADELANTO = 5;
@@ -68,6 +68,7 @@ export async function crearEvento(datos) {
     throw new Error("Debe seleccionar un cliente");
   }
   validarFormatoAgenda(datos); // fecha y horas válidas, y término posterior al inicio
+  if (datos.fecha < hoyTexto()) throw new Error("La fecha del evento no puede ser anterior a hoy");
 
   // 2. El cliente debe existir y ser del dueño
   const cliente = await prisma.cliente.findFirst({
@@ -211,6 +212,10 @@ export const actualizarEvento = async (id, datos) => {
   }
   if (existente.estado === "CERRADO") {
     throw new Error("La jornada está cerrada: el evento ya no puede modificarse");
+  }
+  // Un evento ya pasado se puede corregir, pero no se puede mover a una fecha pasada
+  if (datos.fecha !== aFecha(existente.fecha) && datos.fecha < hoyTexto()) {
+    throw new Error("No puedes mover el evento a una fecha anterior a hoy");
   }
 
   const cliente = await prisma.cliente.findFirst({
