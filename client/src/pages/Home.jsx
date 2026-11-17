@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import AlertasKitsSinRetorno from "../components/equipos/AlertasKitsSinRetorno.jsx";
 import EventosPendientesCierre from "../components/evento/EventosPendientesCierre.jsx";
 import { obtenerAcuerdos } from "../services/acuerdoService";
+import PanelPorRol from "../components/panel/PanelPorRol.jsx";
 import "../styles/Home.css";
 
 // Íconos de los títulos de los paneles
@@ -13,35 +14,10 @@ const Icono = ({ children }) => (
 );
 
 const ICONOS = {
-  calendario: (
-    <>
-      <rect x="3" y="5" width="18" height="16" rx="2" />
-      <path d="M3 10h18M8 3v4M16 3v4" />
-    </>
-  ),
   auspiciadores: (
     <path d="M12 3l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.4 6.7 19.1l1-5.8L3.5 9.2l5.9-.9z" />
   ),
 };
-
-const KPIS = [
-  { titulo: "Utilidad Neta", color: "verde", vacio: "Sin datos este mes" },
-  {
-    titulo: "Ingresos por Transmisión",
-    color: "azul",
-    vacio: "Sin transmisiones registradas",
-  },
-  {
-    titulo: "Remuneraciones Pagadas",
-    color: "naranja",
-    vacio: "Sin pagos registrados",
-  },
-  {
-    titulo: "Pérdidas de Inventario",
-    color: "rojo",
-    vacio: "Sin incidentes este mes",
-  },
-];
 
 const EstadoVacio = ({ texto }) => (
   <div className="empty">
@@ -68,7 +44,6 @@ export default function Home() {
   const nombre =
     [usuario.nombre, usuario.apellido].filter(Boolean).join(" ") || "Usuario";
   const verFinanzas = rol === "DUENO" || rol === "CONTADOR";
-    const mesActual = new Date().toLocaleDateString("es-CL", { month: "long", year: "numeric" });
   const [cobrosPendientes, setCobrosPendientes] = useState([]);
   const [cargandoCobros, setCargandoCobros] = useState(true);
 
@@ -102,25 +77,8 @@ export default function Home() {
         <p className="page-subtitle">
           Hola, {nombre}. Este es el resumen general de la empresa.
         </p>
-           {(rol === "DUENO" || rol === "CONTADOR") && (
-          <>
-        {/* Resumen del mes */}
-        <div className="section-heading">
-          <h2>Resumen de {mesActual}</h2>
-          <span className="section-line" />
-        </div>
-        <section className="kpis">
-          {KPIS.map((k) => (
-            <div key={k.titulo} className={`kpi kpi-${k.color}`}>
-              <span className="kpi-label">{k.titulo}</span>
-              <span className="kpi-value">—</span>
-              <span className="kpi-note">{k.vacio}</span>
-            </div>
-          ))}
-        </section>
-        </>
-        )}
-
+        {/* RF-T-07: panel de inicio según el rol */}
+        <PanelPorRol rol={rol} />
         {/* Alertas recientes */}
         {(rol === "DUENO" || rol === "JEFE_TECNICO") && <AlertasKitsSinRetorno />}
 
@@ -129,21 +87,6 @@ export default function Home() {
 
         {/* Transmisiones y auspiciadores */}
         <section className="panels-row">
-          <div className="panel">
-            <div className="panel-head">
-              <h3>
-                <Icono>{ICONOS.calendario}</Icono>
-                Próximas transmisiones
-              </h3>
-              <button
-                className="panel-link"
-                onClick={() => navigate("/calendario")}
-              >
-                Ver calendario →
-              </button>
-            </div>
-            <EstadoVacio texto="No hay transmisiones programadas" />
-          </div>
           {(rol === "DUENO" || rol === "CONTADOR") && (
           <div className="panel">
             <div className="panel-head">
