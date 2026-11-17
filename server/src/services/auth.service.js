@@ -4,6 +4,7 @@ import prisma from '../config/prisma.js';
 import bcrypt from 'bcryptjs';
 //
 import jwt from 'jsonwebtoken';
+import { JWT_SECRET } from '../config/jwt.js';
 
 // Funcion para ver que usuario es el que intenta entrar 
 async function buscarUsuario(correo) {
@@ -71,10 +72,10 @@ export async function iniciarSesion(correo, contrasena) {
     }
   });
 
-  // 5. Crear el token JWT (credencial de sesión)
+// 5. Crear el token JWT (credencial de sesión)
   const token = jwt.sign(
     { id: usuario[campoId], correo: usuario.correo, rol },
-    process.env.JWT_SECRET || 'clave_secreta_por_defecto',
+    JWT_SECRET,
     { expiresIn: '8h' }
   );
 
