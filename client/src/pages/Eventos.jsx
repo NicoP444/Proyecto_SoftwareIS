@@ -168,7 +168,7 @@ export default function Eventos() {
                   <td style={{ padding: '8px' }}>{ev.cliente?.nombre}</td>
                   <td style={{ padding: '8px' }}>{ev.direccion}</td>
                   <td style={{ padding: '8px' }}>{ev.cantidad_camaras}</td>
-                  <td style={{ padding: '8px' }}>${Number(ev.precio_acordado).toLocaleString('es-CL')}</td>
+                  <td style={{ padding: '8px' }}>{ev.precio_acordado == null ? '—' : `$${Number(ev.precio_acordado).toLocaleString('es-CL')}`}</td>
                   <td style={{ padding: '8px' }}><EstadoBadge estado={ev.estado} /></td>
                   <td style={{ padding: '8px' }}>
                     <button onClick={() => handleEliminar(ev.id_evento)} style={{ padding: '4px 10px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Eliminar</button>
