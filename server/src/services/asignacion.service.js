@@ -175,7 +175,7 @@ export const asignarTrabajador = async (id_evento, { id_trabajador, id_rol, id_d
     throw new ValidationError('Debes elegir un rol', 'id_rol');
   }
 
-  const evento = await prisma.evento.findUnique({ where: { id_evento } });
+  const evento = await prisma.evento.findFirst({ where: { id_evento, id_dueno } });
   if (!evento) throw new NotFoundError('El evento no existe');
   if (evento.estado === 'CERRADO') {
     throw new ValidationError('La jornada está cerrada: ya no se puede cambiar la dotación', 'id_evento');
