@@ -1,20 +1,20 @@
-// Importamos la conexión a tu base de datos
 import prisma from '../config/prisma.js';
 
 export const auspiciadorService = {
-  // 0. OBTENER TODOS (Faltaba esta función para la lista)
+
+  //OBTENER TODOS 
   async obtenerTodos() {
     return await prisma.auspiciador.findMany();
   },
 
-  // 1. REGISTRAR AUSPICIADOR
+  //REGISTRAR AUSPICIADOR
   async crear(datos) {
     return await prisma.auspiciador.create({
       data: datos
     });
   },
 
-  // 2. MODIFICAR AUSPICIADOR
+  //MODIFICAR AUSPICIADOR
   async modificar(id, datos) {
     return await prisma.auspiciador.update({
       where: { id_auspiciador: Number(id) },
@@ -22,9 +22,8 @@ export const auspiciadorService = {
     });
   },
 
-  // 3. ELIMINAR AUSPICIADOR (Regla de negocio RF-P4-01)
+  // ELIMINAR AUSPICIADOR(NO SI HAY ACUERDOS)
   async eliminar(id) {
-    // Primero buscamos si tiene acuerdos vinculados
     const auspiciador = await prisma.auspiciador.findUnique({
       where: { id_auspiciador: Number(id) },
       include: { acuerdos: true }
@@ -36,6 +35,17 @@ export const auspiciadorService = {
 
     return await prisma.auspiciador.delete({
       where: { id_auspiciador: Number(id) }
+    });
+  },
+
+  //  CLASIFICAR AUSPICIADOR 
+  async clasificarAuspiciador(id, clasificacion, motivo) {
+    return await prisma.auspiciador.update({
+      where: { id_auspiciador: Number(id) },
+      data: {
+        clasificacion, 
+        motivo_clasificacion: motivo,
+      },
     });
   }
 };
