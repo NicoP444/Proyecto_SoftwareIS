@@ -6,7 +6,7 @@ import PanelGastos from './PanelGastos';
 import PanelRendiciones from './PanelRendiciones';
 import PanelRemuneraciones from './PanelRemuneraciones';
 import PanelRentabilidad from './PanelRentabilidad';
-import PanelPagos from './PanelPagos';
+import PanelPagos from './panelPagos';
 import PanelCierre from './PanelCierre';
 import { formatearFecha } from './formato';
 

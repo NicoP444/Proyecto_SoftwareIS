@@ -58,25 +58,10 @@ export default function App() {
             <Route path="/salida-kits" element={<SalidaKits />} />
           </Route>
         </Route>
-
-        <Route
-          path="/clientes"
-          element={
-            <RutaProtegida>
-              <Clientes />
-            </RutaProtegida>
-          }
-        />
-
-        <Route
-          path="/eventos"
-          element={
-            <RutaProtegida>
-              <Eventos />
-            </RutaProtegida>
-          }
-        />
-
+          <Route element={<RutaProtegida><RutaPorRol roles={["DUENO"]} /></RutaProtegida>}>
+          <Route path="/clientes" element={<Clientes />} />
+          <Route path="/eventos" element={<Eventos />} />
+        </Route>
         <Route
           path="/incidentes"
           element={
