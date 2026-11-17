@@ -20,7 +20,7 @@ Incluye módulos de agendamiento de eventos mediante calendario, gestión de cli
 - **Calendario Interactivo:** Vista general de transmisiones agendadas, con el detalle de trabajadores, auspiciadores y kits asignados a cada fecha.
 - **Gestión de Auspiciadores:** Registro de acuerdos de palabra por evento (glosa, tipo de pago, plazo), con historial de auspiciadores clasificados como buenos o malos pagadores.
 - **Gestión Financiera y Sueldos:** Cálculo del sueldo variable de cada trabajador según su rol y el valor cobrado por evento, registro de gastos operativos con evidencia adjunta, y reporte mensual de utilidad neta.
-- **Roles y Permisos:** Accesos diferenciados para Dueño, Contador y Jefe Técnico, restringiendo el detalle financiero según el rol.
+- **Roles y Permisos:** Accesos diferenciados para Dueño, Contador y Jefe Técnico. El back verifica el token de sesión y rechaza con "permiso insuficiente" las acciones que no corresponden al rol, y oculta el detalle financiero al Jefe Técnico.
 
 ## Tecnologías y Herramientas Utilizadas
 
@@ -28,6 +28,7 @@ Incluye módulos de agendamiento de eventos mediante calendario, gestión de cli
 - **Framework:** Node.js con Express.js
 - **Base de Datos:** PostgreSQL
 - **ORM:** Prisma
+- **Autenticación:** JSON Web Tokens (JWT)
 - **Variables de Entorno:** Dotenv
 
 ### Frontend
@@ -110,13 +111,43 @@ Ejemplo de un `.env`:
 ```
 # Base de datos
 DATABASE_URL="postgresql://usuario:contraseña@localhost:5432/nombre_base_de_datos"
+
+# Clave para firmar los tokens de sesión (pon una frase larga y secreta)
+JWT_SECRET="cambia-esta-frase-por-una-larga-y-secreta"
+
+# Puerto del servidor (opcional, por defecto 3000)
+PORT=3000
 ```
+
+Si no defines `JWT_SECRET`, el sistema usa una clave por defecto que solo sirve para desarrollo local: en un servidor real siempre debes definirla.
 
 Luego, dentro de `server`, aplica las migraciones y genera el cliente de Prisma:
 
 ```bash
 npx prisma migrate dev
 ```
+
+**Datos iniciales (opcional):**
+
+Dentro de `server`, con las migraciones aplicadas. Todos los seeds están en `server/seeders`:
+
+```bash
+npm run seed:base       # Dueño y Contador de demostración
+npm run seed:usuarios   # Contador y Jefe de área técnica de prueba
+npm run seed:kits       # 3 eventos, 3 kits, 3 clientes y personal de ejemplo
+npm run seed:pruebas    # clientes y eventos de prueba (se pueden borrar)
+npm run seed:limpiar    # borra los clientes y eventos de seed:pruebas
+npm run seed:todo       # base + usuarios + kits + pruebas, en orden
+```
+
+Cuentas para ingresar:
+
+| Rol | Correo | Contraseña |
+|---|---|---|
+| Dueño | admin@demo.com | 123456 |
+| Contador | contador@demo.com | 123456 |
+| Contador | contador@sixseven.cl | password123 |
+| Jefe de área técnica | jefe@sixseven.cl | password123 |
 
 **5. Ejecutar el proyecto:**
 
@@ -131,6 +162,8 @@ Frontend (dentro de `client`):
 ```bash
 npm run dev
 ```
+
+Con ambos corriendo, el sistema queda disponible en `http://localhost:5173` (frontend) y el servidor en `http://localhost:3000` (API).
 
 ## Miembros del equipo:
 
