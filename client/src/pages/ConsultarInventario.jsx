@@ -12,7 +12,7 @@ export default function ConsultarInventario() {
   const [filtroEstado, setFiltroEstado] = useState('TODOS');
   const [kitSeleccionado, setKitSeleccionado] = useState(null);
 
-  // Estados para el Modal de Historial de Equipo (RF-P6-04)
+  // Estados para el Modal de Historial de Equipo 
   const [modalHistorialAbierto, setModalHistorialAbierto] = useState(false);
   const [cargandoHistorial, setCargandoHistorial] = useState(false);
   const [errorHistorial, setErrorHistorial] = useState('');
@@ -553,8 +553,7 @@ export default function ConsultarInventario() {
                                   <th style={{ padding: '0.75rem 0.5rem' }}>CÓDIGO</th>
                                   <th style={{ padding: '0.75rem 0.5rem' }}>EQUIPO / MODELO</th>
                                   <th style={{ padding: '0.75rem 0.5rem' }}>CATEGORÍA</th>
-                                  <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>ESTADO</th>
-                                  <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>HISTORIAL</th>
+                                  <th style={{ padding: '0.75rem 0.5rem'}}>ESTADO</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -582,23 +581,6 @@ export default function ConsultarInventario() {
                                         {renderBadge(eq.estado)}
                                       </td>
                                       <td style={{ padding: '0.85rem 0.5rem', textAlign: 'right' }}>
-                                        <button
-                                          type="button"
-                                          onClick={() => abrirModalHistorial(eq.codigo)}
-                                          style={{
-                                            padding: '0.35rem 0.7rem',
-                                            backgroundColor: '#f1f5f9',
-                                            color: '#333c87',
-                                            border: '1px solid #cbd5e1',
-                                            borderRadius: '6px',
-                                            fontSize: '0.78rem',
-                                            fontWeight: '600',
-                                            cursor: 'pointer',
-                                            whiteSpace: 'nowrap',
-                                          }}
-                                        >
-                                          Ver historial
-                                        </button>
                                       </td>
                                     </tr>
                                   );
@@ -727,17 +709,20 @@ export default function ConsultarInventario() {
                           </tr>
                         ) : (
                           todosEquiposFiltrados.map((eq) => {
-                            const tieneMarcaModelo = Boolean(eq.marca || eq.modelo);
+                            const marcaModelo = [eq.marca, eq.modelo].filter(Boolean).join(' ');
+                            const debeMostrarDetalle = Boolean(
+                              marcaModelo && !eq.nombre.toLowerCase().includes(marcaModelo.toLowerCase())
+                            );
                             return (
                               <tr key={eq.codigo} style={{ borderBottom: '1px solid #f8fafc' }}>
                                 <td style={{ padding: '0.85rem 0.5rem', fontWeight: '700', color: '#0f172a' }}>{eq.codigo}</td>
                                 <td style={{ padding: '0.85rem 0.5rem', color: '#1e293b' }}>
                                   {eq.nombre}
-                                  {tieneMarcaModelo && (
-                                    <span style={{ color: '#64748b', fontSize: '0.82rem', marginLeft: '6px' }}>
-                                      ({[eq.marca, eq.modelo].filter(Boolean).join(' ')})
-                                    </span>
-                                  )}
+                                 {debeMostrarDetalle && (
+                                  <span style={{ color: '#64748b', fontSize: '0.82rem', marginLeft: '6px' }}>
+                                    ({marcaModelo})
+                                  </span>
+                                )}
                                 </td>
                                 <td style={{ padding: '0.85rem 0.5rem', color: '#64748b' }}>{eq.categoria}</td>
                                 <td style={{ padding: '0.85rem 0.5rem', fontWeight: '600', color: eq.kit ? '#333c87' : '#64748b' }}>
