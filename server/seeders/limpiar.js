@@ -1,4 +1,4 @@
-// Limpia lo que crean los seeders de datos (clientes, eventos, kits, equipos, trabajadores y roles).
+// Limpia lo que crean los seeders de datos (clientes, eventos, auspiciadores, kits, equipos, trabajadores y roles).
 //   Borrar todo:  npm run seed:limpiar
 // Los usuarios (dueño, contador, jefe técnico) NO se borran, para no perder sesiones ni tokens.
 // Si algo sembrado quedó usado por datos reales, se conserva y se avisa.
@@ -7,7 +7,7 @@ import 'dotenv/config';
 import prisma from '../src/config/prisma.js';
 
 // ---- Lo que crea cada seeder ----
-const MARCA = '[SEED'; // seed-eventos marca sus eventos en "observaciones" con [SEED-EV] (los seeders viejos usaban [SEED] y [SEED-KIT])
+const MARCA = '[SEED'; // seed-eventos marca sus eventos con [SEED-EV] (los seeders viejos usaban [SEED] y [SEED-KIT])
 
 // Nombres de eventos de versiones anteriores de los seeders (quedan en bases viejas)
 const TIPOS_EVENTO = [
@@ -23,8 +23,13 @@ const RUT_CLIENTES = [
 
 const NOMBRES_KITS = ['Kit Móvil 01 - Cancha Principal', 'Kit Multicámara 02 - Gimnasio', 'Kit Compacto 03 - Entrevistas'];
 const CODIGOS_EQUIPOS = ['CAM-001', 'TRI-001', 'MIC-001', 'CAM-002', 'TRI-002', 'MIC-002', 'CAM-003', 'TRI-003', 'MIC-003'];
-const NOMBRES_ROLES = ['Camarógrafo Principal', 'Operador de Sonido', 'Asistente de Transmisión'];
-const NOMBRES_TRABAJADORES = ['Carlos Carrasco', 'Sebastián Morales', 'Valentina Henríquez'];
+
+const NOMBRES_AUSPICIADORES = [
+  'Coca-Cola', 'Pepsi', 'Gatorade', 'Powerade', 'Red Bull', 'Monster Energy',
+  'Adidas', 'Nike', 'Netflix', 'Spotify', 'Entel', 'BancoEstado',
+  'Panadería La Espiga', 'Ferretería El Tornillo', 'Gimnasio Fuerza Sur',
+  'Energética Rayo Azul', 'Cripto Fácil Chile', 'Zapatillas Veloz', 'Súper Jugos Tío Pepe', 'Apuestas Gol Seguro',
+]; // seed-auspiciadores.js
 
 // Si algo no se puede borrar porque hay datos reales que dependen de él (error de llave foránea), se salta y se avisa
 async function intentar(descripcion, fn) {
@@ -44,7 +49,7 @@ async function intentar(descripcion, fn) {
   }
 }
 
-// Borra eventos y todo lo que cuelga de ellos. En transacción: o se borra todo o nada.
+// Borra eventos y todo lo que cuelga de ellos (incluidos los acuerdos de auspicio). En transacción: o se borra todo o nada.
 async function borrarEventos(ids) {
   if (ids.length === 0) return 0;
   const deEvento = { id_evento: { in: ids } };
@@ -93,6 +98,24 @@ async function limpiarClientes() {
   return borrados;
 }
 
+async function limpiarAuspiciadores() {
+  const auspiciadores = await prisma.auspiciador.findMany({
+    where: { nombre: { in: NOMBRES_AUSPICIADORES } },
+    select: { id_auspiciador: true },
+  });
+  const ids = auspiciadores.map((a) => a.id_auspiciador);
+  if (ids.length === 0) return 0;
+
+  // Primero los acuerdos de esos auspiciadores (y sus aportes recibidos), después los auspiciadores
+  const deAuspiciador = { id_auspiciador: { in: ids } };
+  await prisma.$transaction([
+    prisma.cumplimientoAporte.deleteMany({ where: { acuerdo: deAuspiciador } }),
+    prisma.acuerdoAuspicio.deleteMany({ where: deAuspiciador }),
+    prisma.auspiciador.deleteMany({ where: deAuspiciador }),
+  ]);
+  return ids.length;
+}
+
 async function limpiarKitsYEquipos() {
   // Reservas (y sus salidas) de los kits de seed, por si quedaron en eventos que no eran de seed
   const kits = await prisma.kit.findMany({ where: { nombre: { in: NOMBRES_KITS } }, select: { id_kit: true } });
@@ -110,11 +133,9 @@ async function limpiarKitsYEquipos() {
   return { kits: idsKit.length };
 }
 
+// Borra TODOS los trabajadores y roles, sin importar el nombre
 async function limpiarPersonal() {
-  const trabajadores = await prisma.trabajador.findMany({
-    where: {},
-    select: { id_trabajador: true },
-  });
+  const trabajadores = await prisma.trabajador.findMany({ select: { id_trabajador: true } });
   const idsTrab = trabajadores.map((t) => t.id_trabajador);
   const asignaciones = await prisma.asignacionPersonal.findMany({
     where: { id_trabajador: { in: idsTrab } },
@@ -131,20 +152,19 @@ async function limpiarPersonal() {
     prisma.trabajador.deleteMany({ where: { id_trabajador: { in: idsTrab } } }),
   ]);
 
-  const roles = await intentar('los roles de trabajo', () =>
-    prisma.rolTrabajo.deleteMany({}),
-  );
+  const roles = await intentar('los roles de trabajo', () => prisma.rolTrabajo.deleteMany({}));
   return { trabajadores: idsTrab.length, roles: roles?.count ?? 0 };
 }
 
 export async function limpiarTodo() {
   const eventos = await limpiarEventos();
+  const auspiciadores = await limpiarAuspiciadores();
   const clientes = await limpiarClientes();
   const { kits } = await limpiarKitsYEquipos();
   const { trabajadores, roles } = await limpiarPersonal();
 
   console.log('Limpieza lista (los usuarios no se tocan):');
-  console.log(`  eventos: ${eventos} | clientes: ${clientes} | kits: ${kits} | equipos: hasta ${CODIGOS_EQUIPOS.length}`);
+  console.log(`  eventos: ${eventos} | auspiciadores: ${auspiciadores} | clientes: ${clientes} | kits: ${kits} | equipos: hasta ${CODIGOS_EQUIPOS.length}`);
   console.log(`  trabajadores: ${trabajadores} | roles: ${roles}`);
 }
 
