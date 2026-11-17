@@ -111,7 +111,7 @@ export const registrarRetornoService = async ({ id_salida, id_jefe, revisiones }
           },
         });
 
-        // Actualizar estado del equipo (si se dañó queda NO_DISPONIBLE o DANADO según tu enum EstadoEquipo)
+        // Actualizar estado del equipo 
         await tx.equipo.update({
           where: { codigo: rev.codigo },
           data: {

@@ -1,6 +1,6 @@
 import { ValidationError } from '../utils/errores.js';
 
-export const ESTADOS_EQUIPO = ['OPERATIVO', 'EN_TERRENO', 'DANADO', 'PERDIDO', 'ROBO', 'BAJA'];
+export const ESTADOS_EQUIPO = ['OPERATIVO', 'EN_TERRENO', 'DANADO', 'PERDIDO', 'ROBO', 'DADO_DE_BAJA'];
 
 export const validarQueryInventario = (query = {}) => {
   const { estado, busqueda } = query;
