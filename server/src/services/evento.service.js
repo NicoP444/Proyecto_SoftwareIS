@@ -238,6 +238,13 @@ export const actualizarEvento = async (id, datos, idDueno) => {
   // 4. Estado: según la duración nueva, el precio nuevo y lo ya pagado
   const { _sum } = await prisma.pagoCliente.aggregate({ _sum: { monto: true }, where: { id_evento } });
   const pagado = _sum.monto ?? 0;
+  
+  // RF-P1-09: si el nuevo precio queda bajo lo ya pagado, se permite pero se avisa
+  if (pagado > precio) {
+    advertencias.push(
+      `Los pagos registrados ($${pagado.toLocaleString('es-CL')}) superan el nuevo precio ($${precio.toLocaleString('es-CL')})`,
+    );
+  }
   const duracionHoras = (termino - inicio) / (1000 * 60 * 60);
   const estadoRecalculable = ["PENDIENTE_ADELANTO", "CONFIRMADO"].includes(existente.estado);
   const estado = !estadoRecalculable
