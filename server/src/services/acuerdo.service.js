@@ -1,12 +1,18 @@
 import prisma from '../config/prisma.js';
 
+// Convierte "YYYY-MM-DD" a Date local a mediodía para evitar desfases de zona horaria
+const parsearFechaSegura = (fechaStr) => {
+  if (!fechaStr) return new Date();
+  const limpia = String(fechaStr).slice(0, 10);
+  return new Date(`${limpia}T12:00:00`);
+};
+
 export const acuerdoService = {
   // 1. Obtener todos los acuerdos y actualizar vencidos automáticamente (RF-P4-05)
   async obtenerTodos() {
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
 
-    // Regla RF-P4-05: Todo acuerdo con fecha comprometida menor a hoy que siga PENDIENTE o PARCIAL pasa a VENCIDO
     await prisma.acuerdoAuspicio.updateMany({
       where: {
         fecha_comprometida: {
@@ -49,12 +55,12 @@ export const acuerdoService = {
 
     return await prisma.acuerdoAuspicio.create({
       data: {
-        glosa,
+        glosa: glosa.trim(),
         tipo_aporte,
         monto_comprometido: Number(monto_comprometido),
-        descripcion_canje: descripcion_canje || null,
+        descripcion_canje: descripcion_canje ? descripcion_canje.trim() : null,
         cant_menciones: cant_menciones ? Number(cant_menciones) : null,
-        fecha_comprometida: new Date(fecha_comprometida),
+        fecha_comprometida: parsearFechaSegura(fecha_comprometida),
         estado: 'PENDIENTE',
         id_auspiciador: Number(id_auspiciador),
         id_evento: Number(id_evento),
@@ -79,8 +85,12 @@ export const acuerdoService = {
 
     const valorRecibido = Number(monto_recibido);
 
-    // Caso de anulación / corrección (monto 0 o menor)
-    if (valorRecibido <= 0) {
+    if (Number.isNaN(valorRecibido) || valorRecibido < 0) {
+      throw new Error('El monto recibido no puede ser negativo.');
+    }
+
+    // Caso de anulación / restablecimiento (únicamente cuando se ingresa 0)
+    if (valorRecibido === 0) {
       await prisma.cumplimientoAporte.deleteMany({
         where: { id_acuerdo: acuerdoId },
       });
@@ -115,32 +125,28 @@ export const acuerdoService = {
       contadorId = contadorExistente.id_contador;
     }
 
-    // Calcular siguiente nro_cumplimiento (clave primaria compuesta)
     const ultimoNumero = acuerdo.cumplimientos.reduce(
       (max, c) => (c.nro_cumplimiento > max ? c.nro_cumplimiento : max),
       0
     );
     const nuevoNumero = ultimoNumero + 1;
 
-    // Crear registro en tabla CumplimientoAporte
     await prisma.cumplimientoAporte.create({
       data: {
         id_acuerdo: acuerdoId,
         nro_cumplimiento: nuevoNumero,
-        fecha: fecha_recibida ? new Date(fecha_recibida) : new Date(),
+        fecha: fecha_recibida ? parsearFechaSegura(fecha_recibida) : new Date(),
         monto_recibido: valorRecibido,
         id_contador: contadorId,
       },
     });
 
-    // Calcular acumulado
     const totalRecibidoPrevio = acuerdo.cumplimientos.reduce(
       (acc, c) => acc + Number(c.monto_recibido || 0),
       0
     );
     const totalAcumulado = totalRecibidoPrevio + valorRecibido;
 
-    // Actualizar estado del acuerdo
     const nuevoEstado = totalAcumulado >= Number(acuerdo.monto_comprometido) ? 'CUMPLIDO' : 'PARCIAL';
 
     return await prisma.acuerdoAuspicio.update({
@@ -162,7 +168,6 @@ export const acuerdoService = {
       throw new Error('El acuerdo no existe.');
     }
 
-    // Validación según RF-P4-06: solo acuerdos vencidos pueden pasar a incobrables
     if (acuerdo.estado !== 'VENCIDO') {
       throw new Error('Solo los acuerdos con estado VENCIDO pueden declararse como incobrables.');
     }
@@ -207,10 +212,9 @@ export const acuerdoService = {
       throw new Error('El acuerdo de auspicio no existe.');
     }
 
-    // Recalcular estado si se cambia la fecha o el monto
     let nuevoEstado = acuerdoExistente.estado;
     const nuevoMonto = monto_comprometido !== undefined ? Number(monto_comprometido) : Number(acuerdoExistente.monto_comprometido);
-    const nuevaFecha = fecha_comprometida ? new Date(fecha_comprometida) : new Date(acuerdoExistente.fecha_comprometida);
+    const nuevaFecha = fecha_comprometida ? parsearFechaSegura(fecha_comprometida) : new Date(acuerdoExistente.fecha_comprometida);
 
     const totalPagado = (acuerdoExistente.cumplimientos || []).reduce(
       (acc, c) => acc + Number(c.monto_recibido || 0),
@@ -235,7 +239,7 @@ export const acuerdoService = {
     return await prisma.acuerdoAuspicio.update({
       where: { id_acuerdo: acuerdoId },
       data: {
-        glosa: glosa !== undefined ? glosa : acuerdoExistente.glosa,
+        glosa: glosa !== undefined ? glosa.trim() : acuerdoExistente.glosa,
         tipo_aporte: tipo_aporte || acuerdoExistente.tipo_aporte,
         monto_comprometido: nuevoMonto,
         descripcion_canje: descripcion_canje !== undefined ? descripcion_canje : acuerdoExistente.descripcion_canje,
@@ -252,7 +256,7 @@ export const acuerdoService = {
     });
   },
 
-  // 6. Eliminar acuerdo (borra cumplimientos asociados primero)
+  // 6. Eliminar acuerdo
   async eliminar(id_acuerdo) {
     const acuerdoId = Number(id_acuerdo);
 
@@ -264,7 +268,6 @@ export const acuerdoService = {
       throw new Error('El acuerdo de auspicio no existe.');
     }
 
-    // Borrar aportes asociados primero para respetar clave foránea
     await prisma.cumplimientoAporte.deleteMany({
       where: { id_acuerdo: acuerdoId },
     });
