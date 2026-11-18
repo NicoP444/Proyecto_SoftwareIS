@@ -248,3 +248,7 @@ button.cal-mas { flex-shrink: 0; padding: 0; border: 0; background: none; text-a
 /* ---------- Clic en un día para agendar ---------- */
 .cal-celda.creable { cursor: pointer; }
 .cal-celda.creable:hover { background: var(--primario-suave); }
+
+/* ---------- Opción "Crear cliente" al final del buscador ---------- */
+.selector-cliente-lista li.selector-cliente-crear { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--borde); }
+.selector-cliente-lista li.selector-cliente-crear button { justify-content: flex-start; align-items: center; color: var(--primario); font-weight: 600; }
