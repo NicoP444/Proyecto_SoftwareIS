@@ -1,10 +1,13 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { validarCrearGastoFijo, validarPeriodoQuery } from '../schemas/gastosFijos.schemas.js';
+import {
+  validarCrearGastoFijo,
+  validarActualizarGastoFijo,
+  validarPeriodoQuery,
+} from '../schemas/gastosFijos.schemas.js';
 import { manejarError, ValidationError } from '../utils/errores.js';
 
-// Asegurar que exista la carpeta uploads/gastos-fijos
 const carpetaDestino = 'uploads/gastos-fijos';
 if (!fs.existsSync(carpetaDestino)) {
   fs.mkdirSync(carpetaDestino, { recursive: true });
@@ -20,7 +23,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // Máximo 5 MB
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     const permitidos = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
     if (permitidos.includes(file.mimetype)) {
@@ -31,7 +34,6 @@ const upload = multer({
   },
 });
 
-// Middleware 1: procesa el archivo adjunto opcional (campo "evidencia")
 export const subirEvidenciaGastoFijo = (req, res, next) => {
   upload.single('evidencia')(req, res, (err) => {
     if (err) {
@@ -41,10 +43,22 @@ export const subirEvidenciaGastoFijo = (req, res, next) => {
   });
 };
 
-// Middleware 2: valida los datos del body e inyecta la ruta del archivo si se subió
 export const verificarCrearGastoFijo = (req, res, next) => {
   try {
     const datosValidados = validarCrearGastoFijo(req.body);
+    if (req.file) {
+      datosValidados.evidencia = `/uploads/gastos-fijos/${req.file.filename}`;
+    }
+    req.body = datosValidados;
+    next();
+  } catch (error) {
+    return manejarError(res, error);
+  }
+};
+
+export const verificarActualizarGastoFijo = (req, res, next) => {
+  try {
+    const datosValidados = validarActualizarGastoFijo(req.body);
     if (req.file) {
       datosValidados.evidencia = `/uploads/gastos-fijos/${req.file.filename}`;
     }

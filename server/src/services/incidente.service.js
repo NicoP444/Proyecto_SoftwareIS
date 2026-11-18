@@ -21,15 +21,20 @@ export const createIncidenteService = async (data, id_jefe) => {
       throw error;
     }
 
-    // Verificar existencia de evento y trabajador si fueron enviados
+    // Verificar existencia y estado del evento si fue enviado
     if (id_evento) {
       const eventoExiste = await tx.evento.findUnique({
         where: { id_evento: Number(id_evento) },
-        select: { id_evento: true },
+        select: { id_evento: true, estado: true },
       });
       if (!eventoExiste) {
         const error = new Error('El evento especificado no existe.');
         error.statusCode = 404;
+        throw error;
+      }
+      if (!['CONFIRMADO', 'REALIZADO'].includes(eventoExiste.estado)) {
+        const error = new Error('Solo se pueden asociar incidentes a eventos CONFIRMADOS o REALIZADOS.');
+        error.statusCode = 400;
         throw error;
       }
     }
@@ -79,7 +84,7 @@ export const createIncidenteService = async (data, id_jefe) => {
         valor: valorIncidente,
         codigo,
         id_evento: id_evento ? Number(id_evento) : null,
-        id_trabajador: id_trabajador ? Number(id_trabajador) : null,
+        id_trabajador: id_evento && id_trabajador ? Number(id_trabajador) : null,
         id_jefe: Number(id_jefe),
       },
       include: {

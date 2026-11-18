@@ -1,11 +1,26 @@
 import prisma from '../config/prisma.js';
 import { ValidationError } from '../utils/errores.js';
 
+const eventoYaInicio = (evento, ahora = new Date()) => {
+  const fechaBase = new Date(evento.fecha);
+  const horaInicio = new Date(evento.hora_inicio);
+
+  const inicioEvento = new Date(
+    fechaBase.getUTCFullYear(),
+    fechaBase.getUTCMonth(),
+    fechaBase.getUTCDate(),
+    horaInicio.getUTCHours(),
+    horaInicio.getUTCMinutes(),
+    horaInicio.getUTCSeconds()
+  );
+
+  return ahora >= inicioEvento;
+};
+
 /**
  * RF-P6-01: Registrar salida de un kit asignado a un evento
  */
 export const registrarSalidaKitService = async ({ id_reserva, id_asignacion, id_jefe, fecha_hora_salida }) => {
-  // 1. Validar que la reserva exista y obtener estado actual del kit
   const reserva = await prisma.reservaKit.findUnique({
     where: { id_reserva: Number(id_reserva) },
     include: {
@@ -32,18 +47,34 @@ export const registrarSalidaKitService = async ({ id_reserva, id_asignacion, id_
 
   const evento = await prisma.evento.findUnique({
     where: { id_evento: reserva.id_evento },
-    select: { estado: true },
+    select: { estado: true, fecha: true, hora_inicio: true, hora_termino: true },
   });
 
   if (!evento || evento.estado !== 'CONFIRMADO') {
     throw new ValidationError('Solo se puede registrar la salida de kits de eventos CONFIRMADOS');
   }
 
+  const ahora = new Date();
+  const inicioHoyUTC = new Date(Date.UTC(ahora.getFullYear(), ahora.getMonth(), ahora.getDate()));
+  const fechaEvento = new Date(evento.fecha);
+  const fechaEventoUTC = new Date(
+    Date.UTC(fechaEvento.getUTCFullYear(), fechaEvento.getUTCMonth(), fechaEvento.getUTCDate())
+  );
+
+  if (inicioHoyUTC < fechaEventoUTC) {
+    throw new ValidationError(
+      `No se puede registrar la salida antes de la fecha del evento (${fechaEvento.toLocaleDateString('es-CL', { timeZone: 'UTC' })}).`
+    );
+  }
+
+  if (eventoYaInicio(evento, ahora)) {
+    throw new ValidationError('No se puede registrar la salida de un kit para un evento que ya inició o finalizó');
+  }
+
   if (fecha_hora_salida && new Date(fecha_hora_salida) > new Date()) {
     throw new ValidationError('La fecha y hora de salida no puede ser futura');
   }
 
-  // Validar que la asignación exista y pertenezca al mismo evento de la reserva
   const asignacion = await prisma.asignacionPersonal.findUnique({
     where: { id_asignacion: Number(id_asignacion) },
   });
@@ -52,7 +83,6 @@ export const registrarSalidaKitService = async ({ id_reserva, id_asignacion, id_
     throw new ValidationError('El trabajador seleccionado no está asignado a este evento');
   }
 
-  // 2. Transacción atómica: se registra la salida y se pasa el kit a EN_TERRENO
   const resultado = await prisma.$transaction(async (tx) => {
     const nuevaSalida = await tx.salidaKit.create({
       data: {
@@ -74,10 +104,6 @@ export const registrarSalidaKitService = async ({ id_reserva, id_asignacion, id_
   return resultado;
 };
 
-/**
- * Consulta auxiliar para el frontend:
- * Obtiene los kits reservados para un evento, con su estado y las personas asignadas
- */
 export const obtenerKitsYPersonalPorEventoService = async (id_evento) => {
   const reservas = await prisma.reservaKit.findMany({
     where: { id_evento: Number(id_evento) },
@@ -99,7 +125,6 @@ export const obtenerKitsYPersonalPorEventoService = async (id_evento) => {
     },
   });
 
-  // Buscamos también el personal asignado al evento para que el select del responsable se llene solo
   const evento = await prisma.evento.findUnique({
     where: { id_evento: Number(id_evento) },
     include: {
@@ -119,8 +144,17 @@ export const obtenerKitsYPersonalPorEventoService = async (id_evento) => {
 };
 
 export const obtenerEventosConReservasService = async () => {
-  return await prisma.evento.findMany({
+  const ahora = new Date();
+  const finDeHoyUTC = new Date(
+    Date.UTC(ahora.getFullYear(), ahora.getMonth(), ahora.getDate(), 23, 59, 59, 999)
+  );
+
+  const candidatos = await prisma.evento.findMany({
     where: {
+      estado: 'CONFIRMADO',
+      fecha: {
+        lte: finDeHoyUTC,
+      },
       reservas_kit: {
         some: {},
       },
@@ -130,9 +164,15 @@ export const obtenerEventosConReservasService = async () => {
       tipo: true,
       direccion: true,
       fecha: true,
+      hora_inicio: true,
+      hora_termino: true,
+      estado: true,
     },
     orderBy: {
       fecha: 'desc',
     },
   });
+
+  // Solo eventos de hoy cuya transmisión aún no ha iniciado
+  return candidatos.filter((ev) => !eventoYaInicio(ev, ahora));
 };

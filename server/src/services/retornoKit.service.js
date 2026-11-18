@@ -1,10 +1,11 @@
 import prisma from '../config/prisma.js';
 import { ValidationError } from '../utils/errores.js';
 
-// Obtener salidas activas con kits que están actualmente en terreno
+// Obtener salidas activas con kits que están actualmente en terreno y sin retorno registrado
 export const obtenerKitsEnTerrenoService = async () => {
   return await prisma.salidaKit.findMany({
     where: {
+      fecha_hora_retorno: null,
       reserva: {
         kit: {
           estado: 'EN_TERRENO',
@@ -37,7 +38,6 @@ export const obtenerKitsEnTerrenoService = async () => {
 // Registrar la revisión de retorno (RF-P6-02) e incidente si aplica (RF-P6-03)
 export const registrarRetornoService = async ({ id_salida, id_jefe, revisiones }) => {
   return await prisma.$transaction(async (tx) => {
-    // 1. Validar la salida
     const salida = await tx.salidaKit.findUnique({
       where: { id_salida: Number(id_salida) },
       include: {
@@ -63,6 +63,33 @@ export const registrarRetornoService = async ({ id_salida, id_jefe, revisiones }
       throw new ValidationError('El kit no figura En terreno; no se puede registrar el retorno.');
     }
 
+    // Validar que el retorno se registre después de la hora de término del evento
+    const evento = salida.reserva.evento;
+    if (evento?.fecha && evento?.hora_termino) {
+      const fechaBase = new Date(evento.fecha);
+      const horaTermino = new Date(evento.hora_termino);
+
+      const esMedianoche =
+        horaTermino.getUTCHours() === 0 &&
+        horaTermino.getUTCMinutes() === 0 &&
+        horaTermino.getUTCSeconds() === 0;
+
+      const finEvento = new Date(
+        fechaBase.getUTCFullYear(),
+        fechaBase.getUTCMonth(),
+        fechaBase.getUTCDate() + (esMedianoche ? 1 : 0),
+        horaTermino.getUTCHours(),
+        horaTermino.getUTCMinutes(),
+        horaTermino.getUTCSeconds()
+      );
+
+      if (new Date() < finEvento) {
+        throw new ValidationError(
+          `No se puede registrar el retorno antes de que finalice el evento (${finEvento.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}).`
+        );
+      }
+    }
+
     const codigosKit = salida.reserva.kit.equipos.map((e) => e.codigo);
     const enviados = revisiones.map((r) => r.codigo);
 
@@ -82,9 +109,7 @@ export const registrarRetornoService = async ({ id_salida, id_jefe, revisiones }
 
     let hayIncidente = false;
 
-    // 2. Procesar cada equipo revisado
     for (const rev of revisiones) {
-      // Normalizar al enum EstadoRetorno: OPERATIVO | DANADO | PERDIDO | ROBADO
       let estadoRetornoNormalizado = rev.estado_retorno;
       if (['DANO', 'DANADO'].includes(rev.estado_retorno)) {
         estadoRetornoNormalizado = 'DANADO';
@@ -94,7 +119,6 @@ export const registrarRetornoService = async ({ id_salida, id_jefe, revisiones }
         estadoRetornoNormalizado = 'ROBADO';
       }
 
-      // Registrar en la tabla Revisa
       await tx.revisa.create({
         data: {
           id_salida: salida.id_salida,
@@ -120,12 +144,10 @@ export const registrarRetornoService = async ({ id_salida, id_jefe, revisiones }
             valorIncidente = equipo?.valor_compra || 0;
           }
 
-          // Mapear al tipo de incidente según tu schema (DANO, PERDIDA, ROBO)
           let tipoIncidente = 'DANO';
           if (estadoRetornoNormalizado === 'PERDIDO') tipoIncidente = 'PERDIDA';
           if (estadoRetornoNormalizado === 'ROBADO') tipoIncidente = 'ROBO';
 
-          // Crear registro en Incidente
           await tx.incidente.create({
             data: {
               tipo: tipoIncidente,
@@ -140,7 +162,6 @@ export const registrarRetornoService = async ({ id_salida, id_jefe, revisiones }
           });
         }
 
-        // Actualizar estado del equipo
         await tx.equipo.update({
           where: { codigo: rev.codigo },
           data: {
@@ -148,7 +169,6 @@ export const registrarRetornoService = async ({ id_salida, id_jefe, revisiones }
           },
         });
       } else {
-        // OPERATIVO
         await tx.equipo.update({
           where: { codigo: rev.codigo },
           data: { estado: 'OPERATIVO' },
@@ -161,7 +181,6 @@ export const registrarRetornoService = async ({ id_salida, id_jefe, revisiones }
       data: { fecha_hora_retorno: new Date() },
     });
 
-    // 3. Postcondición del Kit
     const nuevoEstadoKit = hayIncidente ? 'INCOMPLETO' : 'DISPONIBLE';
 
     await tx.kit.update({

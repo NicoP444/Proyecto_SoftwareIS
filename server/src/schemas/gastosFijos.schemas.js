@@ -18,7 +18,6 @@ export const validarPeriodoQuery = (query) => {
 export const validarCrearGastoFijo = (body) => {
   const { anio, mes, descripcion, monto, evidencia, id_contador } = body;
 
-  // 1. Año y Mes
   const anioNum = Number(anio);
   if (anio === undefined || anio === null || anio === '' || !Number.isInteger(anioNum) || anioNum < 2000 || anioNum > 2100) {
     throw new ValidationError('El año es obligatorio y debe estar entre 2000 y 2100', 'anio');
@@ -29,7 +28,6 @@ export const validarCrearGastoFijo = (body) => {
     throw new ValidationError('El mes es obligatorio y debe ser un número entre 1 y 12', 'mes');
   }
 
-  // Solo permitir registrar gastos fijos en el mes y año actual en curso
   const ahora = new Date();
   const anioActual = ahora.getFullYear();
   const mesActual = ahora.getMonth() + 1;
@@ -40,7 +38,6 @@ export const validarCrearGastoFijo = (body) => {
     );
   }
 
-  // 2. Descripción
   if (descripcion === undefined || descripcion === null || String(descripcion).trim() === '') {
     throw new ValidationError('La descripción del gasto fijo es obligatoria', 'descripcion');
   }
@@ -49,7 +46,6 @@ export const validarCrearGastoFijo = (body) => {
     throw new ValidationError('La descripción no puede superar los 255 caracteres', 'descripcion');
   }
 
-  // 3. Monto (entero > 0 y máximo $1.000.000.000 para evitar desbordamiento Int32 en PostgreSQL)
   const montoNum = Number(monto);
   if (monto === undefined || monto === null || monto === '' || !Number.isInteger(montoNum) || montoNum <= 0) {
     throw new ValidationError('El monto del gasto fijo debe ser un número entero mayor a 0', 'monto');
@@ -58,7 +54,6 @@ export const validarCrearGastoFijo = (body) => {
     throw new ValidationError('El monto del gasto fijo no puede superar $1.000.000.000', 'monto');
   }
 
-  // 4. Evidencia opcional (máx 255)
   let evidenciaLimpia = null;
   if (evidencia !== undefined && evidencia !== null && String(evidencia).trim() !== '') {
     evidenciaLimpia = String(evidencia).trim();
@@ -67,7 +62,6 @@ export const validarCrearGastoFijo = (body) => {
     }
   }
 
-  // 5. Contador opcional en body (lo inyecta la sesión en el controlador; sin default = 1)
   let contadorNum = undefined;
   if (id_contador !== undefined && id_contador !== null && id_contador !== '') {
     contadorNum = Number(id_contador);
@@ -83,5 +77,30 @@ export const validarCrearGastoFijo = (body) => {
     monto: montoNum,
     evidencia: evidenciaLimpia,
     id_contador: contadorNum,
+  };
+};
+
+export const validarActualizarGastoFijo = (body) => {
+  const { descripcion, monto } = body;
+
+  if (descripcion === undefined || descripcion === null || String(descripcion).trim() === '') {
+    throw new ValidationError('La descripción del gasto fijo es obligatoria', 'descripcion');
+  }
+  const descLimpia = String(descripcion).trim();
+  if (descLimpia.length > 255) {
+    throw new ValidationError('La descripción no puede superar los 255 caracteres', 'descripcion');
+  }
+
+  const montoNum = Number(monto);
+  if (monto === undefined || monto === null || monto === '' || !Number.isInteger(montoNum) || montoNum <= 0) {
+    throw new ValidationError('El monto del gasto fijo debe ser un número entero mayor a 0', 'monto');
+  }
+  if (montoNum > 1000000000) {
+    throw new ValidationError('El monto del gasto fijo no puede superar $1.000.000.000', 'monto');
+  }
+
+  return {
+    descripcion: descLimpia,
+    monto: montoNum,
   };
 };
