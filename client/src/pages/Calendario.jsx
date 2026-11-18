@@ -749,6 +749,7 @@ export default function Calendario() {
         abierto={editando}
         onCerrar={() => setEditando(false)}
         titulo="Modificar evento"
+        cerrarConFondo={false}
       >
         {e && (
           <FormularioEvento
@@ -765,6 +766,7 @@ export default function Calendario() {
         abierto={creando}
         onCerrar={() => setCreando(false)}
         titulo="Nuevo evento"
+        cerrarConFondo={false}
       >
         <FormularioEvento
           fechaInicial={fechaNueva}
@@ -780,6 +782,7 @@ export default function Calendario() {
         onCerrar={() => setGestionandoClientes(false)}
         titulo="Clientes"
         ancho="amplio"
+        cerrarConFondo={false}
       >
         <GestionClientes onCambio={cargarDatos} />
       </Modal>
