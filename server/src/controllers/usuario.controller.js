@@ -29,3 +29,13 @@ export const ActualizarEstadoUsuario = async (req, res) => {
     manejarError(res, error);
   }
 };
+
+export const ModificarUsuario = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const usuarioModificado = await UsuarioServicio.ModificarUsuarioGlobal(id, req.body);
+    res.json(usuarioModificado);
+  } catch (error) {
+    manejarError(res, error);
+  }
+};

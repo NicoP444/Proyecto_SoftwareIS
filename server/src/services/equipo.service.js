@@ -13,66 +13,17 @@ const formatearRepuesto = (eq) => ({
   es_repuesto: eq.estado === 'OPERATIVO' && eq.id_kit === null,
 });
 
-// RF-P5-02: Intenta guardar en la tabla de historial de equipo que exista en Prisma
-const registrarCambioValorHistorial = async (codigo, valorAnterior, valorNuevo, idJefe) => {
-  const posiblesPayload = [
-    // Estructura tipo HistorialEquipo / HistorialCambio
-    async () => {
-      const modelo =
-        prisma.historialEquipo ||
-        prisma.historialCambioEquipo ||
-        prisma.historialValorEquipo ||
-        prisma.historialCambio;
-      if (!modelo) return;
-
-      await modelo.create({
-        data: {
-          codigo_equipo: codigo,
-          valor_anterior: valorAnterior,
-          valor_nuevo: valorNuevo,
-          fecha: new Date(),
-        },
-      });
+// RF-P5-02: Registra el cambio de valor en la tabla real "historial_cambio"
+const registrarCambioValorHistorial = async (codigo, valorAnterior, valorNuevo) => {
+  await prisma.historialCambio.create({
+    data: {
+      tabla_afectada: 'equipo',
+      dato: `valor_compra - ${codigo}`,
+      valor_anterior: String(valorAnterior),
+      valor_nuevo: String(valorNuevo),
+      motivo: `Modificación del valor de compra del equipo con código ${codigo}`,
     },
-    async () => {
-      const modelo =
-        prisma.historialEquipo ||
-        prisma.historialCambioEquipo ||
-        prisma.historialValorEquipo ||
-        prisma.historialCambio;
-      if (!modelo) return;
-
-      await modelo.create({
-        data: {
-          codigo_equipo: codigo,
-          campo_modificado: 'valor_compra',
-          valor_anterior: String(valorAnterior),
-          valor_nuevo: String(valorNuevo),
-          motivo: `Cambio de valor de compra de $${valorAnterior} a $${valorNuevo}`,
-          ...(idJefe ? { id_jefe: idJefe } : {}),
-        },
-      });
-    },
-    async () => {
-      if (!prisma.revisionEquipo) return;
-      await prisma.revisionEquipo.create({
-        data: {
-          codigo_equipo: codigo,
-          descripcion: `Cambio valor de compra: $${valorAnterior} -> $${valorNuevo}`,
-          fecha: new Date(),
-        },
-      });
-    },
-  ];
-
-  for (const intento of posiblesPayload) {
-    try {
-      await intento();
-      break;
-    } catch {
-      // Continúa probando el siguiente formato compatible del schema
-    }
-  }
+  });
 };
 
 export const equipoService = {
@@ -236,12 +187,7 @@ export const equipoService = {
     });
 
     if (cambioValor) {
-      await registrarCambioValorHistorial(
-        codigo,
-        valorAnterior,
-        valorNuevo,
-        equipoExistente.id_jefe
-      );
+      await registrarCambioValorHistorial(codigo, valorAnterior, valorNuevo);
     }
 
     return formatearRepuesto(actualizado);
