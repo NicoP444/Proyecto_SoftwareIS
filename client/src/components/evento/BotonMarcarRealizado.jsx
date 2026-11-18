@@ -41,9 +41,12 @@ export default function BotonMarcarRealizado({ evento, onEventoActualizado }) {
   const aunNoInicia = inicioEvento && ahora < inicioEvento;
   const yaTermino = ahora >= finEvento;
   const sinPersonal = !evento.asignaciones || evento.asignaciones.length === 0;
-  const kitsPendientes = (evento.reservas_kit || []).some(
-    (r) => !r.salida || !r.salida.fecha_hora_retorno
-  );
+
+  const reservas = evento.reservas_kit || [];
+  const kitsPendientes =
+    reservas.length > 0 &&
+    (!reservas.some((r) => r.salida && r.salida.fecha_hora_retorno) ||
+      reservas.some((r) => r.salida && !r.salida.fecha_hora_retorno));
 
   const habilitado = yaTermino && !sinPersonal && !kitsPendientes;
 
@@ -69,7 +72,7 @@ export default function BotonMarcarRealizado({ evento, onEventoActualizado }) {
     tituloTooltip = 'Debes asignar al menos un trabajador al evento antes de cerrarlo';
   } else if (kitsPendientes) {
     textoBoton = 'Kits pendientes';
-    tituloTooltip = 'Hay kits reservados sin despachar o aún en terreno';
+    tituloTooltip = 'Debe haber al menos un kit retornado y ninguno en terreno';
   }
 
   const handleMarcar = async () => {

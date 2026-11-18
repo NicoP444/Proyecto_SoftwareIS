@@ -1,20 +1,25 @@
 import prisma from '../config/prisma.js';
 import { ValidationError } from '../utils/errores.js';
 
-const eventoYaInicio = (evento, ahora = new Date()) => {
+const eventoYaTermino = (evento, ahora = new Date()) => {
   const fechaBase = new Date(evento.fecha);
-  const horaInicio = new Date(evento.hora_inicio);
+  const horaTermino = new Date(evento.hora_termino);
 
-  const inicioEvento = new Date(
+  const esMedianoche =
+    horaTermino.getUTCHours() === 0 &&
+    horaTermino.getUTCMinutes() === 0 &&
+    horaTermino.getUTCSeconds() === 0;
+
+  const finEvento = new Date(
     fechaBase.getUTCFullYear(),
     fechaBase.getUTCMonth(),
-    fechaBase.getUTCDate(),
-    horaInicio.getUTCHours(),
-    horaInicio.getUTCMinutes(),
-    horaInicio.getUTCSeconds()
+    fechaBase.getUTCDate() + (esMedianoche ? 1 : 0),
+    horaTermino.getUTCHours(),
+    horaTermino.getUTCMinutes(),
+    horaTermino.getUTCSeconds()
   );
 
-  return ahora >= inicioEvento;
+  return ahora >= finEvento;
 };
 
 /**
@@ -67,8 +72,8 @@ export const registrarSalidaKitService = async ({ id_reserva, id_asignacion, id_
     );
   }
 
-  if (eventoYaInicio(evento, ahora)) {
-    throw new ValidationError('No se puede registrar la salida de un kit para un evento que ya inició o finalizó');
+  if (eventoYaTermino(evento, ahora)) {
+    throw new ValidationError('No se puede registrar la salida de un kit para un evento que ya finalizó');
   }
 
   if (fecha_hora_salida && new Date(fecha_hora_salida) > new Date()) {
@@ -173,6 +178,6 @@ export const obtenerEventosConReservasService = async () => {
     },
   });
 
-  // Solo eventos de hoy cuya transmisión aún no ha iniciado
-  return candidatos.filter((ev) => !eventoYaInicio(ev, ahora));
+  // Eventos de hoy o anteriores cuya transmisión aún no ha finalizado
+  return candidatos.filter((ev) => !eventoYaTermino(ev, ahora));
 };

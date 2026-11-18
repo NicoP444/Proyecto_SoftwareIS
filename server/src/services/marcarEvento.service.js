@@ -8,11 +8,19 @@ const estaListoParaRealizar = (evento, ahora = new Date()) => {
   // 1. Debe tener al menos un trabajador asignado
   if (!evento.asignaciones || evento.asignaciones.length === 0) return false;
 
-  // 2. Si tiene kits reservados, todos deben haber salido y retornado a bodega
-  const kitsPendientes = (evento.reservas_kit || []).some(
-    (r) => !r.salida || !r.salida.fecha_hora_retorno
-  );
-  if (kitsPendientes) return false;
+  // 2. Si tiene kits reservados:
+  // - Al menos uno debe haber salido y retornado a bodega
+  // - Ninguno que haya salido puede seguir en terreno sin retorno
+  const reservas = evento.reservas_kit || [];
+  if (reservas.length > 0) {
+    const alMenosUnoRetornado = reservas.some(
+      (r) => r.salida && r.salida.fecha_hora_retorno
+    );
+    const algunoSinRetornar = reservas.some(
+      (r) => r.salida && !r.salida.fecha_hora_retorno
+    );
+    if (!alMenosUnoRetornado || algunoSinRetornar) return false;
+  }
 
   // 3. Debe haber superado su hora de término
   const fechaBase = new Date(evento.fecha);
@@ -68,20 +76,25 @@ export const marcarEventoRealizadoService = async (id_evento) => {
       );
     }
 
-    const kitsSinDespachar = evento.reservas_kit.filter((r) => !r.salida);
-    if (kitsSinDespachar.length > 0) {
-      const nombres = kitsSinDespachar.map((r) => r.kit?.nombre || `Kit #${r.id_kit}`).join(', ');
-      throw new ValidationError(
-        `No se puede marcar como realizado: aún hay kits sin despachar (${nombres}).`
+    if (evento.reservas_kit.length > 0) {
+      const kitsSinRetornar = evento.reservas_kit.filter(
+        (r) => r.salida && !r.salida.fecha_hora_retorno
       );
-    }
+      if (kitsSinRetornar.length > 0) {
+        const nombres = kitsSinRetornar.map((r) => r.kit?.nombre || `Kit #${r.id_kit}`).join(', ');
+        throw new ValidationError(
+          `No se puede marcar como realizado: aún hay kits en terreno sin retorno (${nombres}).`
+        );
+      }
 
-    const kitsSinRetornar = evento.reservas_kit.filter((r) => r.salida && !r.salida.fecha_hora_retorno);
-    if (kitsSinRetornar.length > 0) {
-      const nombres = kitsSinRetornar.map((r) => r.kit?.nombre || `Kit #${r.id_kit}`).join(', ');
-      throw new ValidationError(
-        `No se puede marcar como realizado: aún hay kits en terreno sin retorno (${nombres}).`
+      const alMenosUnoRetornado = evento.reservas_kit.some(
+        (r) => r.salida && r.salida.fecha_hora_retorno
       );
+      if (!alMenosUnoRetornado) {
+        throw new ValidationError(
+          'No se puede marcar como realizado: debe haberse despachado y retornado al menos un kit reservado.'
+        );
+      }
     }
 
     const fechaBase = new Date(evento.fecha);
