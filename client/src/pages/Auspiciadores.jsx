@@ -18,7 +18,7 @@ import {
 import { listarEventos } from '../services/evento.service.js';
 import '../styles/Auspiciadores.css';
 
-// Fecha actual en formato local YYYY-MM-DD para restringir inputs date (min)
+// Fecha actual en formato local YYYY-MM-DD para restringir inputs date
 const obtenerFechaHoyLocal = () => {
   const hoy = new Date();
   const anio = hoy.getFullYear();
@@ -55,12 +55,49 @@ const tieneMinimoLetras = (texto, minLetras = 3) => {
 export default function Auspiciadores() {
   const fechaHoyLocal = obtenerFechaHoyLocal();
 
+  // Detectar rol e identificador real desde localStorage (o decodificando el token JWT si existe)
+  const usuarioActual = useMemo(() => {
+    try {
+      const claves = ['usuario', 'sesion', 'user', 'auth'];
+      for (const clave of claves) {
+        const guardado = localStorage.getItem(clave);
+        if (guardado) {
+          const parseado = JSON.parse(guardado);
+          const u = parseado?.usuario || parseado?.user || parseado;
+          if (u && (u.rol || u.id || u.id_dueno || u.id_contador)) {
+            return u;
+          }
+        }
+      }
+      const token = localStorage.getItem('token');
+      if (token && token.includes('.')) {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        return payload?.usuario || payload || { rol: 'DUENO', id: 1 };
+      }
+      return { rol: 'DUENO', id: 1 };
+    } catch {
+      return { rol: 'DUENO', id: 1 };
+    }
+  }, []);
+
+  const rolUsuario = String(usuarioActual.rol || 'DUENO').toUpperCase();
+  const esDueno = rolUsuario === 'DUENO';
+  const esContador = rolUsuario === 'CONTADOR';
+  const idDuenoActual =
+    esDueno && (usuarioActual.id_dueno || usuarioActual.id)
+      ? Number(usuarioActual.id_dueno || usuarioActual.id)
+      : 1;
+  const idContadorActual =
+    esContador && (usuarioActual.id_contador || usuarioActual.id)
+      ? Number(usuarioActual.id_contador || usuarioActual.id)
+      : undefined;
+
   const [formData, setFormData] = useState({
     nombre: '',
     rubro: '',
     contacto: '',
     telefono: '',
-    id_dueno: 1
+    id_dueno: idDuenoActual
   });
 
   const [idEditando, setIdEditando] = useState(null);
@@ -151,6 +188,19 @@ export default function Auspiciadores() {
     );
   };
 
+  // Calcula el historial de cumplimiento de un auspiciador sin parciales (RF-P4-03 y RF-P4-07)
+  const obtenerResumenHistorialAuspiciador = (idAuspiciador) => {
+    const acuerdosDeAusp = listaAcuerdos.filter(
+      (a) => String(a.id_auspiciador || a.auspiciador?.id_auspiciador) === String(idAuspiciador)
+    );
+    return {
+      total: acuerdosDeAusp.length,
+      cumplidos: acuerdosDeAusp.filter((a) => a.estado === 'CUMPLIDO' || a.estado === 'PARCIAL').length,
+      vencidos: acuerdosDeAusp.filter((a) => a.estado === 'VENCIDO').length,
+      incobrables: acuerdosDeAusp.filter((a) => a.estado === 'INCOBRABLE').length
+    };
+  };
+
   const cargarAcuerdos = async () => {
     try {
       setCargandoAcuerdos(true);
@@ -196,14 +246,12 @@ export default function Auspiciadores() {
     setErrorModal('');
 
     if (name === 'rubro' || name === 'contacto') {
-      // Bloquea números en rubro y nombre de contacto mientras el usuario escribe
       const soloLetras = value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s.,'-]/g, '');
       setFormData({ ...formData, [name]: soloLetras });
       return;
     }
 
     if (name === 'telefono') {
-      // Solo permite "+" al inicio y dígitos numéricos
       const limpio = value.replace(/(?!^\+)[^\d]/g, '');
       setFormData({ ...formData, telefono: limpio });
       return;
@@ -226,6 +274,31 @@ export default function Auspiciadores() {
     );
   }, [formAcuerdo.id_auspiciador, listaAuspiciadores]);
 
+  const historialAuspiciadorElegido = useMemo(() => {
+    if (!auspiciadorElegidoAcuerdo) return null;
+    const id = auspiciadorElegidoAcuerdo.id_auspiciador || auspiciadorElegidoAcuerdo.id;
+    return obtenerResumenHistorialAuspiciador(id);
+  }, [auspiciadorElegidoAcuerdo, listaAcuerdos]);
+
+  const historialModalClasificacion = useMemo(() => {
+    if (!modalClasificacion.auspiciador) return null;
+    const id = modalClasificacion.auspiciador.id_auspiciador || modalClasificacion.auspiciador.id;
+    return obtenerResumenHistorialAuspiciador(id);
+  }, [modalClasificacion.auspiciador, listaAcuerdos]);
+
+  // Solo permite seleccionar eventos desde hoy en adelante y que no estén realizados ni cerrados (RF-P4-02)
+  const eventosAbiertos = useMemo(() => {
+    return listaEventos.filter((ev) => {
+      if (ev.estado === 'CERRADO' || ev.estado === 'REALIZADO') return false;
+      if (!ev.fecha) return false;
+      const fechaIso = String(ev.fecha).slice(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaIso) || fechaIso.startsWith('1969') || fechaIso.startsWith('1970')) {
+        return false;
+      }
+      return fechaIso >= fechaHoyLocal;
+    });
+  }, [listaEventos, fechaHoyLocal]);
+
   const iniciarEdicion = (item) => {
     setErrorModal('');
     setMostrarFormulario(true);
@@ -235,7 +308,7 @@ export default function Auspiciadores() {
       rubro: item.rubro || '',
       contacto: item.contacto || '',
       telefono: item.telefono || '',
-      id_dueno: item.id_dueno || 1
+      id_dueno: item.id_dueno || idDuenoActual
     });
   };
 
@@ -247,7 +320,7 @@ export default function Auspiciadores() {
       rubro: '',
       contacto: '',
       telefono: '',
-      id_dueno: 1
+      id_dueno: idDuenoActual
     });
     setMostrarFormulario(false);
   };
@@ -282,7 +355,8 @@ export default function Auspiciadores() {
         nombre: formData.nombre.trim(),
         rubro: formData.rubro.trim(),
         contacto: formData.contacto.trim(),
-        telefono: formData.telefono.trim()
+        telefono: formData.telefono.trim(),
+        id_dueno: idDuenoActual
       };
 
       if (idEditando) {
@@ -335,12 +409,13 @@ export default function Auspiciadores() {
       return;
     }
 
-    if (formAcuerdo.cant_menciones !== '' && (Number(formAcuerdo.cant_menciones) < 0 || Number(formAcuerdo.cant_menciones) > 500)) {
-      setErrorModal('La cantidad de menciones debe estar entre 0 y 500.');
+    if (formAcuerdo.cant_menciones !== '' && (Number(formAcuerdo.cant_menciones) < 0 || Number(formAcuerdo.cant_menciones) > 50)) {
+      setErrorModal('La cantidad de menciones debe estar entre 0 y 50.');
       return;
     }
 
-    if (formAcuerdo.fecha_comprometida < fechaHoyLocal) {
+    const fechaElegida = formAcuerdo.fecha_comprometida || fechaHoyLocal;
+    if (fechaElegida < fechaHoyLocal) {
       setErrorModal('La fecha límite de pago debe ser desde hoy en adelante.');
       return;
     }
@@ -355,14 +430,18 @@ export default function Auspiciadores() {
         id_auspiciador: Number(formAcuerdo.id_auspiciador),
         id_evento: Number(formAcuerdo.id_evento),
         tipo_aporte: formAcuerdo.tipo_aporte,
+        tipo_pago: formAcuerdo.tipo_aporte,
         monto_comprometido: monto,
+        monto: monto,
         descripcion_canje:
           formAcuerdo.tipo_aporte === 'CANJE' ? formAcuerdo.descripcion_canje.trim() : null,
         cant_menciones: formAcuerdo.cant_menciones !== ''
           ? Number(formAcuerdo.cant_menciones)
           : null,
-        fecha_comprometida: formAcuerdo.fecha_comprometida,
-        glosa: formAcuerdo.glosa.trim()
+        fecha_comprometida: fechaElegida,
+        fecha_limite: fechaElegida,
+        glosa: formAcuerdo.glosa.trim(),
+        id_dueno: idDuenoActual
       });
 
       setMostrarModalAcuerdo(false);
@@ -386,6 +465,7 @@ export default function Auspiciadores() {
   };
 
   const abrirModalCambio = (item) => {
+    if (!esDueno) return;
     setErrorModal('');
     const esNoConfiable = item.clasificacion === 'NO_CONFIABLE';
     setModalClasificacion({
@@ -438,13 +518,13 @@ export default function Auspiciadores() {
     const id = acuerdo.id_acuerdo || acuerdo.id;
     const valorNum = Number(monto_recibido);
 
-    if (Number.isNaN(valorNum) || valorNum <= 0) {
+    if (Number.isNaN(valorNum) || valorNum <= 0 || valorNum > 500000000) {
       setErrorModal('El monto recibido no es válido.');
       return;
     }
 
-    if (fecha_recibida < fechaHoyLocal) {
-      setErrorModal('La fecha de recepción no puede ser anterior a hoy.');
+    if (fecha_recibida > fechaHoyLocal) {
+      setErrorModal('La fecha de recepción no puede ser posterior al día de hoy.');
       return;
     }
 
@@ -453,7 +533,9 @@ export default function Auspiciadores() {
     try {
       await registrarCumplimiento(id, {
         monto_recibido: valorNum,
-        fecha_recibida
+        fecha_recibida,
+        fecha: fecha_recibida,
+        id_contador: idContadorActual
       });
 
       setModalCumplimiento({ abierto: false, acuerdo: null, monto_recibido: '', fecha_recibida: '' });
@@ -534,9 +616,9 @@ export default function Auspiciadores() {
 
     if (
       modalEditarAcuerdo.cant_menciones !== '' &&
-      (Number(modalEditarAcuerdo.cant_menciones) < 0 || Number(modalEditarAcuerdo.cant_menciones) > 500)
+      (Number(modalEditarAcuerdo.cant_menciones) < 0 || Number(modalEditarAcuerdo.cant_menciones) > 50)
     ) {
-      setErrorModal('La cantidad de menciones debe estar entre 0 y 500.');
+      setErrorModal('La cantidad de menciones debe estar entre 0 y 50.');
       return;
     }
 
@@ -563,7 +645,8 @@ export default function Auspiciadores() {
           modalEditarAcuerdo.cant_menciones !== ''
             ? Number(modalEditarAcuerdo.cant_menciones)
             : null,
-        fecha_comprometida: modalEditarAcuerdo.fecha_comprometida
+        fecha_comprometida: modalEditarAcuerdo.fecha_comprometida,
+        fecha_limite: modalEditarAcuerdo.fecha_comprometida
       });
 
       setModalEditarAcuerdo({
@@ -597,13 +680,13 @@ export default function Auspiciadores() {
   };
 
   const renderBadgeAcuerdo = (estado = 'PENDIENTE') => {
+    const estadoNormalizado = estado === 'PARCIAL' ? 'CUMPLIDO' : estado;
     let claseVariante = 'ausp-badge-pendiente';
-    if (estado === 'CUMPLIDO') claseVariante = 'ausp-badge-cumplido';
-    else if (estado === 'PARCIAL') claseVariante = 'ausp-badge-parcial';
-    else if (estado === 'VENCIDO') claseVariante = 'ausp-badge-vencido';
-    else if (estado === 'INCOBRABLE') claseVariante = 'ausp-badge-incobrable';
+    if (estadoNormalizado === 'CUMPLIDO') claseVariante = 'ausp-badge-cumplido';
+    else if (estadoNormalizado === 'VENCIDO') claseVariante = 'ausp-badge-vencido';
+    else if (estadoNormalizado === 'INCOBRABLE') claseVariante = 'ausp-badge-incobrable';
 
-    return <span className={`ausp-badge ${claseVariante}`}>{estado}</span>;
+    return <span className={`ausp-badge ${claseVariante}`}>{estadoNormalizado}</span>;
   };
 
   const obtenerClaseBotonGestionar = (esCumplido, esIncobrable) => {
@@ -653,29 +736,17 @@ export default function Auspiciadores() {
       }
 
       const monto = Number(acuerdo.monto_comprometido || 0);
-      const totalPagado = (acuerdo.cumplimientos || []).reduce(
-        (acc, c) => acc + Number(c.monto_recibido || 0),
-        0
-      );
 
       mapaAuspiciadores[idAusp].comprometido += monto;
       totalComprometido += monto;
       mapaAuspiciadores[idAusp].totalAcuerdos += 1;
 
-      if (acuerdo.estado === 'CUMPLIDO') {
+      if (acuerdo.estado === 'CUMPLIDO' || acuerdo.estado === 'PARCIAL') {
         mapaAuspiciadores[idAusp].cumplido += monto;
         totalCumplido += monto;
-      } else if (acuerdo.estado === 'PARCIAL') {
-        mapaAuspiciadores[idAusp].cumplido += totalPagado;
-        totalCumplido += totalPagado;
       } else if (acuerdo.estado === 'VENCIDO') {
-        const saldoVencido = monto - totalPagado;
-        mapaAuspiciadores[idAusp].vencido += saldoVencido > 0 ? saldoVencido : monto;
-        totalVencido += saldoVencido > 0 ? saldoVencido : monto;
-        if (totalPagado > 0) {
-          mapaAuspiciadores[idAusp].cumplido += totalPagado;
-          totalCumplido += totalPagado;
-        }
+        mapaAuspiciadores[idAusp].vencido += monto;
+        totalVencido += monto;
       } else if (acuerdo.estado === 'INCOBRABLE') {
         mapaAuspiciadores[idAusp].incobrable += monto;
         totalIncobrable += monto;
@@ -761,14 +832,16 @@ export default function Auspiciadores() {
                   </p>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={abrirModalNuevoAcuerdo}
-                  className="ausp-btn-nuevo"
-                >
-                  <Plus size={18} />
-                  <span>Registrar acuerdo</span>
-                </button>
+                {esDueno && (
+                  <button
+                    type="button"
+                    onClick={abrirModalNuevoAcuerdo}
+                    className="ausp-btn-nuevo"
+                  >
+                    <Plus size={18} />
+                    <span>Registrar acuerdo</span>
+                  </button>
+                )}
               </div>
 
               {cargandoAcuerdos ? (
@@ -811,12 +884,7 @@ export default function Auspiciadores() {
                           ? String(rawFecha).slice(5, 10).split('-').reverse().join('/')
                           : '--';
 
-                        const totalPagado = (item.cumplimientos || []).reduce(
-                          (acc, c) => acc + Number(c.monto_recibido || 0),
-                          0
-                        );
-
-                        const estado = item.estado || 'PENDIENTE';
+                        const estado = item.estado === 'PARCIAL' ? 'CUMPLIDO' : (item.estado || 'PENDIENTE');
                         const esCumplido = estado === 'CUMPLIDO';
                         const esVencido = estado === 'VENCIDO';
                         const esIncobrable = estado === 'INCOBRABLE';
@@ -831,9 +899,9 @@ export default function Auspiciadores() {
                             <td className="ausp-td-texto">
                               {tipoPago}
                               {detalleMonto}
-                              {totalPagado > 0 && (
+                              {esCumplido && (
                                 <div className="ausp-td-recibido">
-                                  Recibido: ${totalPagado.toLocaleString('es-CL')}
+                                  Recibido: ${Number(item.monto_comprometido || 0).toLocaleString('es-CL')}
                                 </div>
                               )}
                             </td>
@@ -861,7 +929,8 @@ export default function Auspiciadores() {
 
                                 {menuAccionesAbierto === id && (
                                   <div className="ausp-menu-dropdown">
-                                    {!esIncobrable && (
+                                    {/* RF-P4-04: Registrar cumplimiento es exclusivo del Contador */}
+                                    {esContador && !esIncobrable && (
                                       <button
                                         type="button"
                                         onClick={() => {
@@ -871,7 +940,7 @@ export default function Auspiciadores() {
                                         className="ausp-menu-item"
                                       >
                                         {esCumplido
-                                          ? 'Ver / Modificar Pago'
+                                          ? 'Ver / Modificar Fecha de Pago'
                                           : 'Registrar Pago / Entrega'}
                                       </button>
                                     )}
@@ -894,40 +963,45 @@ export default function Auspiciadores() {
                                       </button>
                                     )}
 
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setMenuAccionesAbierto(null);
-                                        abrirModalEditarAcuerdo(item);
-                                      }}
-                                      className="ausp-menu-item"
-                                    >
-                                      Modificar Acuerdo
-                                    </button>
+                                    {/* Acciones exclusivas del Dueño (RF-P4-02, RF-P4-06) */}
+                                    {esDueno && (
+                                      <>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setMenuAccionesAbierto(null);
+                                            abrirModalEditarAcuerdo(item);
+                                          }}
+                                          className="ausp-menu-item"
+                                        >
+                                          Modificar Acuerdo
+                                        </button>
 
-                                    {esVencido && (
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setMenuAccionesAbierto(null);
-                                          abrirModalIncobrable(item);
-                                        }}
-                                        className="ausp-menu-item ausp-menu-item-peligro"
-                                      >
-                                        Declarar Incobrable
-                                      </button>
+                                        {esVencido && (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setMenuAccionesAbierto(null);
+                                              abrirModalIncobrable(item);
+                                            }}
+                                            className="ausp-menu-item ausp-menu-item-peligro"
+                                          >
+                                            Declarar Incobrable
+                                          </button>
+                                        )}
+
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setMenuAccionesAbierto(null);
+                                            manejarEliminarAcuerdo(id);
+                                          }}
+                                          className="ausp-menu-item ausp-menu-item-eliminar"
+                                        >
+                                          Eliminar Acuerdo
+                                        </button>
+                                      </>
                                     )}
-
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setMenuAccionesAbierto(null);
-                                        manejarEliminarAcuerdo(id);
-                                      }}
-                                      className="ausp-menu-item ausp-menu-item-eliminar"
-                                    >
-                                      Eliminar Acuerdo
-                                    </button>
                                   </div>
                                 )}
                               </div>
@@ -1106,17 +1180,19 @@ export default function Auspiciadores() {
                   </p>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    cancelarEdicion();
-                    setMostrarFormulario(true);
-                  }}
-                  className="ausp-btn-nuevo"
-                >
-                  <Plus size={18} />
-                  <span>Registrar auspiciador</span>
-                </button>
+                {esDueno && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      cancelarEdicion();
+                      setMostrarFormulario(true);
+                    }}
+                    className="ausp-btn-nuevo"
+                  >
+                    <Plus size={18} />
+                    <span>Registrar auspiciador</span>
+                  </button>
+                )}
               </div>
 
               {listaAuspiciadores.length === 0 ? (
@@ -1137,7 +1213,12 @@ export default function Auspiciadores() {
                           <button
                             type="button"
                             onClick={() => abrirModalCambio(item)}
-                            title="Haz clic para cambiar la clasificación"
+                            disabled={!esDueno}
+                            title={
+                              esDueno
+                                ? 'Haz clic para cambiar la clasificación'
+                                : 'Clasificación actual'
+                            }
                             className={`ausp-btn-estado-conf ${
                               esNoConfiable ? 'ausp-btn-no-confiable' : 'ausp-btn-confiable'
                             }`}
@@ -1162,23 +1243,25 @@ export default function Auspiciadores() {
                           </p>
                         )}
 
-                        <div className="ausp-tarjeta-acciones">
-                          <button
-                            type="button"
-                            onClick={() => iniciarEdicion(item)}
-                            className="ausp-btn-modificar-card"
-                          >
-                            Modificar
-                          </button>
+                        {esDueno && (
+                          <div className="ausp-tarjeta-acciones">
+                            <button
+                              type="button"
+                              onClick={() => iniciarEdicion(item)}
+                              className="ausp-btn-modificar-card"
+                            >
+                              Modificar
+                            </button>
 
-                          <button
-                            type="button"
-                            onClick={() => manejarEliminar(id)}
-                            className="ausp-btn-eliminar-card"
-                          >
-                            Eliminar
-                          </button>
-                        </div>
+                            <button
+                              type="button"
+                              onClick={() => manejarEliminar(id)}
+                              className="ausp-btn-eliminar-card"
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -1335,7 +1418,7 @@ export default function Auspiciadores() {
                     className="ausp-select"
                   >
                     <option value="">-- Selecciona un evento --</option>
-                    {listaEventos.map((ev) => {
+                    {eventosAbiertos.map((ev) => {
                       const idEv = ev.id_evento || ev.id;
                       const fechaEv = formatearFechaEvento(ev.fecha);
                       return (
@@ -1349,6 +1432,7 @@ export default function Auspiciadores() {
                 </div>
               </div>
 
+              {/* RF-P4-03: Advertencia con historial de cumplimiento (sin parciales) */}
               {auspiciadorElegidoAcuerdo?.clasificacion === 'NO_CONFIABLE' && (
                 <div className="ausp-aviso-no-confiable">
                   <AlertTriangle size={16} className="ausp-alerta-icono" />
@@ -1359,6 +1443,14 @@ export default function Auspiciadores() {
                       ? ` (${auspiciadorElegidoAcuerdo.motivo_clasificacion})`
                       : ''}
                     .
+                    {historialAuspiciadorElegido && (
+                      <div>
+                        <strong>Historial de cumplimiento:</strong> Cumplidos:{' '}
+                        {historialAuspiciadorElegido.cumplidos} · Vencidos:{' '}
+                        {historialAuspiciadorElegido.vencidos} · Incobrables:{' '}
+                        {historialAuspiciadorElegido.incobrables}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -1412,7 +1504,7 @@ export default function Auspiciadores() {
 
               <div className="ausp-form-fila">
                 <div>
-                  <label className="ausp-label">Cantidad de Menciones:</label>
+                  <label className="ausp-label">Cantidad de Menciones (máx. 50):</label>
                   <input
                     type="number"
                     name="cant_menciones"
@@ -1420,7 +1512,7 @@ export default function Auspiciadores() {
                     onChange={manejarCambioNuevoAcuerdo}
                     onKeyDown={bloquearNegativosTeclado}
                     min="0"
-                    max="500"
+                    max="50"
                     placeholder="Ej: 3"
                     className="ausp-input"
                   />
@@ -1472,7 +1564,7 @@ export default function Auspiciadores() {
         </div>
       )}
 
-      {/* ================= MODAL 1: CUMPLIMIENTO ================= */}
+      {/* ================= MODAL 1: CUMPLIMIENTO (RF-P4-04) ================= */}
       {modalCumplimiento.abierto && (
         <div className="ausp-modal-fondo">
           <div className="ausp-modal-caja">
@@ -1507,11 +1599,12 @@ export default function Auspiciadores() {
               </div>
 
               <div className="ausp-campo-grupo-lg">
-                <label className="ausp-label">Fecha de Recepción:</label>
+                <label className="ausp-label">Fecha de Recepción (hoy o anterior):</label>
                 <input
                   type="date"
                   lang="es-CL"
-                  min={fechaHoyLocal}
+                  min="2000-01-01"
+                  max={fechaHoyLocal}
                   value={modalCumplimiento.fecha_recibida}
                   onChange={(e) => {
                     setErrorModal('');
@@ -1547,7 +1640,7 @@ export default function Auspiciadores() {
         </div>
       )}
 
-      {/* ================= MODAL 2: CLASIFICACIÓN ================= */}
+      {/* ================= MODAL 2: CLASIFICACIÓN (RF-P4-07) ================= */}
       {modalClasificacion.abierto && (
         <div className="ausp-modal-fondo">
           <div className="ausp-modal-caja">
@@ -1558,6 +1651,17 @@ export default function Auspiciadores() {
 
             <p className="ausp-modal-sub">
               Auspiciador: <strong>{modalClasificacion.auspiciador?.nombre}</strong>
+              {historialModalClasificacion && (
+                <>
+                  <br />
+                  <span>
+                    Acuerdos registrados — Cumplidos:{' '}
+                    <strong>{historialModalClasificacion.cumplidos}</strong> · Vencidos:{' '}
+                    <strong>{historialModalClasificacion.vencidos}</strong> · Incobrables:{' '}
+                    <strong>{historialModalClasificacion.incobrables}</strong>
+                  </span>
+                </>
+              )}
             </p>
 
             {errorModal && <div className="ausp-error-modal">{errorModal}</div>}
@@ -1799,11 +1903,11 @@ export default function Auspiciadores() {
 
               <div className="ausp-form-fila">
                 <div>
-                  <label className="ausp-label">Cant. Menciones:</label>
+                  <label className="ausp-label">Cant. Menciones (máx. 50):</label>
                   <input
                     type="number"
                     min="0"
-                    max="500"
+                    max="50"
                     value={modalEditarAcuerdo.cant_menciones}
                     onKeyDown={bloquearNegativosTeclado}
                     onChange={(e) => {

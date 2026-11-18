@@ -8,17 +8,27 @@ const obtenerFechaHoyStr = () => {
   return `${anio}-${mes}-${dia}`;
 };
 
-const validarFechaDesdeHoy = (valor) => {
-  if (!valor) throw new Error('La fecha es obligatoria.');
-  const fechaInput = String(valor).slice(0, 10);
-  const hoyStr = obtenerFechaHoyStr();
-  if (fechaInput < hoyStr) {
-    throw new Error('No se permiten fechas anteriores a hoy.');
+// Acepta YYYY-MM-DD o MM/DD/YYYY y verifica que sea desde hoy en adelante
+const normalizarFechaISO = (valor) => {
+  if (!valor) return '';
+  const str = String(valor).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+    return str.slice(0, 10);
   }
-  return true;
+  const partes = str.split(/[/-]/);
+  if (partes.length === 3 && partes[2].length === 4) {
+    const p0 = Number(partes[0]);
+    const p1 = Number(partes[1]);
+    // Si el segundo número es > 12 es formato MM/DD/YYYY
+    if (p1 > 12) {
+      return `${partes[2]}-${String(p0).padStart(2, '0')}-${String(p1).padStart(2, '0')}`;
+    }
+    return `${partes[2]}-${String(p1).padStart(2, '0')}-${String(p0).padStart(2, '0')}`;
+  }
+  return str.slice(0, 10);
 };
 
-// Verifica que una descripción tenga al menos 3 letras reales (permite "50 poleras", pero rechaza "22222222")
+// Verifica que una descripción tenga al menos 3 letras reales
 const validarDescripcionConLetras = (nombreCampo) => (valor) => {
   const texto = String(valor || '').trim();
   const cantLetras = (texto.match(/[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]/g) || []).length;
@@ -38,12 +48,18 @@ export const crearAcuerdoSchema = [
     .isInt({ gt: 0 }).withMessage('El evento seleccionado no es válido.'),
 
   body('tipo_aporte')
-    .notEmpty().withMessage('El tipo de aporte es obligatorio.')
+    .optional({ nullable: true })
     .isIn(['DINERO', 'CANJE']).withMessage('El tipo de aporte debe ser DINERO o CANJE.'),
 
   body('monto_comprometido')
-    .notEmpty().withMessage('El monto comprometido es obligatorio.')
-    .isInt({ min: 1, max: 500000000 }).withMessage('El monto comprometido debe ser un número entero entre $1 y $500.000.000.'),
+    .custom((valor, { req }) => {
+      const monto = valor ?? req.body.monto;
+      const num = Number(monto);
+      if (!monto || !Number.isInteger(num) || num < 1 || num > 500000000) {
+        throw new Error('El monto comprometido debe ser un número entero entre $1 y $500.000.000.');
+      }
+      return true;
+    }),
 
   body('descripcion_canje')
     .optional({ nullable: true, checkFalsy: true })
@@ -54,11 +70,21 @@ export const crearAcuerdoSchema = [
 
   body('cant_menciones')
     .optional({ nullable: true, checkFalsy: true })
-    .isInt({ min: 0, max: 500 }).withMessage('La cantidad de menciones debe estar entre 0 y 500.'),
+    .isInt({ min: 0, max: 50 }).withMessage('La cantidad de menciones debe estar entre 0 y 50.'),
 
   body('fecha_comprometida')
-    .notEmpty().withMessage('La fecha límite de pago es obligatoria.')
-    .custom(validarFechaDesdeHoy),
+    .custom((valor, { req }) => {
+      const fechaBruta = valor || req.body.fecha_limite || req.body.fecha;
+      if (!fechaBruta) {
+        throw new Error('La fecha límite de pago es obligatoria.');
+      }
+      const fechaInput = normalizarFechaISO(fechaBruta);
+      const hoyStr = obtenerFechaHoyStr();
+      if (fechaInput < hoyStr) {
+        throw new Error('No se permiten fechas anteriores a hoy.');
+      }
+      return true;
+    }),
 
   body('glosa')
     .trim()
@@ -74,8 +100,14 @@ export const modificarAcuerdoSchema = [
     .isIn(['DINERO', 'CANJE']).withMessage('El tipo de aporte debe ser DINERO o CANJE.'),
 
   body('monto_comprometido')
-    .notEmpty().withMessage('El monto comprometido es obligatorio.')
-    .isInt({ min: 1, max: 500000000 }).withMessage('El monto comprometido debe ser un número entero entre $1 y $500.000.000.'),
+    .custom((valor, { req }) => {
+      const monto = valor ?? req.body.monto;
+      const num = Number(monto);
+      if (!monto || !Number.isInteger(num) || num < 1 || num > 500000000) {
+        throw new Error('El monto comprometido debe ser un número entero entre $1 y $500.000.000.');
+      }
+      return true;
+    }),
 
   body('descripcion_canje')
     .optional({ nullable: true, checkFalsy: true })
@@ -86,11 +118,21 @@ export const modificarAcuerdoSchema = [
 
   body('cant_menciones')
     .optional({ nullable: true, checkFalsy: true })
-    .isInt({ min: 0, max: 500 }).withMessage('La cantidad de menciones debe estar entre 0 y 500.'),
+    .isInt({ min: 0, max: 50 }).withMessage('La cantidad de menciones debe estar entre 0 y 50.'),
 
   body('fecha_comprometida')
-    .notEmpty().withMessage('La fecha comprometida es obligatoria.')
-    .custom(validarFechaDesdeHoy),
+    .custom((valor, { req }) => {
+      const fechaBruta = valor || req.body.fecha_limite || req.body.fecha;
+      if (!fechaBruta) {
+        throw new Error('La fecha comprometida es obligatoria.');
+      }
+      const fechaInput = normalizarFechaISO(fechaBruta);
+      const hoyStr = obtenerFechaHoyStr();
+      if (fechaInput < hoyStr) {
+        throw new Error('No se permiten fechas anteriores a hoy.');
+      }
+      return true;
+    }),
 
   body('glosa')
     .trim()
@@ -103,11 +145,24 @@ export const modificarAcuerdoSchema = [
 export const cumplimientoAcuerdoSchema = [
   body('monto_recibido')
     .notEmpty().withMessage('El monto recibido es obligatorio.')
-    .isFloat({ gt: 0 }).withMessage('El monto recibido debe ser mayor a 0.'),
+    .isFloat({ min: 0, max: 500000000 }).withMessage('El monto recibido debe ser un valor positivo.'),
 
   body('fecha_recibida')
-    .notEmpty().withMessage('La fecha de recepción es obligatoria.')
-    .custom(validarFechaDesdeHoy)
+    .custom((valor, { req }) => {
+      const fechaBruta = valor || req.body.fecha;
+      if (!fechaBruta) {
+        throw new Error('La fecha de recepción es obligatoria.');
+      }
+      const fechaInput = normalizarFechaISO(fechaBruta);
+      const hoyStr = obtenerFechaHoyStr();
+      if (fechaInput > hoyStr) {
+        throw new Error('La fecha de recepción del pago no puede ser una fecha futura.');
+      }
+      if (fechaInput < '2000-01-01') {
+        throw new Error('La fecha de recepción no puede ser anterior al año 2000.');
+      }
+      return true;
+    })
 ];
 
 export const incobrableAcuerdoSchema = [
