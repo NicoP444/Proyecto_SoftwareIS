@@ -1,9 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { consultarInventario } from '../services/consultarInventario.service.js';
 import { getHistorialEquipo } from '../services/historialEquipo.service.js';
+import { obtenerUsuario } from '../services/http.js';
 import '../styles/ConsultarInventario.css';
 
 export default function ConsultarInventario() {
+  const rolActual = String(obtenerUsuario()?.rol ?? '').toUpperCase();
+  const puedeVerHistorial = rolActual === 'DUENO' || rolActual === 'JEFE_TECNICO';
+
   const [datos, setDatos] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
@@ -496,13 +500,13 @@ export default function ConsultarInventario() {
                           <th>CATEGORÍA</th>
                           <th>VALOR COMPRA</th>
                           <th className="inv-th-der">ESTADO</th>
-                          <th className="inv-th-der">HISTORIAL</th>
+                          {puedeVerHistorial && <th className="inv-th-der">HISTORIAL</th>}
                         </tr>
                       </thead>
                       <tbody>
                         {repuestosFiltrados.length === 0 ? (
                           <tr>
-                            <td colSpan="6" className="inv-tabla-vacio">
+                            <td colSpan={puedeVerHistorial ? 6 : 5} className="inv-tabla-vacio">
                               No hay repuestos que coincidan con la búsqueda.
                             </td>
                           </tr>
@@ -527,15 +531,17 @@ export default function ConsultarInventario() {
                                   ${Number(rep.valor_compra || 0).toLocaleString('es-CL')}
                                 </td>
                                 <td className="inv-td-der">{renderBadge(rep.estado)}</td>
-                                <td className="inv-td-der">
-                                  <button
-                                    type="button"
-                                    onClick={() => abrirModalHistorial(rep.codigo)}
-                                    className="inv-btn-sec"
-                                  >
-                                    Ver historial
-                                  </button>
-                                </td>
+                                {puedeVerHistorial && (
+                                  <td className="inv-td-der">
+                                    <button
+                                      type="button"
+                                      onClick={() => abrirModalHistorial(rep.codigo)}
+                                      className="inv-btn-sec"
+                                    >
+                                      Ver historial
+                                    </button>
+                                  </td>
+                                )}
                               </tr>
                             );
                           })
@@ -562,13 +568,13 @@ export default function ConsultarInventario() {
                           <th>CATEGORÍA</th>
                           <th>KIT ASIGNADO</th>
                           <th className="inv-th-der">ESTADO</th>
-                          <th className="inv-th-der">ACCIONES</th>
+                          {puedeVerHistorial && <th className="inv-th-der">ACCIONES</th>}
                         </tr>
                       </thead>
                       <tbody>
                         {todosEquiposFiltrados.length === 0 ? (
                           <tr>
-                            <td colSpan="6" className="inv-tabla-vacio">
+                            <td colSpan={puedeVerHistorial ? 6 : 5} className="inv-tabla-vacio">
                               No se encontraron equipos registrados.
                             </td>
                           </tr>
@@ -592,15 +598,17 @@ export default function ConsultarInventario() {
                                   {eq.kit?.nombre || 'Repuesto (Sin kit)'}
                                 </td>
                                 <td className="inv-td-der">{renderBadge(eq.estado)}</td>
-                                <td className="inv-td-der">
-                                  <button
-                                    type="button"
-                                    onClick={() => abrirModalHistorial(eq.codigo)}
-                                    className="inv-btn-prim"
-                                  >
-                                    Ver historial
-                                  </button>
-                                </td>
+                                {puedeVerHistorial && (
+                                  <td className="inv-td-der">
+                                    <button
+                                      type="button"
+                                      onClick={() => abrirModalHistorial(eq.codigo)}
+                                      className="inv-btn-prim"
+                                    >
+                                      Ver historial
+                                    </button>
+                                  </td>
+                                )}
                               </tr>
                             );
                           })
