@@ -34,7 +34,7 @@ const FORM_VACIO = () => ({
  * Dueño y Contador ven los pagos y el saldo; solo el Contador registra pagos.
  * Cuando el pago confirma el evento, avisa al calendario con onCambio.
  */
-export default function PagosEvento({ idEvento, puedeRegistrar, onCambio }) {
+export default function PagosEvento({ idEvento, puedeRegistrar, onCambio, version }) {
   const [datos, setDatos] = useState(null);
   const [form, setForm] = useState(FORM_VACIO());
   const [error, setError] = useState("");
@@ -51,7 +51,7 @@ export default function PagosEvento({ idEvento, puedeRegistrar, onCambio }) {
 
   useEffect(() => {
     cargar();
-  }, [idEvento]);
+  }, [idEvento, version]);
 
   const cambiar = (campo) => (ev) =>
     setForm({ ...form, [campo]: ev.target.value });
@@ -203,6 +203,7 @@ export default function PagosEvento({ idEvento, puedeRegistrar, onCambio }) {
               <input
                 id="pago-fecha"
                 type="date"
+                max={hoy()}
                 value={form.fecha}
                 onChange={cambiar("fecha")}
               />

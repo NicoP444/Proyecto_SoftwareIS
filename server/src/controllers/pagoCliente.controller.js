@@ -3,7 +3,7 @@ import { listarPagos, registrarPago } from '../services/pagoCliente.service.js';
 
 export const listar = async (req, res) => {
   try {
-    res.json(await listarPagos(Number(req.params.id)));
+    res.json(await listarPagos(Number(req.params.id), req.user.id_dueno));
   } catch (error) { manejarError(res, error); }
 };
 

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Phone, Search } from "lucide-react";
 import { listarRoles } from "../../services/personalServicio.js";
 import { listarPersonalConEstado } from "../../services/asignacion.service.js";
+import SelectorHora from "./SelectorHora";
 
 // Estado de la persona para la fecha y horario elegidos
 const ESTADOS_FRANJA = {
@@ -145,11 +146,11 @@ export default function ConsultaPersonal() {
           </div>
           <div className="campo">
             <label htmlFor="pc-inicio">Desde</label>
-            <input id="pc-inicio" type="time" value={horaInicio} onChange={(e) => setHoraInicio(e.target.value)} />
+            <SelectorHora id="pc-inicio" valor={horaInicio} onCambiar={setHoraInicio} />
           </div>
           <div className="campo">
             <label htmlFor="pc-termino">Hasta</label>
-            <input id="pc-termino" type="time" value={horaTermino} onChange={(e) => setHoraTermino(e.target.value)} />
+            <SelectorHora id="pc-termino" valor={horaTermino} onCambiar={setHoraTermino} />
           </div>
         </div>
         {(fecha || horaInicio || horaTermino) && !franjaValida && (

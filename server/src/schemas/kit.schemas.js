@@ -42,7 +42,7 @@ export const validarCrearKit = (body) => {
 
   if (!Array.isArray(equipos) || equipos.length < 4) {
     throw new ValidationError(
-      'Debes seleccionar al menos 4 equipos (cámara, trípode, micrófono y switch de video)',
+      'Para crear un kit debes seleccionar al menos 4 equipos (cámara, trípode, micrófono y switch de video)',
       'equipos'
     );
   }
@@ -102,8 +102,8 @@ export const validarModificarKit = (body) => {
   }
 
   if (equipos !== undefined && equipos !== null) {
-    if (!Array.isArray(equipos) || equipos.length < 4) {
-      throw new ValidationError('El kit debe mantener al menos 4 equipos (cámara, trípode, micrófono y switch de video)', 'equipos');
+    if (!Array.isArray(equipos) || equipos.length === 0) {
+      throw new ValidationError('El kit debe mantener al menos un equipo', 'equipos');
     }
     const codigosValidos = equipos.map((codigo) => {
       if (typeof codigo !== 'string' || codigo.trim().length === 0) {
@@ -112,9 +112,6 @@ export const validarModificarKit = (body) => {
       return codigo.trim();
     });
     const codigosUnicos = [...new Set(codigosValidos)];
-    if (codigosUnicos.length < 4) {
-      throw new ValidationError('No puedes repetir el mismo equipo; deben ser al menos 4 equipos distintos', 'equipos');
-    }
     datosValidados.equipos = codigosUnicos;
   }
 

@@ -3,11 +3,10 @@ import { ValidationError } from '../utils/errores.js';
 import { obtenerResumenFinancieroMensualService } from './resumenMensual.service.js';
 import { obtenerKitsSinRetornoService } from './alertaKits.service.js';
 
-// TODO: reemplazar por el id del dueño autenticado (JWT), igual que en los otros servicios
-const ID_DUENO_DEMO = 1;
-
 const ESTADOS_ACTIVOS = ['PENDIENTE_ADELANTO', 'CONFIRMADO'];
 const MS_DIA = 24 * 60 * 60 * 1000;
+// Dueño: solo lo suyo. Contador y Jefe no tienen id_dueno en el token: ven lo de la empresa
+const porDueno = (idDueno) => (idDueno ? { id_dueno: idDueno } : {});
 
 // Hoy a las 00:00 (UTC), que es como se guardan las fechas de los eventos
 const hoyUTC = () => {
@@ -16,9 +15,9 @@ const hoyUTC = () => {
 };
 
 // Próximos eventos (desde hoy), con sus kits si se piden
-const proximosEventos = (limite, conKits = false) =>
+const proximosEventos = (limite, conKits = false, idDueno) =>
   prisma.evento.findMany({
-    where: { id_dueno: ID_DUENO_DEMO, fecha: { gte: hoyUTC() }, estado: { in: ESTADOS_ACTIVOS } },
+    where: { ...porDueno(idDueno), fecha: { gte: hoyUTC() }, estado: { in: ESTADOS_ACTIVOS } },
     select: {
       id_evento: true,
       tipo: true,
@@ -34,9 +33,16 @@ const proximosEventos = (limite, conKits = false) =>
     take: limite,
   });
 
+
+// Cuántos eventos próximos hay en total (la lista muestra solo los primeros)
+const contarProximos = (idDueno) =>
+  prisma.evento.count({
+    where: { ...porDueno(idDueno), fecha: { gte: hoyUTC() }, estado: { in: ESTADOS_ACTIVOS } },
+  });
+
 // Acuerdo vencido = marcado VENCIDO, o sin cumplir y con la fecha comprometida ya pasada (RF-P4-05)
-const filtroAcuerdosVencidos = () => ({
-  id_dueno: ID_DUENO_DEMO,
+const filtroAcuerdosVencidos = (idDueno) => ({
+  ...porDueno(idDueno),
   OR: [
     { estado: 'VENCIDO' },
     { estado: { in: ['PENDIENTE', 'PARCIAL'] }, fecha_comprometida: { lt: hoyUTC() } },
@@ -44,7 +50,7 @@ const filtroAcuerdosVencidos = () => ({
 });
 
 // ---------- Dueño: resultado del mes, próximos eventos y alertas ----------
-async function panelDueno() {
+async function panelDueno(idDueno) {
   const ahora = new Date();
   const hoy = hoyUTC();
   const hace7Dias = new Date(hoy.getTime() - 7 * MS_DIA);
@@ -52,12 +58,12 @@ async function panelDueno() {
   const [resumen, proximos, pendientesAdelanto, sinMarcar, acuerdosVencidos, incidentes, kitsSinRetorno] =
     await Promise.all([
       obtenerResumenFinancieroMensualService({ anio: ahora.getFullYear(), mes: ahora.getMonth() + 1 }),
-      proximosEventos(5),
+      proximosEventos(5, false, idDueno),
       prisma.evento.count({
-        where: { id_dueno: ID_DUENO_DEMO, estado: 'PENDIENTE_ADELANTO', fecha: { gte: hoy } },
+        where: { id_dueno: idDueno, estado: 'PENDIENTE_ADELANTO', fecha: { gte: hoy } },
       }),
-      prisma.evento.count({ where: { id_dueno: ID_DUENO_DEMO, estado: 'CONFIRMADO', fecha: { lt: hoy } } }),
-      prisma.acuerdoAuspicio.count({ where: filtroAcuerdosVencidos() }),
+      prisma.evento.count({ where: { id_dueno: idDueno, estado: 'CONFIRMADO', fecha: { lt: hoy } } }),
+      prisma.acuerdoAuspicio.count({ where: filtroAcuerdosVencidos(idDueno) }),
       prisma.incidente.count({ where: { fecha: { gte: hace7Dias } } }),
       obtenerKitsSinRetornoService(),
     ]);
@@ -66,12 +72,16 @@ async function panelDueno() {
     { clave: 'adelanto', texto: 'Eventos pendientes de adelanto', cantidad: pendientesAdelanto, ruta: '/calendario' },
     { clave: 'sin_marcar', texto: 'Eventos pasados por marcar como realizados', cantidad: sinMarcar, ruta: '/marcar-evento' },
     { clave: 'acuerdos', texto: 'Acuerdos de auspicio vencidos', cantidad: acuerdosVencidos, ruta: '/auspiciadores' },
-    { clave: 'kits', texto: 'Kits sin retorno hace más de 24 horas', cantidad: kitsSinRetorno.length, ruta: '/salida-kits' },
-    { clave: 'incidentes', texto: 'Incidentes de la última semana', cantidad: incidentes, ruta: '/salida-kits?tab=incidentes' },
+    // Rutas que el Dueño sí puede abrir (/salida-kits es solo del Jefe técnico)
+    { clave: 'kits', texto: 'Kits sin retorno hace más de 24 horas', cantidad: kitsSinRetorno.length, ruta: '/consulta-inventario' },
+    { clave: 'incidentes', texto: 'Incidentes de la última semana', cantidad: incidentes, ruta: '/incidentes' },
   ].filter((a) => a.cantidad > 0);
+
+    const totalProximos = await contarProximos(idDueno);
 
   return {
     rol: 'DUENO',
+    total_proximos: totalProximos,
     resultado_mes: {
       anio: resumen.anio,
       mes: resumen.mes,
@@ -93,7 +103,7 @@ async function panelContador() {
       },
     }),
     prisma.evento.findMany({
-      where: { id_dueno: ID_DUENO_DEMO, estado: { in: [...ESTADOS_ACTIVOS, 'REALIZADO'] } },
+      where: { estado: { in: [...ESTADOS_ACTIVOS, 'REALIZADO'] } },
       select: {
         id_evento: true,
         tipo: true,
@@ -174,8 +184,11 @@ async function panelJefe() {
     obtenerKitsSinRetornoService(),
   ]);
 
+  const totalProximos = await contarProximos();
+
   return {
     rol: 'JEFE_TECNICO',
+    total_proximos: totalProximos,
     proximos_eventos: proximos,
     kits_en_terreno: enTerreno,
     kits_sin_retorno: sinRetorno.length,
@@ -183,8 +196,8 @@ async function panelJefe() {
 }
 
 // RF-T-07: el panel de inicio cambia según el rol
-export async function obtenerPanel(rol) {
-  if (rol === 'DUENO') return panelDueno();
+export async function obtenerPanel(rol, idDueno) {
+  if (rol === 'DUENO') return panelDueno(idDueno);
   if (rol === 'CONTADOR') return panelContador();
   if (rol === 'JEFE_TECNICO') return panelJefe();
   throw new ValidationError('El rol no es válido', 'rol');

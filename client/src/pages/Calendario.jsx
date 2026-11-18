@@ -14,7 +14,6 @@ import {
   Trash2,
   UserCheck,
   Users,
-  Video,
   Wallet,
 } from "lucide-react";
 import Modal from "../components/Modal";
@@ -34,6 +33,7 @@ import PagosEvento from "../components/calendario/PagosEvento";
 import DetalleFinancieroEvento from "../components/calendario/DetalleFinancieroEvento";
 import ConsultaPersonal from "../components/calendario/ConsultaPersonal";
 import MargenTraslado from "../components/calendario/MargenTraslado";
+import ResumenIncidentesEvento from "../components/incidentes/ResumenIncidentesEvento";
 import { obtenerUsuario } from "../services/http.js";
 import "../styles/Calendario.css";
 
@@ -536,18 +536,6 @@ export default function Calendario() {
               </div>
               <div className="cal-dato">
                 <span className="cal-dato-icono">
-                  <Video />
-                </span>
-                <div>
-                  <small>Cámaras</small>
-                  <strong>
-                    {e.cantidad_camaras}{" "}
-                    {e.cantidad_camaras === 1 ? "cámara" : "cámaras"}
-                  </strong>
-                </div>
-              </div>
-              <div className="cal-dato">
-                <span className="cal-dato-icono">
                   <UserCheck />
                 </span>
                 <div>
@@ -595,7 +583,10 @@ export default function Calendario() {
                       hora_termino: horaDe(e.hora_termino),
                     }}
                     puedeEditar={puedeCrear}
-                    onCambio={cargarDatos}
+                    onCambio={() => {
+                      cargarDatos();
+                      setVersionFin((v) => v + 1);
+                    }}
                   />
                 </section>
                 {/* Kits del evento (RF-P1-05) */}
@@ -618,11 +609,13 @@ export default function Calendario() {
                     </div>
                   </section>
                 )}
-
                 {e.incidentes && (
                   <section className="cal-bloque">
                     <span className="etiqueta">Incidentes</span>
-                    {e.incidentes.length === 0 ? (
+                    {/* RF-P6-06: Dueño y Contador ven equipo y valor; el Jefe técnico, la lista sin montos (RF-P1-12) */}
+                    {verFinanzas ? (
+                      <ResumenIncidentesEvento idEvento={e.id_evento} />
+                    ) : e.incidentes.length === 0 ? (
                       <p className="texto-tenue">Sin incidentes</p>
                     ) : (
                       e.incidentes.map((i) => (
@@ -642,7 +635,8 @@ export default function Calendario() {
                     <section className="cal-bloque">
                       <ViabilidadEvento
                         idEvento={e.id_evento}
-                        puedeEditar={puedeCrear}
+                        puedeEditar={puedeCrear && e.estado !== "CERRADO"}
+                        version={versionFin}
                       />
                     </section>
                   )}
@@ -650,8 +644,9 @@ export default function Calendario() {
                     <section className="cal-bloque">
                       <PagosEvento
                         idEvento={e.id_evento}
-                        puedeRegistrar={rol === "CONTADOR"}
+                        puedeRegistrar={rol === "CONTADOR" && e.estado !== "CERRADO"}
                         onCambio={refrescarDetalle}
+                        version={versionFin}
                       />
                     </section>
                   )}
@@ -666,6 +661,7 @@ export default function Calendario() {
                   {puedeCrear && (
                     <section className="cal-bloque">
                       <ConvocatoriaEvento
+                        key={`${e.id_evento}-${e.fecha}-${e.hora_inicio}-${e.hora_termino}-${e.direccion}`}
                         evento={{
                           id_evento: e.id_evento,
                           tipo: e.tipo,
@@ -699,7 +695,7 @@ export default function Calendario() {
                   <Pencil size={16} /> Modificar evento
                 </button>
               )}
-              {puedeEliminar && !pidiendoMotivo && (
+              {puedeEliminar && !pidiendoMotivo && !["REALIZADO", "CERRADO"].includes(e.estado) && (
                 <button
                   type="button"
                   className="boton boton-peligro"

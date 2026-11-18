@@ -4,7 +4,6 @@ import Home from "./pages/Home";
 import Trabajadores from "./pages/Trabajadores"; //nico
 import Finanzas from "./pages/Finanzas"; //nico
 import Auspiciadores from "./pages/Auspiciadores";
-import Eventos from "./pages/Eventos";
 import Incidentes from "./pages/Incidentes";
 import RegistrarAcuerdoPage from "./pages/RegistrarAcuerdo";
 import SalidaKits from "./pages/SalidaKits";

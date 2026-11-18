@@ -5,7 +5,7 @@ import { ValidationError } from '../utils/errores.js';
 // Solo leen la base de datos: si algo no se puede, lanzan un Error; si algo solo hay que revisar, lo devuelven como advertencia.
 
 const FECHA = /^\d{4}-\d{2}-\d{2}$/; // AAAA-MM-DD
-const HORA = /^\d{2}:\d{2}$/; // HH:MM
+const HORA = /^([01]\d|2[0-3]):[0-5]\d$/; // HH:MM real, de 00:00 a 23:59
 
 // Prisma entrega fechas y horas como Date: las pasamos a texto para compararlas fácil
 export const aHora = (d) => d.toISOString().slice(11, 16); // "09:00"
@@ -36,11 +36,17 @@ const mismaDireccion = (a, b) => normalizar(a) === normalizar(b);
 const cubreFecha = (bloques, fecha) =>
   bloques.some((b) => aFecha(b.fecha_inicio) <= fecha && aFecha(b.fecha_termino) >= fecha);
 
+// true si "AAAA-MM-DD" es una fecha que existe. Rechaza "2026-02-31" (JS la pasaría al 3 de marzo)
+// y "2026-13-45" (sin este chequeo, toISOString() lanza un error y el servidor respondía 500)
+export const fechaEsReal = (fecha) => {
+  if (!FECHA.test(fecha ?? '')) return false;
+  const d = new Date(`${fecha}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === fecha;
+};
+
 // ---------- Agenda: la fecha y las horas deben existir y tener sentido ----------
 export function validarFormatoAgenda({ fecha, hora_inicio, hora_termino }) {
-  const fechaValida =
-    FECHA.test(fecha ?? '') && new Date(`${fecha}T00:00:00Z`).toISOString().slice(0, 10) === fecha; // evita "2026-02-31"
-  if (!fechaValida) throw new ValidationError('La fecha no es válida (usa AAAA-MM-DD)');
+  if (!fechaEsReal(fecha)) throw new ValidationError('La fecha no es válida (usa AAAA-MM-DD)');
 
   for (const [nombre, hora] of [['inicio', hora_inicio], ['término', hora_termino]]) {
     const ok = HORA.test(hora ?? '') && !Number.isNaN(new Date(`2000-01-01T${hora}:00Z`).getTime());

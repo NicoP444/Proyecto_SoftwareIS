@@ -34,6 +34,11 @@ const EQUIPOS = [
   { codigo: 'CAM-003', nombre: 'Cámara Canon R6 Mark II', categoria: 'CAMARA', valor_compra: 2400000, kit: 2 },
   { codigo: 'TRI-003', nombre: 'Trípode Compacto K&F', categoria: 'TRIPODE', valor_compra: 120000, kit: 2 },
   { codigo: 'MIC-003', nombre: 'Micrófono Shure MV88+', categoria: 'MICROFONO', valor_compra: 250000, kit: 2 },
+
+  // Un switch por kit: sin él, el kit no cumple el mínimo (cámara, trípode, micrófono y switch)
+  { codigo: 'SWI-001', nombre: 'Switch Blackmagic ATEM Mini', categoria: 'SWITCH_VIDEO', valor_compra: 450000, kit: 0 },
+  { codigo: 'SWI-002', nombre: 'Switch Blackmagic ATEM Mini Pro', categoria: 'SWITCH_VIDEO', valor_compra: 650000, kit: 1 },
+  { codigo: 'SWI-003', nombre: 'Switch Roland V-1HD', categoria: 'SWITCH_VIDEO', valor_compra: 900000, kit: 2 },
 ];
 
 async function main() {

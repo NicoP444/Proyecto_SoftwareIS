@@ -1,8 +1,8 @@
 import prisma from '../config/prisma.js';
 import { ValidationError, NotFoundError } from '../utils/errores.js';
+import { fechaEsReal } from './validacionesEvento.service.js';
 
-const FECHA = /^\d{4}-\d{2}-\d{2}$/; // AAAA-MM-DD
-const HORA = /^\d{2}:\d{2}$/; // HH:MM
+const HORA = /^([01]\d|2[0-3]):[0-5]\d$/; // HH:MM real, de 00:00 a 23:59
 
 // Las fechas y horas de Prisma vienen como Date: las pasamos a texto para compararlas fácil
 const aHora = (d) => d.toISOString().slice(11, 16); // "09:00"
@@ -34,7 +34,7 @@ const cubreFecha = (bloques, fecha) =>
 
 // Valida fecha y horas que vienen por la URL (RF-P1-03)
 const validarFranja = ({ fecha, hora_inicio, hora_termino }) => {
-  if (!FECHA.test(fecha ?? '')) throw new ValidationError('La fecha no es válida', 'fecha');
+  if (!fechaEsReal(fecha)) throw new ValidationError('La fecha no es válida', 'fecha');
   if (!HORA.test(hora_inicio ?? '')) throw new ValidationError('La hora de inicio no es válida', 'hora_inicio');
   if (!HORA.test(hora_termino ?? '')) throw new ValidationError('La hora de término no es válida', 'hora_termino');
   if (hora_termino <= hora_inicio) {
@@ -147,8 +147,8 @@ export const listarPersonalConEstado = async ({ id_dueno, fecha, hora_inicio, ho
 };
 
 // ---------- Trabajadores asignados a un evento ----------
-export const listarAsignaciones = async (id_evento) => {
-  const evento = await prisma.evento.findUnique({ where: { id_evento } });
+export const listarAsignaciones = async (id_evento, id_dueno) => {
+  const evento = await prisma.evento.findFirst({ where: { id_evento, id_dueno } });
   if (!evento) throw new NotFoundError('El evento no existe');
 
   return prisma.asignacionPersonal.findMany({
@@ -175,7 +175,7 @@ export const asignarTrabajador = async (id_evento, { id_trabajador, id_rol, id_d
     throw new ValidationError('Debes elegir un rol', 'id_rol');
   }
 
-  const evento = await prisma.evento.findUnique({ where: { id_evento } });
+  const evento = await prisma.evento.findFirst({ where: { id_evento, id_dueno } });
   if (!evento) throw new NotFoundError('El evento no existe');
   if (evento.estado === 'CERRADO') {
     throw new ValidationError('La jornada está cerrada: ya no se puede cambiar la dotación', 'id_evento');
@@ -259,9 +259,9 @@ export const asignarTrabajador = async (id_evento, { id_trabajador, id_rol, id_d
 };
 
 // ---------- Quitar a un trabajador del evento (cuando cambia la dotación) ----------
-export const quitarAsignacion = async (id_evento, id_asignacion) => {
+export const quitarAsignacion = async (id_evento, id_asignacion, id_dueno) => {
   const asignacion = await prisma.asignacionPersonal.findFirst({
-    where: { id_asignacion, id_evento },
+    where: { id_asignacion, id_evento, id_dueno },
     include: {
       evento: true,
       trabajador: { select: { nombre: true } },

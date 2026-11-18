@@ -19,8 +19,10 @@ const normalizar = (texto) =>
     .trim();
 const mismaDireccion = (a, b) => normalizar(a) === normalizar(b);
 
-async function obtenerEvento(id_evento) {
-  const evento = await prisma.evento.findUnique({ where: { id_evento } });
+async function obtenerEvento(id_evento, id_dueno) {
+  const evento = await prisma.evento.findFirst({
+    where: { id_evento, ...(id_dueno ? { id_dueno } : {}) },
+  });
   if (!evento) throw new NotFoundError('El evento no existe');
   return evento;
 }
@@ -39,8 +41,8 @@ const chocaConEvento = (evento, otro) =>
   seTraslapan(aHora(evento.hora_inicio), aHora(evento.hora_termino), aHora(otro.hora_inicio), aHora(otro.hora_termino));
 
 // ---------- Kits que ya tiene el evento ----------
-export const listarKitsEvento = async (id_evento) => {
-  await obtenerEvento(id_evento);
+export const listarKitsEvento = async (id_evento, id_dueno) => {
+  await obtenerEvento(id_evento, id_dueno);
   return prisma.reservaKit.findMany({
     where: { id_evento },
     select: {
@@ -54,8 +56,8 @@ export const listarKitsEvento = async (id_evento) => {
 };
 
 // ---------- RF-P1-05: solo kits completos y libres en el horario del evento ----------
-export const listarKitsDisponibles = async (id_evento) => {
-  const evento = await obtenerEvento(id_evento);
+export const listarKitsDisponibles = async (id_evento, id_dueno) => {
+  const evento = await obtenerEvento(id_evento, id_dueno);
 
   const yaEnElEvento = (
     await prisma.reservaKit.findMany({ where: { id_evento }, select: { id_kit: true } })
@@ -81,9 +83,9 @@ export const reservarKit = async (id_evento, { id_kit, id_dueno }) => {
     throw new ValidationError('Debes elegir un kit', 'id_kit');
   }
 
-  const evento = await obtenerEvento(id_evento);
-  if (evento.estado === 'CERRADO') {
-    throw new ValidationError('La jornada está cerrada: ya no se pueden cambiar los kits', 'id_evento');
+const evento = await obtenerEvento(id_evento, id_dueno);
+   if (evento.estado === 'CERRADO') {
+     throw new ValidationError('La jornada está cerrada: ya no se pueden cambiar los kits', 'id_evento');
   }
 
   const kit = await prisma.kit.findUnique({ where: { id_kit } });
@@ -142,9 +144,9 @@ export const reservarKit = async (id_evento, { id_kit, id_dueno }) => {
 };
 
 // ---------- Quitar un kit del evento ----------
-export const quitarKit = async (id_evento, id_reserva) => {
+export const quitarKit = async (id_evento, id_reserva, id_dueno) => {
   const reserva = await prisma.reservaKit.findFirst({
-    where: { id_reserva, id_evento },
+    where: { id_reserva, id_evento, id_dueno },
     include: { evento: true, kit: { select: { nombre: true } }, salida: { select: { id_salida: true } } },
   });
   if (!reserva) throw new NotFoundError('La reserva no existe');

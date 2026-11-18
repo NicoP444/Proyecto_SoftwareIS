@@ -22,7 +22,11 @@ const RUT_CLIENTES = [
 ];
 
 const NOMBRES_KITS = ['Kit Móvil 01 - Cancha Principal', 'Kit Multicámara 02 - Gimnasio', 'Kit Compacto 03 - Entrevistas'];
-const CODIGOS_EQUIPOS = ['CAM-001', 'TRI-001', 'MIC-001', 'CAM-002', 'TRI-002', 'MIC-002', 'CAM-003', 'TRI-003', 'MIC-003'];
+const CODIGOS_EQUIPOS = [
+  'CAM-001', 'TRI-001', 'MIC-001', 'SWI-001',
+  'CAM-002', 'TRI-002', 'MIC-002', 'SWI-002',
+  'CAM-003', 'TRI-003', 'MIC-003', 'SWI-003',
+];
 
 const NOMBRES_AUSPICIADORES = [
   'Coca-Cola', 'Pepsi', 'Gatorade', 'Powerade', 'Red Bull', 'Monster Energy',

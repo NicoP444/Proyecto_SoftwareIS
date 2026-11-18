@@ -9,7 +9,9 @@ import { manejarError } from '../utils/errores.js';
 export async function getClientes(req, res) {
   try {
     const buscar = req.query.buscar ?? '';
-    const limite = Number(req.query.limite) || undefined;
+    // límite opcional entre 1 y 100 (con un negativo, Prisma tomaría los últimos registros)
+    const limiteNum = Number(req.query.limite);
+    const limite = Number.isInteger(limiteNum) && limiteNum > 0 ? Math.min(limiteNum, 100) : undefined;
     res.json(await listarClientes(req.user.id_dueno, { buscar, limite }));
   } catch (error) { manejarError(res, error); }
 }

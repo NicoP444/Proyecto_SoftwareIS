@@ -1,4 +1,5 @@
 import prisma from '../config/prisma.js'; //inportamos la instancia de prisma (para comunicarme con la base de datos)
+import { validationResult } from 'express-validator'
 
 //Funcion para Verificar si el ID es un numero y si es mayor a 0
 export const validarId = (req, res, next) => { //req: info que envio el cliente; res: respuesta que enviara el servidor; next:permite continuar al siguiente middleware
@@ -74,3 +75,18 @@ export const validarContador = async (req, res, next) => {
     next(error);
   }
 };  
+
+export const validarCampos = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const lista = errors.array();
+    const primerMensaje = lista[0]?.msg || 'Datos inválidos en el formulario.';
+    return res.status(400).json({
+      error: primerMensaje,
+      mensaje: primerMensaje,
+      message: primerMensaje,
+      errores: lista
+    });
+  }
+  next();
+};

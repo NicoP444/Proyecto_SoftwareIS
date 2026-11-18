@@ -92,7 +92,7 @@ function VistaDueno({ datos }) {
     <>
       <section className="kpis">
         <Kpi titulo="Resultado del mes" valor={plata(r.utilidad_neta)} nota={nombreResultado} color={color} claseValor={clase} ruta="/finanzas" />
-        <Kpi titulo="Próximos eventos" valor={datos.proximos_eventos.length} nota="Ver calendario" color="azul" ruta="/calendario" />
+        <Kpi titulo="Próximos eventos" valor={datos.total_proximos ?? datos.proximos_eventos.length} nota="Ver calendario" color="azul" ruta="/calendario" />
         <Kpi
           titulo="Alertas"
           valor={datos.alertas.length}
@@ -194,7 +194,7 @@ function VistaJefe({ datos }) {
   return (
     <>
       <section className="kpis">
-        <Kpi titulo="Próximos eventos" valor={datos.proximos_eventos.length} nota="Ver calendario" color="azul" ruta="/calendario" />
+        <Kpi titulo="Próximos eventos" valor={datos.total_proximos ?? datos.proximos_eventos.length} nota="Ver calendario" color="azul" ruta="/calendario" />
         <Kpi titulo="Kits en terreno" valor={datos.kits_en_terreno.length} nota="Aún sin retorno registrado" color="naranja" ruta="/salida-kits" />
         <Kpi
           titulo="Kits sin retorno"

@@ -1,6 +1,6 @@
 import { validarBody, camposObligatorios, validarDueno } from './validate.middleware.js';
 import { ValidarNombreUsuario, ValidarCorreo, ValidarRol, VerificarCorreoUnicoGlobal } from '../schemas/usuario.schemas.js';
-import { manejarError } from '../utils/errores.js';
+import { manejarError, ValidationError } from '../utils/errores.js';
 
 export const verificarSchemaCrearUsuario = async (req, res, next) => {
     try {

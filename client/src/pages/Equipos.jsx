@@ -1,8 +1,15 @@
 import { useState, useEffect } from 'react';
-import { 
-  FaPlus, FaVideo, FaSlidersH, FaMicrophone, FaDesktop, 
-  FaExclamationTriangle, FaBoxOpen, FaCheckCircle, FaTrash 
-} from 'react-icons/fa';
+import { FaCheckCircle } from 'react-icons/fa';
+import {
+  AlertTriangle,
+  Box,
+  Mic,
+  Monitor,
+  Plus,
+  Sliders,
+  Trash2,
+  Video
+} from 'lucide-react';
 import {
   obtenerEquipos,
   registrarEquipo,
@@ -11,8 +18,49 @@ import {
   eliminarEquipo
 } from '../services/equipoService';
 import { kitClientService } from '../services/kit.service';
+import '../styles/Equipos.css';
+
+// Obtiene la fecha de hoy en formato local YYYY-MM-DD (evita que pase a mañana por UTC)
+const obtenerFechaHoyLocal = () => {
+  const hoy = new Date();
+  const anio = hoy.getFullYear();
+  const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+  const dia = String(hoy.getDate()).padStart(2, '0');
+  return `${anio}-${mes}-${dia}`;
+};
+
+// Formatea fecha ISO ("2026-11-15T...") a "DD-MM-YYYY" sin desfase de zona horaria
+const formatearFechaTabla = (valorFecha) => {
+  if (!valorFecha) return '--';
+  const iso = String(valorFecha).slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return '--';
+  const [a, m, d] = iso.split('-');
+  return `${d}-${m}-${a}`;
+};
+
+// Impide escribir signos negativos, decimales o notación científica en montos enteros
+const bloquearNegativosEnteros = (e) => {
+  if (['-', '+', 'e', 'E', '.', ','].includes(e.key)) {
+    e.preventDefault();
+  }
+};
+
+// Impide escribir signos negativos en porcentajes decimales
+const bloquearNegativosDecimal = (e) => {
+  if (['-', '+', 'e', 'E'].includes(e.key)) {
+    e.preventDefault();
+  }
+};
+
+// Valida que un texto tenga al menos N letras reales (bloquea "222", "2222", etc.)
+const tieneMinimoLetras = (texto, minLetras = 2) => {
+  const limpio = String(texto || '').trim();
+  const coincidencias = limpio.match(/[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]/g) || [];
+  return coincidencias.length >= minLetras;
+};
 
 export default function Equipos() {
+  const fechaHoyLocal = obtenerFechaHoyLocal();
   const [activeTab, setActiveTab] = useState('KITS');
 
   // --- ESTADOS DE EQUIPOS / INVENTARIO ---
@@ -21,7 +69,7 @@ export default function Equipos() {
     categoria: 'CAMARA',
     marca: '',
     modelo: '',
-    fecha_compra: new Date().toISOString().split('T')[0],
+    fecha_compra: fechaHoyLocal,
     valor_compra: '',
     id_jefe: 1
   });
@@ -29,13 +77,12 @@ export default function Equipos() {
   const [listaEquipos, setListaEquipos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [guardandoEquipo, setGuardandoEquipo] = useState(false);
+
   const [errorEquipo, setErrorEquipo] = useState('');
-  const [exitoEquipo, setExitoEquipo] = useState('');
-  const [exitoEditarEquipo, setExitoEditarEquipo] = useState('');
-  const [exitoBaja, setExitoBaja] = useState('');
-  const [exitoKit, setExitoKit] = useState('');
-  const [exitoCrearKit, setExitoCrearKit] = useState('');
-  const [exitoModificarKit, setExitoModificarKit] = useState('');
+  const [errorEditarEquipo, setErrorEditarEquipo] = useState('');
+  const [errorBajaEquipo, setErrorBajaEquipo] = useState('');
+  const [mensajeExitoModal, setMensajeExitoModal] = useState('');
+
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [equipoEditando, setEquipoEditando] = useState(null);
   const [equipoBaja, setEquipoBaja] = useState(null);
@@ -49,7 +96,7 @@ export default function Equipos() {
   const [nivelKit, setNivelKit] = useState('BASICO');
   const [recargoPct, setRecargoPct] = useState(0);
 
-  // Selección por categoría para CREAR (con soporte para adicionales)
+  // Selección por categoría para CREAR
   const [camaraSeleccionada, setCamaraSeleccionada] = useState('');
   const [tripodeSeleccionado, setTripodeSeleccionado] = useState('');
   const [microfonoSeleccionado, setMicrofonoSeleccionado] = useState('');
@@ -72,6 +119,24 @@ export default function Equipos() {
   const [errorEditKit, setErrorEditKit] = useState('');
   const [loadingEditKit, setLoadingEditKit] = useState(false);
 
+  const mostrarExitoTemporal = (mensaje) => {
+    setMensajeExitoModal(mensaje);
+    setTimeout(() => {
+      setMensajeExitoModal('');
+    }, 1300);
+  };
+
+  const extraerMensajeError = (error, porDefecto) => {
+    return (
+      error?.errores?.[0]?.msg ||
+      error?.response?.data?.errores?.[0]?.msg ||
+      error?.mensaje ||
+      error?.error ||
+      error?.message ||
+      porDefecto
+    );
+  };
+
   const cargarDatos = async () => {
     try {
       setCargando(true);
@@ -92,7 +157,6 @@ export default function Equipos() {
     cargarDatos();
   }, []);
 
-  // Función helper para formatear categorías visualmente para el usuario
   const formatearCategoria = (cat) => {
     if (!cat) return '';
     switch (cat.toUpperCase()) {
@@ -105,56 +169,134 @@ export default function Equipos() {
     }
   };
 
-  // Función segura para formatear fechas en los inputs
   const formatearFechaInput = (fecha) => {
-    if (!fecha) return '';
-    if (typeof fecha === 'string') return fecha.split('T')[0];
-    try {
-      return new Date(fecha).toISOString().split('T')[0];
-    } catch {
-      return '';
+    if (!fecha) return fechaHoyLocal;
+    const str = String(fecha).slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+      return str > fechaHoyLocal ? fechaHoyLocal : str;
     }
+    return fechaHoyLocal;
   };
 
   const getIconoCategoria = (categoria) => {
     switch (categoria?.toUpperCase()) {
-      case 'CAMARA': return <FaVideo className="text-blue-500" />;
-      case 'TRIPODE': return <FaSlidersH className="text-gray-500" />;
-      case 'MICROFONO': return <FaMicrophone className="text-indigo-500" />;
-      case 'SWITCH_VIDEO': return <FaDesktop className="text-slate-700" />;
-      default: return <FaBoxOpen />;
+      case 'CAMARA': return <Video size={16} />;
+      case 'TRIPODE': return <Sliders size={16} />;
+      case 'MICROFONO': return <Mic size={16} />;
+      case 'SWITCH_VIDEO': return <Monitor size={16} />;
+      default: return <Box size={16} />;
     }
+  };
+
+  const renderBadgeEquipo = (estado) => {
+    let clase = 'eqp-badge-gris';
+    if (estado === 'OPERATIVO') clase = 'eqp-badge-verde';
+    else if (estado !== 'DADO_DE_BAJA') clase = 'eqp-badge-rojo';
+    return <span className={`eqp-badge ${clase}`}>{estado}</span>;
+  };
+
+  const renderBadgeKit = (estado = 'DISPONIBLE') => {
+    let clase = 'eqp-badge-verde';
+    if (estado === 'EN_TERRENO') clase = 'eqp-badge-azul';
+    else if (estado === 'INCOMPLETO') clase = 'eqp-badge-rojo';
+    return <span className={`eqp-badge ${clase}`}>{estado}</span>;
   };
 
   const manejarCambio = (e) => {
     const { name, value } = e.target;
+    setErrorEquipo('');
+
+    if (name === 'valor_compra') {
+      const soloDigitos = value.replace(/\D/g, '').slice(0, 9);
+      setFormData({ ...formData, valor_compra: soloDigitos });
+      return;
+    }
+
     setFormData({ ...formData, [name]: value });
+  };
+
+  const validarDatosEquipoFormulario = (datos) => {
+    const nombreLimpio = (datos.nombre || '').trim();
+    if (nombreLimpio.length < 3 || nombreLimpio.length > 50) {
+      return 'El nombre del equipo debe tener entre 3 y 50 caracteres.';
+    }
+    if (!tieneMinimoLetras(nombreLimpio, 2)) {
+      return 'El nombre del equipo debe contener letras (no se permiten solo números).';
+    }
+
+    const marcaLimpia = (datos.marca || '').trim();
+    if (marcaLimpia) {
+      if (marcaLimpia.length < 2 || marcaLimpia.length > 35) {
+        return 'La marca debe tener entre 2 y 35 caracteres.';
+      }
+      if (!tieneMinimoLetras(marcaLimpia, 2)) {
+        return 'La marca debe contener letras válidas (no se permiten solo números).';
+      }
+    }
+
+    const modeloLimpio = (datos.modelo || '').trim();
+    if (modeloLimpio) {
+      if (modeloLimpio.length < 2 || modeloLimpio.length > 35) {
+        return 'El modelo debe tener entre 2 y 35 caracteres.';
+      }
+      if (!tieneMinimoLetras(modeloLimpio, 1)) {
+        return 'El modelo debe incluir al menos una letra (ej: FX3, ILCE-7M4) y no ser solo números.';
+      }
+    }
+
+    const fechaStr = String(datos.fecha_compra || '').slice(0, 10);
+    if (!fechaStr) {
+      return 'La fecha de compra es obligatoria.';
+    }
+    if (fechaStr > fechaHoyLocal) {
+      return 'La fecha de compra no puede ser posterior al día de hoy.';
+    }
+    if (fechaStr < '2000-01-01') {
+      return 'La fecha de compra no puede ser anterior al año 2000.';
+    }
+
+    const valorNum = Number(datos.valor_compra);
+    if (!Number.isInteger(valorNum) || valorNum <= 0 || valorNum > 500000000) {
+      return 'El valor de compra debe ser un número entero positivo entre $1 y $500.000.000.';
+    }
+
+    return null;
   };
 
   const manejarEnvio = async (e) => {
     e.preventDefault();
     setErrorEquipo('');
-    setExitoEquipo('');
+
+    const errorValidacion = validarDatosEquipoFormulario(formData);
+    if (errorValidacion) {
+      setErrorEquipo(errorValidacion);
+      return;
+    }
+
     setGuardandoEquipo(true);
     try {
-      await registrarEquipo({ ...formData, valor_compra: Number(formData.valor_compra) });
-      setExitoEquipo('Equipo registrado con éxito en el inventario');
+      await registrarEquipo({
+        ...formData,
+        nombre: formData.nombre.trim(),
+        marca: formData.marca ? formData.marca.trim() : null,
+        modelo: formData.modelo ? formData.modelo.trim() : null,
+        valor_compra: Number(formData.valor_compra)
+      });
+
+      setMostrarFormulario(false);
       setFormData({
         nombre: '',
         categoria: 'CAMARA',
         marca: '',
         modelo: '',
-        fecha_compra: new Date().toISOString().split('T')[0],
+        fecha_compra: fechaHoyLocal,
         valor_compra: '',
         id_jefe: 1
       });
-      cargarDatos();
-      setTimeout(() => {
-        setMostrarFormulario(false);
-        setExitoEquipo('');
-      }, 1200);
+      await cargarDatos();
+      mostrarExitoTemporal('Equipo registrado con éxito en el inventario');
     } catch (error) {
-      setErrorEquipo(error.message || 'Error al registrar el equipo.');
+      setErrorEquipo(extraerMensajeError(error, 'Error al registrar el equipo.'));
     } finally {
       setGuardandoEquipo(false);
     }
@@ -162,56 +304,82 @@ export default function Equipos() {
 
   const guardarEdicion = async (e) => {
     e.preventDefault();
-    setExitoEditarEquipo('');
+    setErrorEditarEquipo('');
+
+    const datosParaValidar = {
+      ...equipoEditando,
+      fecha_compra: formatearFechaInput(equipoEditando.fecha_compra)
+    };
+
+    const errorValidacion = validarDatosEquipoFormulario(datosParaValidar);
+    if (errorValidacion) {
+      setErrorEditarEquipo(errorValidacion);
+      return;
+    }
+
     try {
       await actualizarEquipo(equipoEditando.codigo, {
-        nombre: equipoEditando.nombre,
+        nombre: equipoEditando.nombre.trim(),
         categoria: equipoEditando.categoria,
-        marca: equipoEditando.marca || null,
-        modelo: equipoEditando.modelo || null,
-        fecha_compra: equipoEditando.fecha_compra,
+        marca: equipoEditando.marca ? equipoEditando.marca.trim() : null,
+        modelo: equipoEditando.modelo ? equipoEditando.modelo.trim() : null,
+        fecha_compra: formatearFechaInput(equipoEditando.fecha_compra),
         valor_compra: Number(equipoEditando.valor_compra)
       });
-      setExitoEditarEquipo('Equipo modificado correctamente en el inventario');
+      setEquipoEditando(null);
       await cargarDatos();
-      setTimeout(() => {
-        setEquipoEditando(null);
-        setExitoEditarEquipo('');
-      }, 1200);
     } catch (error) {
-      alert(error.message || 'Error al actualizar el equipo.');
+      setErrorEditarEquipo(extraerMensajeError(error, 'Error al actualizar el equipo.'));
     }
   };
 
   const confirmarBaja = async (e) => {
     e.preventDefault();
-    if (!motivoBaja.trim()) {
-      alert('Debe indicar un motivo para dar de baja el equipo.');
+    setErrorBajaEquipo('');
+
+    const motivoLimpio = motivoBaja.trim();
+    if (motivoLimpio.length < 5 || motivoLimpio.length > 120) {
+      setErrorBajaEquipo('El motivo de la baja debe tener entre 5 y 120 caracteres.');
       return;
     }
+    if (!tieneMinimoLetras(motivoLimpio, 3)) {
+      setErrorBajaEquipo('El motivo de la baja debe describirse con palabras (no se permiten solo números).');
+      return;
+    }
+
     try {
-      const resp = await darDeBajaEquipo(equipoBaja.codigo, motivoBaja);
-      let mensajeExito = 'Equipo dado de baja correctamente';
-      if (resp?.sinHistorial && window.confirm('Deseas eliminarlo definitivamente?')) {
+      const resp = await darDeBajaEquipo(equipoBaja.codigo, motivoLimpio);
+      if (resp?.sinHistorial && window.confirm('Este equipo no tiene historial de uso. ¿Deseas eliminarlo definitivamente?')) {
         await eliminarEquipo(equipoBaja.codigo);
-        mensajeExito = 'Equipo eliminado definitivamente del inventario';
       }
       setEquipoBaja(null);
       setMotivoBaja('');
-      setExitoBaja(mensajeExito);
       await cargarDatos();
-      setTimeout(() => {
-        setExitoBaja('');
-      }, 1500);
     } catch (error) {
-      alert(error.message || 'Error al procesar la baja.');
+      setErrorBajaEquipo(extraerMensajeError(error, 'Error al procesar la baja del equipo.'));
     }
   };
 
   const handleSubmitCrearKit = async (e) => {
     e.preventDefault();
     setErrorKit('');
-    setExitoCrearKit('');
+
+    const nombreLimpio = nombreKit.trim();
+    if (nombreLimpio.length < 3 || nombreLimpio.length > 50) {
+      setErrorKit('El nombre del kit debe tener entre 3 y 50 caracteres.');
+      return;
+    }
+    if (!tieneMinimoLetras(nombreLimpio, 2)) {
+      setErrorKit('El nombre del kit debe contener letras (no se permiten solo números).');
+      return;
+    }
+
+    const recargoNum = Number(recargoPct);
+    if (Number.isNaN(recargoNum) || recargoNum < 0 || recargoNum > 100) {
+      setErrorKit('El porcentaje de recargo debe ser un valor positivo entre 0% y 100%.');
+      return;
+    }
+
     setLoadingKit(true);
     try {
       const equiposArray = [
@@ -223,15 +391,14 @@ export default function Equipos() {
       ].filter(Boolean);
 
       const payload = {
-        nombre: nombreKit,
+        nombre: nombreLimpio,
         nivel: nivelKit,
-        recargo_pct: Number(recargoPct),
+        recargo_pct: recargoNum,
         equipos: equiposArray
       };
 
       const resultado = await kitClientService.crearKit(payload);
-      setExitoCrearKit(resultado.mensaje || 'Kit creado exitosamente');
-      
+
       setNombreKit('');
       setNivelKit('BASICO');
       setRecargoPct(0);
@@ -240,14 +407,12 @@ export default function Equipos() {
       setMicrofonoSeleccionado('');
       setSwitchSeleccionado('');
       setEquiposAdicionalesCrear([]);
-      
+      setIsModalOpen(false);
+
       await cargarDatos();
-      setTimeout(() => {
-        setIsModalOpen(false);
-        setExitoCrearKit('');
-      }, 1200);
+      mostrarExitoTemporal(resultado?.mensaje || 'Kit creado exitosamente');
     } catch (err) {
-      setErrorKit(err.message || 'Error al crear el kit');
+      setErrorKit(extraerMensajeError(err, 'Error al crear el kit.'));
     } finally {
       setLoadingKit(false);
     }
@@ -260,18 +425,17 @@ export default function Equipos() {
     setNivelEditKit(kit.nivel);
     setRecargoEditPct(kit.recargo_pct);
     setErrorEditKit('');
-    setExitoModificarKit('');
 
     const equiposKit = kit.equipos || [];
-    const camara = equiposKit.find(e => e.categoria === 'CAMARA')?.codigo || '';
-    const tripode = equiposKit.find(e => e.categoria === 'TRIPODE')?.codigo || '';
-    const microfono = equiposKit.find(e => e.categoria === 'MICROFONO')?.codigo || '';
-    const sw = equiposKit.find(e => e.categoria === 'SWITCH_VIDEO')?.codigo || '';
+    const camara = equiposKit.find((e) => e.categoria === 'CAMARA')?.codigo || '';
+    const tripode = equiposKit.find((e) => e.categoria === 'TRIPODE')?.codigo || '';
+    const microfono = equiposKit.find((e) => e.categoria === 'MICROFONO')?.codigo || '';
+    const sw = equiposKit.find((e) => e.categoria === 'SWITCH_VIDEO')?.codigo || '';
 
     const principales = [camara, tripode, microfono, sw].filter(Boolean);
     const adicionales = equiposKit
-      .map(e => e.codigo)
-      .filter(codigo => !principales.includes(codigo));
+      .map((e) => e.codigo)
+      .filter((codigo) => !principales.includes(codigo));
 
     setCamaraEdit(camara);
     setTripodeEdit(tripode);
@@ -283,130 +447,112 @@ export default function Equipos() {
   const handleSubmitModificarKit = async (e) => {
     e.preventDefault();
     setErrorEditKit('');
-    setExitoModificarKit('');
+
+    const nombreLimpio = nombreEditKit.trim();
+    if (nombreLimpio.length < 3 || nombreLimpio.length > 50) {
+      setErrorEditKit('El nombre del kit debe tener entre 3 y 50 caracteres.');
+      return;
+    }
+    if (!tieneMinimoLetras(nombreLimpio, 2)) {
+      setErrorEditKit('El nombre del kit debe contener letras (no se permiten solo números).');
+      return;
+    }
+
+    const recargoNum = Number(recargoEditPct);
+    if (Number.isNaN(recargoNum) || recargoNum < 0 || recargoNum > 100) {
+      setErrorEditKit('El porcentaje de recargo debe estar entre 0% y 100%.');
+      return;
+    }
+
     setLoadingEditKit(true);
 
     try {
       const equiposArray = [
-        camaraEdit, 
-        tripodeEdit, 
-        microfonoEdit, 
-        switchEdit, 
+        camaraEdit,
+        tripodeEdit,
+        microfonoEdit,
+        switchEdit,
         ...equiposAdicionalesEditar
       ].filter(Boolean);
 
       const payload = {
-        nombre: nombreEditKit,
+        nombre: nombreLimpio,
         nivel: nivelEditKit,
-        recargo_pct: Number(recargoEditPct),
+        recargo_pct: recargoNum,
         equipos: equiposArray
       };
 
-      const resultado = await kitClientService.actualizarKit(kitEditando.id_kit, payload);
-      setExitoModificarKit(resultado.mensaje || 'Kit actualizado exitosamente');
+      await kitClientService.actualizarKit(kitEditando.id_kit, payload);
+      setKitEditando(null);
       await cargarDatos();
-      setTimeout(() => {
-        setKitEditando(null);
-        setExitoModificarKit('');
-      }, 1200);
     } catch (err) {
-      setErrorEditKit(err.message || 'Error al actualizar el kit');
+      setErrorEditKit(extraerMensajeError(err, 'Error al actualizar el kit.'));
     } finally {
       setLoadingEditKit(false);
     }
   };
 
   // --- LÓGICA DE ELIMINAR KIT (RF-P5-06) ---
-  const manejarEliminarKit = async (idKit, nombreKit) => {
-    if (!window.confirm(`Estás seguro de que deseas eliminar el kit "${nombreKit}"? Sus equipos pasarán a ser repuestos.`)) {
+  const manejarEliminarKit = async (idKit, nombreDelKit) => {
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar el kit "${nombreDelKit}"? Sus equipos pasarán a ser repuestos.`)) {
       return;
     }
     try {
-      const resultado = await kitClientService.eliminarKit(idKit);
-      setExitoKit(resultado.mensaje || 'Kit eliminado exitosamente y sus equipos pasaron a ser repuestos');
+      await kitClientService.eliminarKit(idKit);
       await cargarDatos();
-      setTimeout(() => {
-        setExitoKit('');
-      }, 1500);
     } catch (err) {
-      alert(err.message || 'Error al eliminar el kit');
+      alert(extraerMensajeError(err, 'Error al eliminar el kit.'));
     }
   };
 
   // Equipos libres y operativos para CREAR un kit
   const equiposDisponiblesParaKit = listaEquipos.filter(
-    eq => eq.estado?.toUpperCase() === 'OPERATIVO' && !eq.id_kit && !eq.kit
+    (eq) => eq.estado?.toUpperCase() === 'OPERATIVO' && !eq.id_kit && !eq.kit
   );
 
-  const camerasDisponibles = equiposDisponiblesParaKit.filter(eq => eq.categoria?.toUpperCase() === 'CAMARA');
-  const tripodesDisponibles = equiposDisponiblesParaKit.filter(eq => eq.categoria?.toUpperCase() === 'TRIPODE');
-  const microfonosDisponibles = equiposDisponiblesParaKit.filter(eq => eq.categoria?.toUpperCase() === 'MICROFONO');
-  const switchesDisponibles = equiposDisponiblesParaKit.filter(eq => eq.categoria?.toUpperCase() === 'SWITCH_VIDEO');
+  const camerasDisponibles = equiposDisponiblesParaKit.filter((eq) => eq.categoria?.toUpperCase() === 'CAMARA');
+  const tripodesDisponibles = equiposDisponiblesParaKit.filter((eq) => eq.categoria?.toUpperCase() === 'TRIPODE');
+  const microfonosDisponibles = equiposDisponiblesParaKit.filter((eq) => eq.categoria?.toUpperCase() === 'MICROFONO');
+  const switchesDisponibles = equiposDisponiblesParaKit.filter((eq) => eq.categoria?.toUpperCase() === 'SWITCH_VIDEO');
 
-  // Helper para MODIFICAR kit (permite equipos libres o los que ya pertenecen a este kit)
   const obtenerEquiposParaEdicion = () => {
-    return listaEquipos.filter(eq => {
+    return listaEquipos.filter((eq) => {
       const esOperativo = eq.estado?.toUpperCase() === 'OPERATIVO';
       const estaLibre = !eq.id_kit && !eq.kit;
-      const perteneceAEsteKit = kitEditando?.equipos?.some(e => e.codigo === eq.codigo);
+      const perteneceAEsteKit = kitEditando?.equipos?.some((e) => e.codigo === eq.codigo);
       return esOperativo && (estaLibre || perteneceAEsteKit);
     });
   };
 
-  // Filtrado de equipos por categoría seleccionada en la tabla
-  const equiposFiltrados = listaEquipos.filter(eq => {
+  const equiposFiltrados = listaEquipos.filter((eq) => {
     if (filtroCategoria === 'TODOS') return true;
     return eq.categoria?.toUpperCase() === filtroCategoria;
   });
 
   return (
-    <div style={{ padding: '10px 0', width: '100%', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-      
-      {/* CABECERA / TÍTULO PRINCIPAL FUERA DEL CUBO */}
-      <div style={{ marginBottom: '20px' }}>
-        <h1 style={{ margin: '0 0 4px 0', fontSize: '24px', fontWeight: '700', color: '#0f172a' }}>
-          Gestión de Kits y Equipos
-        </h1>
-        <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
-          Administración de kits técnicos, niveles de servicio y catálogo de inventario general
-        </p>
+    <div className="eqp-pagina">
+      {/* CABECERA */}
+      <div className="eqp-encabezado">
+        <h1>Gestión de Kits y Equipos</h1>
+        <p>Administración de kits técnicos, niveles de servicio y catálogo de inventario general</p>
       </div>
 
-      {/* CUBO BLANCO CONTENEDOR GENERAL */}
-      <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
-
-        {/* PESTAÑAS SUPERIORES (Estilo Minimalista con Subrayado) Y BOTÓN DE ACCIÓN DENTRO DEL CUBO */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
-          <div style={{ display: 'flex', gap: '24px' }}>
+      {/* PANEL CONTENEDOR */}
+      <div className="eqp-panel">
+        {/* PESTAÑAS Y BOTÓN PRINCIPAL */}
+        <div className="eqp-tabs-bar">
+          <div className="eqp-tabs-grupo">
             <button
+              type="button"
               onClick={() => setActiveTab('KITS')}
-              style={{
-                padding: '8px 4px',
-                background: 'none',
-                border: 'none',
-                borderBottom: activeTab === 'KITS' ? '2px solid #0f172a' : '2px solid transparent',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '600',
-                color: activeTab === 'KITS' ? '#0f172a' : '#64748b',
-                transition: 'all 0.2s'
-              }}
+              className={`eqp-tab ${activeTab === 'KITS' ? 'activa' : ''}`}
             >
               KITS
             </button>
             <button
+              type="button"
               onClick={() => setActiveTab('EQUIPOS')}
-              style={{
-                padding: '8px 4px',
-                background: 'none',
-                border: 'none',
-                borderBottom: activeTab === 'EQUIPOS' ? '2px solid #0f172a' : '2px solid transparent',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '600',
-                color: activeTab === 'EQUIPOS' ? '#0f172a' : '#64748b',
-                transition: 'all 0.2s'
-              }}
+              className={`eqp-tab ${activeTab === 'EQUIPOS' ? 'activa' : ''}`}
             >
               EQUIPOS
             </button>
@@ -414,112 +560,94 @@ export default function Equipos() {
 
           {activeTab === 'KITS' ? (
             <button
+              type="button"
               onClick={() => {
                 setErrorKit('');
-                setExitoCrearKit('');
                 setIsModalOpen(true);
               }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                backgroundColor: '#0f172a',
-                color: 'white',
-                padding: '9px 18px',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '600',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-              }}
+              className="eqp-btn-nuevo"
             >
-              <span style={{ fontSize: '14px', fontWeight: 'bold' }}>+</span>
+              <Plus size={18} />
               <span>Crear kit</span>
             </button>
-          ) : activeTab === 'EQUIPOS' ? (
+          ) : (
             <button
               type="button"
               onClick={() => {
                 setErrorEquipo('');
-                setExitoEquipo('');
+                setFormData({
+                  nombre: '',
+                  categoria: 'CAMARA',
+                  marca: '',
+                  modelo: '',
+                  fecha_compra: fechaHoyLocal,
+                  valor_compra: '',
+                  id_jefe: 1
+                });
                 setMostrarFormulario(true);
               }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                backgroundColor: '#0f172a',
-                color: 'white',
-                padding: '9px 18px',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '600',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-              }}
+              className="eqp-btn-nuevo"
             >
-              <span style={{ fontSize: '14px', fontWeight: 'bold' }}>+</span>
+              <Plus size={18} />
               <span>Registrar nuevo equipo</span>
             </button>
-          ) : null}
+          )}
         </div>
 
         {/* ================= VISTA KITS ================= */}
         {activeTab === 'KITS' && (
           <div>
             {kits.length === 0 ? (
-              <div style={{ backgroundColor: '#f8fafc', borderRadius: '16px', padding: '48px', textAlign: 'center', border: '1px solid #e2e8f0', color: '#64748b' }}>
-                <FaBoxOpen style={{ fontSize: '40px', marginBottom: '12px', color: '#94a3b8' }} />
-                <h3 style={{ margin: '0 0 6px 0', fontSize: '16px', color: '#1e293b' }}>No hay kits creados</h3>
-                <p style={{ margin: 0, fontSize: '13px' }}>Haz clic en "+ Crear kit" para armar el primer kit con equipos operativos del inventario.</p>
+              <div className="eqp-vacio-kits">
+                <Box size={40} className="eqp-vacio-icono" />
+                <h3>No hay kits creados</h3>
+                <p>Haz clic en &ldquo;+ Crear kit&rdquo; para armar el primer kit con equipos operativos del inventario.</p>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+              <div className="eqp-kits-grid">
                 {kits.map((kit) => (
-                  <div key={kit.id_kit} style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '20px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                  <div key={kit.id_kit} className="eqp-kit-card">
+                    <div className="eqp-kit-cab">
                       <div>
-                        <h3 style={{ margin: 0, fontSize: '18px', color: '#1e293b' }}>{kit.nombre}</h3>
-                        <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#64748b' }}>
+                        <h3 className="eqp-kit-titulo">{kit.nombre}</h3>
+                        <p className="eqp-kit-sub">
                           {kit.nivel} · Recargo: {kit.recargo_pct}%
                         </p>
                       </div>
-                      <div style={{ display: 'flex', gap: '6px' }}>
+                      <div className="eqp-kit-acciones">
                         <button
+                          type="button"
                           onClick={() => iniciarEdicionKit(kit)}
-                          style={{ padding: '5px 12px', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', color: '#1e293b' }}
+                          className="eqp-btn-sec-chico"
                         >
                           Modificar
                         </button>
                         <button
+                          type="button"
                           onClick={() => manejarEliminarKit(kit.id_kit, kit.nombre)}
-                          style={{ padding: '5px 12px', backgroundColor: '#fee2e2', border: '1px solid #fca5a5', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', color: '#991b1b' }}
+                          className="eqp-btn-peligro-chico"
                         >
                           Eliminar
                         </button>
                       </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', margin: '16px 0' }}>
+                    <div className="eqp-kit-equipos-grid">
                       {kit.equipos?.map((eq, idx) => (
-                        <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: '#f8fafc', border: '1px solid #f1f5f9', borderRadius: '10px', padding: '8px' }}>
-                          <div style={{ padding: '8px', backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                        <div key={idx} className="eqp-kit-eq-item">
+                          <div className="eqp-kit-eq-icono">
                             {getIconoCategoria(eq.categoria)}
                           </div>
-                          <div style={{ overflow: 'hidden' }}>
-                            <p style={{ margin: 0, fontSize: '12px', fontWeight: '700', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{eq.nombre}</p>
-                            <p style={{ margin: 0, fontSize: '10px', color: '#64748b', textTransform: 'capitalize' }}>{formatearCategoria(eq.categoria)}</p>
+                          <div className="eqp-kit-eq-info">
+                            <p className="eqp-kit-eq-nombre">{eq.nombre}</p>
+                            <p className="eqp-kit-eq-cat">{formatearCategoria(eq.categoria)}</p>
                           </div>
                         </div>
                       ))}
                     </div>
 
-                    <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ backgroundColor: '#dcfce7', color: '#166534', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '600' }}>
-                        {kit.estado || 'DISPONIBLE'}
-                      </span>
+                    <div className="eqp-kit-pie">
+                      {renderBadgeKit(kit.estado || 'DISPONIBLE')}
                     </div>
                   </div>
                 ))}
@@ -531,10 +659,10 @@ export default function Equipos() {
         {/* ================= VISTA EQUIPOS / INVENTARIO ================= */}
         {activeTab === 'EQUIPOS' && (
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
+            <div className="eqp-seccion-cab">
               <div>
-                <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>Inventario de Equipos</h2>
-                <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '13px' }}>
+                <h2 className="eqp-seccion-titulo">Inventario de Equipos</h2>
+                <p className="eqp-seccion-sub">
                   Listado de equipos registrados, código correlativo y estado de asignación
                 </p>
               </div>
@@ -542,17 +670,7 @@ export default function Equipos() {
                 <select
                   value={filtroCategoria}
                   onChange={(e) => setFiltroCategoria(e.target.value)}
-                  style={{
-                    padding: '8px 14px',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '13px',
-                    backgroundColor: '#ffffff',
-                    color: '#1e293b',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
-                  }}
+                  className="eqp-filtro-select"
                 >
                   <option value="TODOS">Todas las categorías</option>
                   <option value="CAMARA">Cámara</option>
@@ -565,67 +683,77 @@ export default function Equipos() {
             </div>
 
             {cargando ? (
-              <p style={{ color: '#64748b', textAlign: 'center', padding: '20px 0' }}>Cargando inventario...</p>
+              <p className="eqp-cargando">Cargando inventario...</p>
             ) : equiposFiltrados.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '36px 15px', color: '#64748b' }}>
-                <p style={{ margin: 0 }}>No hay equipos registrados en esta categoría.</p>
+              <div className="eqp-vacio-tabla">
+                <p>No hay equipos registrados en esta categoría.</p>
               </div>
             ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+              <div className="eqp-tabla-scroll">
+                <table className="eqp-tabla">
                   <thead>
-                    <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#64748b', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                      <th style={{ padding: '12px 14px' }}>Código</th>
-                      <th style={{ padding: '12px 14px' }}>Equipo</th>
-                      <th style={{ padding: '12px 14px' }}>Categoría</th>
-                      <th style={{ padding: '12px 14px' }}>Marca / Modelo</th>
-                      <th style={{ padding: '12px 14px' }}>Fecha Compra</th>
-                      <th style={{ padding: '12px 14px', textAlign: 'right' }}>Valor Compra</th>
-                      <th style={{ padding: '12px 14px', textAlign: 'center' }}>Estado</th>
-                      <th style={{ padding: '12px 14px', textAlign: 'center' }}>Kit</th>
-                      <th style={{ padding: '12px 14px', textAlign: 'center' }}>Acciones</th>
+                    <tr>
+                      <th>Código</th>
+                      <th>Equipo</th>
+                      <th>Categoría</th>
+                      <th>Marca / Modelo</th>
+                      <th>Fecha Compra</th>
+                      <th className="eqp-th-der">Valor Compra</th>
+                      <th className="eqp-th-centro">Estado</th>
+                      <th className="eqp-th-centro">Kit</th>
+                      <th className="eqp-th-centro">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
                     {equiposFiltrados.map((eq) => {
-                      const fecha = eq.fecha_compra ? new Date(eq.fecha_compra).toLocaleDateString('es-CL') : '--';
+                      const fecha = formatearFechaTabla(eq.fecha_compra);
                       const esBaja = eq.estado === 'DADO_DE_BAJA';
                       return (
-                        <tr key={eq.codigo} style={{ borderBottom: '1px solid #f1f5f9', opacity: esBaja ? 0.65 : 1 }}>
-                          <td style={{ padding: '14px', fontWeight: '700', color: '#0f172a' }}>{eq.codigo}</td>
-                          <td style={{ padding: '14px', fontWeight: '600', color: '#1e293b' }}>{eq.nombre}</td>
-                          <td style={{ padding: '14px', color: '#475569' }}>{formatearCategoria(eq.categoria)}</td>
-                          <td style={{ padding: '14px', color: '#64748b' }}>{eq.marca || '-'} {eq.modelo ? `(${eq.modelo})` : ''}</td>
-                          <td style={{ padding: '14px', color: '#475569' }}>{fecha}</td>
-                          <td style={{ padding: '14px', textAlign: 'right', fontWeight: '600', color: '#1e293b' }}>${Number(eq.valor_compra || 0).toLocaleString('es-CL')}</td>
-                          <td style={{ padding: '14px', textAlign: 'center' }}>
-                            <span style={{
-                              backgroundColor: esBaja ? '#f1f5f9' : eq.estado === 'OPERATIVO' ? '#dcfce7' : '#fee2e2',
-                              color: esBaja ? '#475569' : eq.estado === 'OPERATIVO' ? '#166534' : '#991b1b',
-                              padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '600'
-                            }}>
-                              {eq.estado}
-                            </span>
+                        <tr
+                          key={eq.codigo}
+                          className={`eqp-tr ${esBaja ? 'eqp-tr-baja' : ''}`}
+                        >
+                          <td className="eqp-td-codigo">{eq.codigo}</td>
+                          <td className="eqp-td-nombre">{eq.nombre}</td>
+                          <td className="eqp-td-cat">{formatearCategoria(eq.categoria)}</td>
+                          <td className="eqp-td-marca">
+                            {eq.marca || '-'} {eq.modelo ? `(${eq.modelo})` : ''}
                           </td>
-                          <td style={{ padding: '14px', textAlign: 'center', color: eq.kit ? '#0f172a' : '#64748b' }}>
+                          <td className="eqp-td-fecha">{fecha}</td>
+                          <td className="eqp-td-valor">
+                            ${Number(eq.valor_compra || 0).toLocaleString('es-CL')}
+                          </td>
+                          <td className="eqp-td-centro">{renderBadgeEquipo(eq.estado)}</td>
+                          <td
+                            className={
+                              eq.kit ? 'eqp-td-kit-asignado' : 'eqp-td-kit-libre'
+                            }
+                          >
                             {eq.kit?.nombre || eq.kit || 'Repuesto (Sin kit)'}
                           </td>
-                          <td style={{ padding: '14px', textAlign: 'center' }}>
-                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                          <td className="eqp-td-centro">
+                            <div className="eqp-acciones-fila">
                               <button
                                 type="button"
-                                onClick={() => setEquipoEditando(eq)}
-                                style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '5px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', color: '#1e293b' }}
+                                onClick={() => {
+                                  setErrorEditarEquipo('');
+                                  setEquipoEditando(eq);
+                                }}
+                                className="eqp-btn-sec-chico"
                               >
                                 Modificar
                               </button>
                               {!esBaja && (
                                 <button
                                   type="button"
-                                  onClick={() => setEquipoBaja(eq)}
-                                  style={{ backgroundColor: '#fee2e2', border: '1px solid #fca5a5', padding: '5px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', color: '#991b1b' }}
+                                  onClick={() => {
+                                    setErrorBajaEquipo('');
+                                    setMotivoBaja('');
+                                    setEquipoBaja(eq);
+                                  }}
+                                  className="eqp-btn-peligro-chico"
                                 >
-                                  Dar de baja
+                                  Retirar
                                 </button>
                               )}
                             </div>
@@ -639,739 +767,782 @@ export default function Equipos() {
             )}
           </div>
         )}
-
       </div>
+
+      {/* ================= MODAL DE ÉXITO (SOLO AL CREAR) ================= */}
+      {mensajeExitoModal && (
+        <div className="eqp-modal-fondo">
+          <div className="eqp-modal-exito">
+            <div className="eqp-modal-exito-contenido">
+              <FaCheckCircle className="eqp-icono-exito" />
+              <h2 className="eqp-modal-exito-titulo">¡Operación Exitosa!</h2>
+              <p className="eqp-modal-exito-texto">{mensajeExitoModal}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ================= MODAL REGISTRAR NUEVO EQUIPO ================= */}
       {mostrarFormulario && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
-          <div style={{ backgroundColor: '#ffffff', borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '640px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
-            
-            {exitoEquipo ? (
-              <div style={{ textAlign: 'center', padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
-                <FaCheckCircle style={{ fontSize: '56px', color: '#166534' }} />
-                <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>¡Registro Exitoso!</h2>
-                <p style={{ margin: 0, fontSize: '15px', color: '#166534', fontWeight: '600' }}>{exitoEquipo}</p>
+        <div className="eqp-modal-fondo">
+          <div className="eqp-modal-caja">
+            <h2 className="eqp-modal-titulo">Registrar Equipo en Inventario</h2>
+            <p className="eqp-modal-sub">
+              El sistema generará automáticamente el código único según la categoría y asignará el estado Operativo.
+            </p>
+
+            {errorEquipo && (
+              <div className="eqp-alerta-error">
+                <AlertTriangle size={16} className="eqp-alerta-icono" />
+                <span>{errorEquipo}</span>
               </div>
-            ) : (
-              <>
-                <h2 style={{ marginTop: 0, marginBottom: '6px', fontSize: '18px', color: '#1e293b' }}>
-                  Registrar Equipo en Inventario
-                </h2>
-                <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748b' }}>
-                  El sistema generará automáticamente el código único según la categoría y asignará el estado Operativo.
-                </p>
-
-                {errorEquipo && (
-                  <div style={{ marginBottom: '14px', padding: '10px 14px', backgroundColor: '#fee2e2', color: '#991b1b', fontSize: '13px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <FaExclamationTriangle />
-                    <span>{errorEquipo}</span>
-                  </div>
-                )}
-
-                <form onSubmit={manejarEnvio} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  <div>
-                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Nombre del equipo:</label>
-                    <input
-                      type="text"
-                      name="nombre"
-                      placeholder="Ej: Sony Alpha 7 IV"
-                      value={formData.nombre}
-                      onChange={manejarCambio}
-                      required
-                      style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
-                    />
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    <div>
-                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Categoría:</label>
-                      <select
-                        name="categoria"
-                        value={formData.categoria}
-                        onChange={manejarCambio}
-                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
-                      >
-                        <option value="CAMARA">Cámara</option>
-                        <option value="TRIPODE">Trípode</option>
-                        <option value="MICROFONO">Micrófono</option>
-                        <option value="SWITCH_VIDEO">Switch de Video</option>
-                        <option value="OTRO">Otro</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Marca:</label>
-                      <input
-                        type="text"
-                        name="marca"
-                        placeholder="Ej: Sony"
-                        value={formData.marca}
-                        onChange={manejarCambio}
-                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
-                      />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    <div>
-                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Modelo:</label>
-                      <input
-                        type="text"
-                        name="modelo"
-                        placeholder="Ej: ILCE-7M4"
-                        value={formData.modelo}
-                        onChange={manejarCambio}
-                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Fecha de compra:</label>
-                      <input
-                        type="date"
-                        name="fecha_compra"
-                        value={formData.fecha_compra}
-                        onChange={manejarCambio}
-                        required
-                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Valor de compra ($):</label>
-                    <input
-                      type="number"
-                      name="valor_compra"
-                      placeholder="Ej: 1800000"
-                      value={formData.valor_compra}
-                      onChange={manejarCambio}
-                      required
-                      style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
-                    />
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid #f1f5f9', paddingTop: '14px' }}>
-                    <button
-                      type="button"
-                      onClick={() => setMostrarFormulario(false)}
-                      style={{ padding: '8px 16px', backgroundColor: '#e2e8f0', color: '#334155', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={guardandoEquipo}
-                      style={{ padding: '8px 20px', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
-                    >
-                      {guardandoEquipo ? 'Guardando...' : 'Guardar Equipo'}
-                    </button>
-                  </div>
-                </form>
-              </>
             )}
 
-          </div>
-        </div>
-      )}
-
-      {/* ================= MODAL MODIFICAR EQUIPO ================= */}
-      {equipoEditando && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
-          <div style={{ backgroundColor: '#ffffff', borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '640px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
-            
-            {exitoEditarEquipo ? (
-              <div style={{ textAlign: 'center', padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
-                <FaCheckCircle style={{ fontSize: '56px', color: '#166534' }} />
-                <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>¡Modificación Exitosa!</h2>
-                <p style={{ margin: 0, fontSize: '15px', color: '#166534', fontWeight: '600' }}>{exitoEditarEquipo}</p>
+            <form onSubmit={manejarEnvio} className="eqp-form">
+              <div>
+                <label className="eqp-label">Nombre del equipo:</label>
+                <input
+                  type="text"
+                  name="nombre"
+                  maxLength={50}
+                  placeholder="Ej: Cámara Sony Alpha 7 IV"
+                  value={formData.nombre}
+                  onChange={manejarCambio}
+                  required
+                  className="eqp-input"
+                />
               </div>
-            ) : (
-              <>
-                <h2 style={{ marginTop: 0, marginBottom: '6px', fontSize: '18px', color: '#1e293b' }}>
-                  Modificar Equipo: {equipoEditando.codigo}
-                </h2>
-                <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748b' }}>
-                  Actualiza los datos generales del equipo (la categoría se mantiene fija).
-                </p>
 
-                <form onSubmit={guardarEdicion} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  <div>
-                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Nombre del equipo:</label>
-                    <input
-                      type="text"
-                      name="nombre"
-                      value={equipoEditando.nombre || ''}
-                      onChange={(e) => setEquipoEditando({ ...equipoEditando, nombre: e.target.value })}
-                      required
-                      style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
-                    />
-                  </div>
+              <div className="eqp-form-fila">
+                <div>
+                  <label className="eqp-label">Categoría:</label>
+                  <select
+                    name="categoria"
+                    value={formData.categoria}
+                    onChange={manejarCambio}
+                    className="eqp-select"
+                  >
+                    <option value="CAMARA">Cámara</option>
+                    <option value="TRIPODE">Trípode</option>
+                    <option value="MICROFONO">Micrófono</option>
+                    <option value="SWITCH_VIDEO">Switch de Video</option>
+                    <option value="OTRO">Otro</option>
+                  </select>
+                </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    <div>
-                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Categoría (Fija):</label>
-                      <input
-                        type="text"
-                        value={formatearCategoria(equipoEditando.categoria)}
-                        disabled
-                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#f1f5f9', color: '#64748b', boxSizing: 'border-box' }}
-                      />
-                    </div>
+                <div>
+                  <label className="eqp-label">Marca:</label>
+                  <input
+                    type="text"
+                    name="marca"
+                    maxLength={35}
+                    placeholder="Ej: Sony"
+                    value={formData.marca}
+                    onChange={manejarCambio}
+                    className="eqp-input"
+                  />
+                </div>
+              </div>
 
-                    <div>
-                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Marca:</label>
-                      <input
-                        type="text"
-                        name="marca"
-                        value={equipoEditando.marca || ''}
-                        onChange={(e) => setEquipoEditando({ ...equipoEditando, marca: e.target.value })}
-                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
-                      />
-                    </div>
-                  </div>
+              <div className="eqp-form-fila">
+                <div>
+                  <label className="eqp-label">Modelo:</label>
+                  <input
+                    type="text"
+                    name="modelo"
+                    maxLength={35}
+                    placeholder="Ej: ILCE-7M4"
+                    value={formData.modelo}
+                    onChange={manejarCambio}
+                    className="eqp-input"
+                  />
+                </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    <div>
-                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Modelo:</label>
-                      <input
-                        type="text"
-                        name="modelo"
-                        value={equipoEditando.modelo || ''}
-                        onChange={(e) => setEquipoEditando({ ...equipoEditando, modelo: e.target.value })}
-                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
-                      />
-                    </div>
+                <div>
+                  <label className="eqp-label">Fecha de compra:</label>
+                  <input
+                    type="date"
+                    name="fecha_compra"
+                    lang="es-CL"
+                    min="2000-01-01"
+                    max={fechaHoyLocal}
+                    value={formData.fecha_compra}
+                    onChange={manejarCambio}
+                    required
+                    className="eqp-input"
+                  />
+                </div>
+              </div>
 
-                    <div>
-                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Fecha de compra:</label>
-                      <input
-                        type="date"
-                        name="fecha_compra"
-                        value={formatearFechaInput(equipoEditando.fecha_compra)}
-                        onChange={(e) => setEquipoEditando({ ...equipoEditando, fecha_compra: e.target.value })}
-                        required
-                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
-                      />
-                    </div>
-                  </div>
+              <div>
+                <label className="eqp-label">Valor de compra ($):</label>
+                <input
+                  type="number"
+                  name="valor_compra"
+                  min="1"
+                  max="500000000"
+                  placeholder="Ej: 1800000"
+                  value={formData.valor_compra}
+                  onKeyDown={bloquearNegativosEnteros}
+                  onChange={manejarCambio}
+                  required
+                  className="eqp-input"
+                />
+              </div>
 
-                  <div>
-                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Valor de compra ($):</label>
-                    <input
-                      type="number"
-                      name="valor_compra"
-                      value={equipoEditando.valor_compra || ''}
-                      onChange={(e) => setEquipoEditando({ ...equipoEditando, valor_compra: e.target.value })}
-                      required
-                      style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
-                    />
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid #f1f5f9', paddingTop: '14px' }}>
-                    <button
-                      type="button"
-                      onClick={() => setEquipoEditando(null)}
-                      style={{ padding: '8px 16px', backgroundColor: '#e2e8f0', color: '#334155', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="submit"
-                      style={{ padding: '8px 20px', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
-                    >
-                      Guardar Cambios
-                    </button>
-                  </div>
-                </form>
-              </>
-            )}
-
-          </div>
-        </div>
-      )}
-
-      {/* ================= MODAL DAR DE BAJA / ELIMINAR EQUIPO ================= */}
-      {equipoBaja && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
-          <div style={{ backgroundColor: '#ffffff', borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '460px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', boxSizing: 'border-box' }}>
-            <h2 style={{ marginTop: 0, marginBottom: '6px', fontSize: '18px', color: '#991b1b' }}>Dar de baja: {equipoBaja.codigo}</h2>
-            <form onSubmit={confirmarBaja} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <textarea 
-                rows="3" 
-                value={motivoBaja} 
-                onChange={(e) => setMotivoBaja(e.target.value)} 
-                placeholder="Motivo de la baja..." 
-                required 
-                style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }} 
-              />
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                <button type="button" onClick={() => setEquipoBaja(null)} style={{ padding: '8px 16px', backgroundColor: '#e2e8f0', color: '#334155', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>Cancelar</button>
-                <button type="submit" style={{ padding: '8px 18px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>Confirmar Baja</button>
+              <div className="eqp-modal-pie">
+                <button
+                  type="button"
+                  onClick={() => setMostrarFormulario(false)}
+                  className="eqp-btn-cancelar"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={guardandoEquipo}
+                  className="eqp-btn-guardar"
+                >
+                  {guardandoEquipo ? 'Guardando...' : 'Guardar Equipo'}
+                </button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* ================= MODAL ÉXITO BAJA / ELIMINAR EQUIPO ================= */}
-      {exitoBaja && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
-          <div style={{ backgroundColor: '#ffffff', borderRadius: '20px', padding: '32px', width: '100%', maxWidth: '480px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', textAlign: 'center', boxSizing: 'border-box' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
-              <FaCheckCircle style={{ fontSize: '56px', color: '#166534' }} />
-              <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>¡Operación Exitosa!</h2>
-              <p style={{ margin: 0, fontSize: '15px', color: '#166534', fontWeight: '600' }}>{exitoBaja}</p>
-            </div>
+      {/* ================= MODAL MODIFICAR EQUIPO ================= */}
+      {equipoEditando && (
+        <div className="eqp-modal-fondo">
+          <div className="eqp-modal-caja">
+            <h2 className="eqp-modal-titulo">Modificar Equipo: {equipoEditando.codigo}</h2>
+            <p className="eqp-modal-sub">
+              Actualiza los datos generales del equipo (la categoría se mantiene fija).
+            </p>
+
+            {errorEditarEquipo && (
+              <div className="eqp-alerta-error">
+                <AlertTriangle size={16} className="eqp-alerta-icono" />
+                <span>{errorEditarEquipo}</span>
+              </div>
+            )}
+
+            <form onSubmit={guardarEdicion} className="eqp-form">
+              <div>
+                <label className="eqp-label">Nombre del equipo:</label>
+                <input
+                  type="text"
+                  name="nombre"
+                  maxLength={50}
+                  value={equipoEditando.nombre || ''}
+                  onChange={(e) => {
+                    setErrorEditarEquipo('');
+                    setEquipoEditando({ ...equipoEditando, nombre: e.target.value });
+                  }}
+                  required
+                  className="eqp-input"
+                />
+              </div>
+
+              <div className="eqp-form-fila">
+                <div>
+                  <label className="eqp-label">Categoría (Fija):</label>
+                  <input
+                    type="text"
+                    value={formatearCategoria(equipoEditando.categoria)}
+                    disabled
+                    readOnly
+                    className="eqp-input"
+                  />
+                </div>
+
+                <div>
+                  <label className="eqp-label">Marca:</label>
+                  <input
+                    type="text"
+                    name="marca"
+                    maxLength={35}
+                    value={equipoEditando.marca || ''}
+                    onChange={(e) => {
+                      setErrorEditarEquipo('');
+                      setEquipoEditando({ ...equipoEditando, marca: e.target.value });
+                    }}
+                    className="eqp-input"
+                  />
+                </div>
+              </div>
+
+              <div className="eqp-form-fila">
+                <div>
+                  <label className="eqp-label">Modelo:</label>
+                  <input
+                    type="text"
+                    name="modelo"
+                    maxLength={35}
+                    value={equipoEditando.modelo || ''}
+                    onChange={(e) => {
+                      setErrorEditarEquipo('');
+                      setEquipoEditando({ ...equipoEditando, modelo: e.target.value });
+                    }}
+                    className="eqp-input"
+                  />
+                </div>
+
+                <div>
+                  <label className="eqp-label">Fecha de compra:</label>
+                  <input
+                    type="date"
+                    name="fecha_compra"
+                    lang="es-CL"
+                    min="2000-01-01"
+                    max={fechaHoyLocal}
+                    value={formatearFechaInput(equipoEditando.fecha_compra)}
+                    onChange={(e) => {
+                      setErrorEditarEquipo('');
+                      setEquipoEditando({ ...equipoEditando, fecha_compra: e.target.value });
+                    }}
+                    required
+                    className="eqp-input"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="eqp-label">Valor de compra ($):</label>
+                <input
+                  type="number"
+                  name="valor_compra"
+                  min="1"
+                  max="500000000"
+                  value={equipoEditando.valor_compra || ''}
+                  onKeyDown={bloquearNegativosEnteros}
+                  onChange={(e) => {
+                    setErrorEditarEquipo('');
+                    const soloDigitos = e.target.value.replace(/\D/g, '').slice(0, 9);
+                    setEquipoEditando({ ...equipoEditando, valor_compra: soloDigitos });
+                  }}
+                  required
+                  className="eqp-input"
+                />
+              </div>
+
+              <div className="eqp-modal-pie">
+                <button
+                  type="button"
+                  onClick={() => setEquipoEditando(null)}
+                  className="eqp-btn-cancelar"
+                >
+                  Cancelar
+                </button>
+                <button type="submit" className="eqp-btn-guardar">
+                  Guardar Cambios
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
 
-      {/* ================= MODAL ÉXITO ELIMINAR KIT ================= */}
-      {exitoKit && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
-          <div style={{ backgroundColor: '#ffffff', borderRadius: '20px', padding: '32px', width: '100%', maxWidth: '480px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', textAlign: 'center', boxSizing: 'border-box' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
-              <FaCheckCircle style={{ fontSize: '56px', color: '#166534' }} />
-              <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>¡Eliminación Exitosa!</h2>
-              <p style={{ margin: 0, fontSize: '15px', color: '#166534', fontWeight: '600' }}>{exitoKit}</p>
-            </div>
+      {/* ================= MODAL DAR DE BAJA / ELIMINAR EQUIPO ================= */}
+      {equipoBaja && (
+        <div className="eqp-modal-fondo">
+          <div className="eqp-modal-caja eqp-modal-caja-chica">
+            <h2 className="eqp-modal-titulo-rojo">Retirar: {equipoBaja.codigo}</h2>
+            <p className="eqp-modal-sub">
+              Indica el motivo por el cual el equipo deja de estar operativo.
+            </p>
+
+            {errorBajaEquipo && (
+              <div className="eqp-alerta-error">
+                <AlertTriangle size={16} className="eqp-alerta-icono" />
+                <span>{errorBajaEquipo}</span>
+              </div>
+            )}
+
+            <form onSubmit={confirmarBaja} className="eqp-form">
+              <textarea
+                rows="3"
+                maxLength={120}
+                value={motivoBaja}
+                onChange={(e) => {
+                  setErrorBajaEquipo('');
+                  setMotivoBaja(e.target.value);
+                }}
+                placeholder="Ej: Falla irreparable en el sensor principal..."
+                required
+                className="eqp-textarea"
+              />
+              <div className="eqp-modal-pie">
+                <button
+                  type="button"
+                  onClick={() => setEquipoBaja(null)}
+                  className="eqp-btn-cancelar"
+                >
+                  Cancelar
+                </button>
+                <button type="submit" className="eqp-btn-confirmar-baja">
+                  Confirmar Baja
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
 
       {/* ================= MODAL CREAR KIT ================= */}
       {isModalOpen && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
-          <div style={{ backgroundColor: '#ffffff', borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '640px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
-            
-            {exitoCrearKit ? (
-              <div style={{ textAlign: 'center', padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
-                <FaCheckCircle style={{ fontSize: '56px', color: '#166534' }} />
-                <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>¡Creación Exitosa!</h2>
-                <p style={{ margin: 0, fontSize: '15px', color: '#166534', fontWeight: '600' }}>{exitoCrearKit}</p>
+        <div className="eqp-modal-fondo">
+          <div className="eqp-modal-caja">
+            <h2 className="eqp-modal-titulo">Crear Nuevo Kit</h2>
+            <p className="eqp-modal-sub">
+              Selecciona los equipos base obligatorios y añade más equipos adicionales si lo necesitas.
+            </p>
+
+            {errorKit && (
+              <div className="eqp-alerta-error">
+                <AlertTriangle size={16} className="eqp-alerta-icono" />
+                <span>{errorKit}</span>
               </div>
-            ) : (
-              <>
-                <h2 style={{ marginTop: 0, marginBottom: '6px', fontSize: '18px', color: '#1e293b' }}>Crear Nuevo Kit</h2>
-                <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748b' }}>
-                  Selecciona los equipos base obligatorios y añade más equipos adicionales si lo necesitas.
-                </p>
-
-                {errorKit && (
-                  <div style={{ marginBottom: '14px', padding: '10px 14px', backgroundColor: '#fee2e2', color: '#991b1b', fontSize: '13px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <FaExclamationTriangle />
-                    <span>{errorKit}</span>
-                  </div>
-                )}
-
-                <form onSubmit={handleSubmitCrearKit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  <div>
-                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Nombre del Kit:</label>
-                    <input
-                      type="text"
-                      maxLength={60}
-                      required
-                      value={nombreKit}
-                      onChange={(e) => setNombreKit(e.target.value)}
-                      placeholder="Ej. Kit Audiovisual Pro"
-                      style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
-                    />
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    <div>
-                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Nivel:</label>
-                      <select
-                        value={nivelKit}
-                        onChange={(e) => setNivelKit(e.target.value)}
-                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
-                      >
-                        <option value="BASICO">Básico</option>
-                        <option value="ESTANDAR">Estándar</option>
-                        <option value="ALTA_GAMA">Alta Gama</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Recargo (%):</label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="999.99"
-                        step="0.01"
-                        value={recargoPct}
-                        onChange={(e) => setRecargoPct(e.target.value)}
-                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* 4 SELECTORES PRINCIPALES OBLIGATORIOS */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Cámara (Obligatorio):</label>
-                      <select
-                        value={camaraSeleccionada}
-                        onChange={(e) => setCamaraSeleccionada(e.target.value)}
-                        required
-                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
-                      >
-                        <option value="">-- Seleccione Cámara --</option>
-                        {camerasDisponibles.map(eq => (
-                          <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Trípode (Obligatorio):</label>
-                      <select
-                        value={tripodeSeleccionado}
-                        onChange={(e) => setTripodeSeleccionado(e.target.value)}
-                        required
-                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
-                      >
-                        <option value="">-- Seleccione Trípode --</option>
-                        {tripodesDisponibles.map(eq => (
-                          <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Micrófono (Obligatorio):</label>
-                      <select
-                        value={microfonoSeleccionado}
-                        onChange={(e) => setMicrofonoSeleccionado(e.target.value)}
-                        required
-                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
-                      >
-                        <option value="">-- Seleccione Micrófono --</option>
-                        {microfonosDisponibles.map(eq => (
-                          <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Switch de video (Obligatorio):</label>
-                      <select
-                        value={switchSeleccionado}
-                        onChange={(e) => setSwitchSeleccionado(e.target.value)}
-                        required
-                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
-                      >
-                        <option value="">-- Seleccione Switch --</option>
-                        {switchesDisponibles.map(eq => (
-                          <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                  </div>
-
-                  {/* EQUIPOS ADICIONALES */}
-                  <div style={{ marginTop: '6px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <label style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>Equipos Adicionales (Opcional):</label>
-                      <button
-                        type="button"
-                        onClick={() => setEquiposAdicionalesCrear([...equiposAdicionalesCrear, ''])}
-                        style={{ padding: '4px 10px', backgroundColor: '#e0f2fe', color: '#0369a1', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}
-                      >
-                        + Añadir equipo
-                      </button>
-                    </div>
-
-                    {equiposAdicionalesCrear.map((codigoAdicional, index) => {
-                      const codigosYaUsados = [
-                        camaraSeleccionada, 
-                        tripodeSeleccionado, 
-                        microfonoSeleccionado, 
-                        switchSeleccionado, 
-                        ...equiposAdicionalesCrear
-                      ];
-                      const disponiblesExtra = equiposDisponiblesParaKit.filter(
-                        eq => !codigosYaUsados.includes(eq.codigo) || eq.codigo === codigoAdicional
-                      );
-
-                      return (
-                        <div key={index} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
-                          <select
-                            value={codigoAdicional}
-                            onChange={(e) => {
-                              const nuevos = [...equiposAdicionalesCrear];
-                              nuevos[index] = e.target.value;
-                              setEquiposAdicionalesCrear(nuevos);
-                            }}
-                            required
-                            style={{ flex: 1, padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: '#ffffff' }}
-                          >
-                            <option value="">-- Seleccionar equipo adicional --</option>
-                            {disponiblesExtra.map(eq => (
-                              <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre} ({formatearCategoria(eq.categoria)})</option>
-                            ))}
-                          </select>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const nuevos = equiposAdicionalesCrear.filter((_, i) => i !== index);
-                              setEquiposAdicionalesCrear(nuevos);
-                            }}
-                            style={{ padding: '8px 10px', backgroundColor: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
-                          >
-                            <FaTrash />
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid #f1f5f9', paddingTop: '14px' }}>
-                    <button
-                      type="button"
-                      onClick={() => setIsModalOpen(false)}
-                      style={{ padding: '8px 16px', backgroundColor: '#e2e8f0', color: '#334155', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={loadingKit}
-                      style={{ padding: '8px 20px', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
-                    >
-                      {loadingKit ? 'Guardando...' : 'Guardar Kit'}
-                    </button>
-                  </div>
-                </form>
-              </>
             )}
 
+            <form onSubmit={handleSubmitCrearKit} className="eqp-form">
+              <div>
+                <label className="eqp-label">Nombre del Kit:</label>
+                <input
+                  type="text"
+                  maxLength={50}
+                  required
+                  value={nombreKit}
+                  onChange={(e) => {
+                    setErrorKit('');
+                    setNombreKit(e.target.value);
+                  }}
+                  placeholder="Ej. Kit Audiovisual Pro"
+                  className="eqp-input"
+                />
+              </div>
+
+              <div className="eqp-form-fila">
+                <div>
+                  <label className="eqp-label">Nivel:</label>
+                  <select
+                    value={nivelKit}
+                    onChange={(e) => setNivelKit(e.target.value)}
+                    className="eqp-select"
+                  >
+                    <option value="BASICO">Básico</option>
+                    <option value="ESTANDAR">Estándar</option>
+                    <option value="ALTA_GAMA">Alta Gama</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="eqp-label">Recargo (%):</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    value={recargoPct}
+                    onKeyDown={bloquearNegativosDecimal}
+                    onChange={(e) => {
+                      setErrorKit('');
+                      setRecargoPct(e.target.value);
+                    }}
+                    className="eqp-input"
+                  />
+                </div>
+              </div>
+
+              {/* 4 SELECTORES PRINCIPALES OBLIGATORIOS */}
+              <div className="eqp-form-fila">
+                <div className="eqp-campo-col">
+                  <label className="eqp-label-fuerte">Cámara (Obligatorio):</label>
+                  <select
+                    value={camaraSeleccionada}
+                    onChange={(e) => setCamaraSeleccionada(e.target.value)}
+                    required
+                    className="eqp-select"
+                  >
+                    <option value="">-- Seleccione Cámara --</option>
+                    {camerasDisponibles.map((eq) => (
+                      <option key={eq.codigo} value={eq.codigo}>
+                        {eq.codigo} - {eq.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="eqp-campo-col">
+                  <label className="eqp-label-fuerte">Trípode (Obligatorio):</label>
+                  <select
+                    value={tripodeSeleccionado}
+                    onChange={(e) => setTripodeSeleccionado(e.target.value)}
+                    required
+                    className="eqp-select"
+                  >
+                    <option value="">-- Seleccione Trípode --</option>
+                    {tripodesDisponibles.map((eq) => (
+                      <option key={eq.codigo} value={eq.codigo}>
+                        {eq.codigo} - {eq.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="eqp-campo-col">
+                  <label className="eqp-label-fuerte">Micrófono (Obligatorio):</label>
+                  <select
+                    value={microfonoSeleccionado}
+                    onChange={(e) => setMicrofonoSeleccionado(e.target.value)}
+                    required
+                    className="eqp-select"
+                  >
+                    <option value="">-- Seleccione Micrófono --</option>
+                    {microfonosDisponibles.map((eq) => (
+                      <option key={eq.codigo} value={eq.codigo}>
+                        {eq.codigo} - {eq.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="eqp-campo-col">
+                  <label className="eqp-label-fuerte">Switch de video (Obligatorio):</label>
+                  <select
+                    value={switchSeleccionado}
+                    onChange={(e) => setSwitchSeleccionado(e.target.value)}
+                    required
+                    className="eqp-select"
+                  >
+                    <option value="">-- Seleccione Switch --</option>
+                    {switchesDisponibles.map((eq) => (
+                      <option key={eq.codigo} value={eq.codigo}>
+                        {eq.codigo} - {eq.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* EQUIPOS ADICIONALES */}
+              <div className="eqp-adicionales-bloque">
+                <div className="eqp-adicionales-cab">
+                  <label className="eqp-label-fuerte">Equipos Adicionales (Opcional):</label>
+                  <button
+                    type="button"
+                    onClick={() => setEquiposAdicionalesCrear([...equiposAdicionalesCrear, ''])}
+                    className="eqp-btn-anadir-extra"
+                  >
+                    <Plus size={14} />
+                    <span>Añadir equipo</span>
+                  </button>
+                </div>
+
+                {equiposAdicionalesCrear.map((codigoAdicional, index) => {
+                  const codigosYaUsados = [
+                    camaraSeleccionada,
+                    tripodeSeleccionado,
+                    microfonoSeleccionado,
+                    switchSeleccionado,
+                    ...equiposAdicionalesCrear
+                  ];
+                  const disponiblesExtra = equiposDisponiblesParaKit.filter(
+                    (eq) => !codigosYaUsados.includes(eq.codigo) || eq.codigo === codigoAdicional
+                  );
+
+                  return (
+                    <div key={index} className="eqp-adicional-fila">
+                      <select
+                        value={codigoAdicional}
+                        onChange={(e) => {
+                          const nuevos = [...equiposAdicionalesCrear];
+                          nuevos[index] = e.target.value;
+                          setEquiposAdicionalesCrear(nuevos);
+                        }}
+                        required
+                        className="eqp-adicional-select"
+                      >
+                        <option value="">-- Seleccionar equipo adicional --</option>
+                        {disponiblesExtra.map((eq) => (
+                          <option key={eq.codigo} value={eq.codigo}>
+                            {eq.codigo} - {eq.nombre} ({formatearCategoria(eq.categoria)})
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nuevos = equiposAdicionalesCrear.filter((_, i) => i !== index);
+                          setEquiposAdicionalesCrear(nuevos);
+                        }}
+                        className="eqp-btn-quitar-extra"
+                        aria-label="Quitar equipo adicional"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="eqp-modal-pie">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="eqp-btn-cancelar"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={loadingKit}
+                  className="eqp-btn-guardar"
+                >
+                  {loadingKit ? 'Guardando...' : 'Guardar Kit'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
 
       {/* ================= MODAL MODIFICAR KIT (RF-P5-05) ================= */}
       {kitEditando && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
-          <div style={{ backgroundColor: '#ffffff', borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '700px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
-            
-            {exitoModificarKit ? (
-              <div style={{ textAlign: 'center', padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
-                <FaCheckCircle style={{ fontSize: '56px', color: '#166534' }} />
-                <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>¡Actualización Exitosa!</h2>
-                <p style={{ margin: 0, fontSize: '15px', color: '#166534', fontWeight: '600' }}>{exitoModificarKit}</p>
+        <div className="eqp-modal-fondo">
+          <div className="eqp-modal-caja eqp-modal-caja-amplia">
+            <h2 className="eqp-modal-titulo">Modificar Kit: {kitEditando.nombre}</h2>
+            <p className="eqp-modal-sub">Actualiza la información o los equipos del kit.</p>
+
+            {kitEditando.estado === 'EN_TERRENO' && (
+              <div className="eqp-alerta-terreno">
+                Este kit está en terreno, por lo que no se permite cambiar su composición de equipos.
               </div>
-            ) : (
-              <>
-                <h2 style={{ marginTop: 0, marginBottom: '6px', fontSize: '18px', color: '#1e293b' }}>Modificar Kit: {kitEditando.nombre}</h2>
-                <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748b' }}>
-                  Actualiza la información o los equipos del kit.
-                </p>
+            )}
 
-                {kitEditando.estado === 'EN_TERRENO' && (
-                  <div style={{ marginBottom: '14px', padding: '10px 14px', backgroundColor: '#fef3c7', color: '#92400e', fontSize: '13px', borderRadius: '8px' }}>
-                    Este kit está en terreno, por lo que no se permite cambiar su composición de equipos.
-                  </div>
-                )}
+            {errorEditKit && (
+              <div className="eqp-alerta-error">
+                <AlertTriangle size={16} className="eqp-alerta-icono" />
+                <span>{errorEditKit}</span>
+              </div>
+            )}
 
-                {errorEditKit && (
-                  <div style={{ marginBottom: '14px', padding: '10px 14px', backgroundColor: '#fee2e2', color: '#991b1b', fontSize: '13px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <FaExclamationTriangle />
-                    <span>{errorEditKit}</span>
-                  </div>
-                )}
+            <form onSubmit={handleSubmitModificarKit} className="eqp-form">
+              <div>
+                <label className="eqp-label">Nombre del Kit:</label>
+                <input
+                  type="text"
+                  maxLength={50}
+                  required
+                  value={nombreEditKit}
+                  onChange={(e) => {
+                    setErrorEditKit('');
+                    setNombreEditKit(e.target.value);
+                  }}
+                  className="eqp-input"
+                />
+              </div>
 
-                <form onSubmit={handleSubmitModificarKit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  <div>
-                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Nombre del Kit:</label>
-                    <input
-                      type="text"
-                      maxLength={60}
-                      required
-                      value={nombreEditKit}
-                      onChange={(e) => setNombreEditKit(e.target.value)}
-                      style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
-                    />
-                  </div>
+              <div className="eqp-form-fila">
+                <div>
+                  <label className="eqp-label">Nivel:</label>
+                  <select
+                    value={nivelEditKit}
+                    onChange={(e) => setNivelEditKit(e.target.value)}
+                    className="eqp-select"
+                  >
+                    <option value="BASICO">Básico</option>
+                    <option value="ESTANDAR">Estándar</option>
+                    <option value="ALTA_GAMA">Alta Gama</option>
+                  </select>
+                </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    <div>
-                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Nivel:</label>
+                <div>
+                  <label className="eqp-label">Recargo (%):</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    value={recargoEditPct}
+                    onKeyDown={bloquearNegativosDecimal}
+                    onChange={(e) => {
+                      setErrorEditKit('');
+                      setRecargoEditPct(e.target.value);
+                    }}
+                    className="eqp-input"
+                  />
+                </div>
+              </div>
+
+              <div className="eqp-form-fila">
+                <div className="eqp-campo-col">
+                  <label className="eqp-label-fuerte">Cámara:</label>
+                  <select
+                    value={camaraEdit}
+                    onChange={(e) => setCamaraEdit(e.target.value)}
+                    disabled={kitEditando.estado === 'EN_TERRENO'}
+                    required
+                    className="eqp-select"
+                  >
+                    <option value="">-- Seleccione Cámara --</option>
+                    {obtenerEquiposParaEdicion()
+                      .filter((eq) => eq.categoria === 'CAMARA' || eq.codigo === camaraEdit)
+                      .map((eq) => (
+                        <option key={eq.codigo} value={eq.codigo}>
+                          {eq.codigo} - {eq.nombre}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                <div className="eqp-campo-col">
+                  <label className="eqp-label-fuerte">Trípode:</label>
+                  <select
+                    value={tripodeEdit}
+                    onChange={(e) => setTripodeEdit(e.target.value)}
+                    disabled={kitEditando.estado === 'EN_TERRENO'}
+                    required
+                    className="eqp-select"
+                  >
+                    <option value="">-- Seleccione Trípode --</option>
+                    {obtenerEquiposParaEdicion()
+                      .filter((eq) => eq.categoria === 'TRIPODE' || eq.codigo === tripodeEdit)
+                      .map((eq) => (
+                        <option key={eq.codigo} value={eq.codigo}>
+                          {eq.codigo} - {eq.nombre}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                <div className="eqp-campo-col">
+                  <label className="eqp-label-fuerte">Micrófono:</label>
+                  <select
+                    value={microfonoEdit}
+                    onChange={(e) => setMicrofonoEdit(e.target.value)}
+                    disabled={kitEditando.estado === 'EN_TERRENO'}
+                    required
+                    className="eqp-select"
+                  >
+                    <option value="">-- Seleccione Micrófono --</option>
+                    {obtenerEquiposParaEdicion()
+                      .filter((eq) => eq.categoria === 'MICROFONO' || eq.codigo === microfonoEdit)
+                      .map((eq) => (
+                        <option key={eq.codigo} value={eq.codigo}>
+                          {eq.codigo} - {eq.nombre}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                <div className="eqp-campo-col">
+                  <label className="eqp-label-fuerte">Switch de video:</label>
+                  <select
+                    value={switchEdit}
+                    onChange={(e) => setSwitchEdit(e.target.value)}
+                    disabled={kitEditando.estado === 'EN_TERRENO'}
+                    required
+                    className="eqp-select"
+                  >
+                    <option value="">-- Seleccione Switch --</option>
+                    {obtenerEquiposParaEdicion()
+                      .filter((eq) => eq.categoria === 'SWITCH_VIDEO' || eq.codigo === switchEdit)
+                      .map((eq) => (
+                        <option key={eq.codigo} value={eq.codigo}>
+                          {eq.codigo} - {eq.nombre}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* ADICIONALES EN EDICIÓN */}
+              <div className="eqp-adicionales-bloque">
+                <div className="eqp-adicionales-cab">
+                  <label className="eqp-label-fuerte">Equipos Adicionales:</label>
+                  {kitEditando.estado !== 'EN_TERRENO' && (
+                    <button
+                      type="button"
+                      onClick={() => setEquiposAdicionalesEditar([...equiposAdicionalesEditar, ''])}
+                      className="eqp-btn-anadir-extra"
+                    >
+                      <Plus size={14} />
+                      <span>Añadir equipo</span>
+                    </button>
+                  )}
+                </div>
+
+                {equiposAdicionalesEditar.map((codigoAdicional, index) => {
+                  const codigosUsados = [
+                    camaraEdit,
+                    tripodeEdit,
+                    microfonoEdit,
+                    switchEdit,
+                    ...equiposAdicionalesEditar
+                  ];
+                  const disponiblesExtra = obtenerEquiposParaEdicion().filter(
+                    (eq) => !codigosUsados.includes(eq.codigo) || eq.codigo === codigoAdicional
+                  );
+
+                  return (
+                    <div key={index} className="eqp-adicional-fila">
                       <select
-                        value={nivelEditKit}
-                        onChange={(e) => setNivelEditKit(e.target.value)}
-                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
-                      >
-                        <option value="BASICO">Básico</option>
-                        <option value="ESTANDAR">Estándar</option>
-                        <option value="ALTA_GAMA">Alta Gama</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Recargo (%):</label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="999.99"
-                        step="0.01"
-                        value={recargoEditPct}
-                        onChange={(e) => setRecargoEditPct(e.target.value)}
-                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
-                      />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Cámara:</label>
-                      <select
-                        value={camaraEdit}
-                        onChange={(e) => setCamaraEdit(e.target.value)}
+                        value={codigoAdicional}
                         disabled={kitEditando.estado === 'EN_TERRENO'}
+                        onChange={(e) => {
+                          const nuevos = [...equiposAdicionalesEditar];
+                          nuevos[index] = e.target.value;
+                          setEquiposAdicionalesEditar(nuevos);
+                        }}
                         required
-                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: kitEditando.estado === 'EN_TERRENO' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
+                        className="eqp-adicional-select"
                       >
-                        <option value="">-- Seleccione Cámara --</option>
-                        {obtenerEquiposParaEdicion().filter(eq => eq.categoria === 'CAMARA' || eq.codigo === camaraEdit).map(eq => (
-                          <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
+                        <option value="">-- Seleccionar equipo adicional --</option>
+                        {disponiblesExtra.map((eq) => (
+                          <option key={eq.codigo} value={eq.codigo}>
+                            {eq.codigo} - {eq.nombre} ({formatearCategoria(eq.categoria)})
+                          </option>
                         ))}
                       </select>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Trípode:</label>
-                      <select
-                        value={tripodeEdit}
-                        onChange={(e) => setTripodeEdit(e.target.value)}
-                        disabled={kitEditando.estado === 'EN_TERRENO'}
-                        required
-                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: kitEditando.estado === 'EN_TERRENO' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
-                      >
-                        <option value="">-- Seleccione Trípode --</option>
-                        {obtenerEquiposParaEdicion().filter(eq => eq.categoria === 'TRIPODE' || eq.codigo === tripodeEdit).map(eq => (
-                          <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Micrófono:</label>
-                      <select
-                        value={microfonoEdit}
-                        onChange={(e) => setMicrofonoEdit(e.target.value)}
-                        disabled={kitEditando.estado === 'EN_TERRENO'}
-                        required
-                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: kitEditando.estado === 'EN_TERRENO' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
-                      >
-                        <option value="">-- Seleccione Micrófono --</option>
-                        {obtenerEquiposParaEdicion().filter(eq => eq.categoria === 'MICROFONO' || eq.codigo === microfonoEdit).map(eq => (
-                          <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>Switch de video:</label>
-                      <select
-                        value={switchEdit}
-                        onChange={(e) => setSwitchEdit(e.target.value)}
-                        disabled={kitEditando.estado === 'EN_TERRENO'}
-                        required
-                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: kitEditando.estado === 'EN_TERRENO' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
-                      >
-                        <option value="">-- Seleccione Switch --</option>
-                        {obtenerEquiposParaEdicion().filter(eq => eq.categoria === 'SWITCH_VIDEO' || eq.codigo === switchEdit).map(eq => (
-                          <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* ADICIONALES EN EDICIÓN */}
-                  <div style={{ marginTop: '6px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <label style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>Equipos Adicionales:</label>
                       {kitEditando.estado !== 'EN_TERRENO' && (
                         <button
                           type="button"
-                          onClick={() => setEquiposAdicionalesEditar([...equiposAdicionalesEditar, ''])}
-                          style={{ padding: '4px 10px', backgroundColor: '#e0f2fe', color: '#0369a1', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}
+                          onClick={() => {
+                            const nuevos = equiposAdicionalesEditar.filter((_, i) => i !== index);
+                            setEquiposAdicionalesEditar(nuevos);
+                          }}
+                          className="eqp-btn-quitar-extra"
+                          aria-label="Quitar equipo adicional"
                         >
-                          + Añadir equipo
+                          <Trash2 size={15} />
                         </button>
                       )}
                     </div>
+                  );
+                })}
+              </div>
 
-                    {equiposAdicionalesEditar.map((codigoAdicional, index) => {
-                      const codigosUsados = [camaraEdit, tripodeEdit, microfonoEdit, switchEdit, ...equiposAdicionalesEditar];
-                      const disponiblesExtra = obtenerEquiposParaEdicion().filter(
-                        eq => !codigosUsados.includes(eq.codigo) || eq.codigo === codigoAdicional
-                      );
-
-                      return (
-                        <div key={index} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
-                          <select
-                            value={codigoAdicional}
-                            disabled={kitEditando.estado === 'EN_TERRENO'}
-                            onChange={(e) => {
-                              const nuevos = [...equiposAdicionalesEditar];
-                              nuevos[index] = e.target.value;
-                              setEquiposAdicionalesEditar(nuevos);
-                            }}
-                            required
-                            style={{ flex: 1, padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: '#ffffff' }}
-                          >
-                            <option value="">-- Seleccionar equipo adicional --</option>
-                            {disponiblesExtra.map(eq => (
-                              <option key={eq.codigo} value={eq.codigo}>{eq.codigo} - {eq.nombre} ({formatearCategoria(eq.categoria)})</option>
-                            ))}
-                          </select>
-                          {kitEditando.estado !== 'EN_TERRENO' && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const nuevos = equiposAdicionalesEditar.filter((_, i) => i !== index);
-                                setEquiposAdicionalesEditar(nuevos);
-                              }}
-                              style={{ padding: '8px 10px', backgroundColor: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
-                            >
-                              <FaTrash />
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid #f1f5f9', paddingTop: '14px' }}>
-                    <button
-                      type="button"
-                      onClick={() => setKitEditando(null)}
-                      style={{ padding: '8px 16px', backgroundColor: '#e2e8f0', color: '#334155', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={loadingEditKit || kitEditando.estado === 'EN_TERRENO'}
-                      style={{ padding: '8px 20px', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: kitEditando.estado === 'EN_TERRENO' ? 'not-allowed' : 'pointer', fontSize: '14px' }}
-                    >
-                      {loadingEditKit ? 'Guardando...' : 'Guardar Cambios'}
-                    </button>
-                  </div>
-                </form>
-              </>
-            )}
-
+              <div className="eqp-modal-pie">
+                <button
+                  type="button"
+                  onClick={() => setKitEditando(null)}
+                  className="eqp-btn-cancelar"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={loadingEditKit || kitEditando.estado === 'EN_TERRENO'}
+                  className="eqp-btn-guardar"
+                >
+                  {loadingEditKit ? 'Guardando...' : 'Guardar Cambios'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
-
     </div>
   );
 }
