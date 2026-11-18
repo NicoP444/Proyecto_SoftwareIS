@@ -7,14 +7,14 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  Lock,
   MapPin,
   Pencil,
   Plus,
-  Timer,
   Trash2,
   UserCheck,
-  Users,
   Wallet,
+  X,
 } from "lucide-react";
 import Modal from "../components/Modal";
 import {
@@ -33,6 +33,7 @@ import PagosEvento from "../components/calendario/PagosEvento";
 import DetalleFinancieroEvento from "../components/calendario/DetalleFinancieroEvento";
 import ConsultaPersonal from "../components/calendario/ConsultaPersonal";
 import MargenTraslado from "../components/calendario/MargenTraslado";
+import MenuHerramientas from "../components/calendario/MenuHerramientas";
 import ResumenIncidentesEvento from "../components/incidentes/ResumenIncidentesEvento";
 import { obtenerUsuario } from "../services/http.js";
 import "../styles/Calendario.css";
@@ -63,30 +64,11 @@ const ESTADOS = {
 
 // Tarjetas de arriba: al hacer clic filtran por estado
 const RESUMEN = [
-  {
-    estado: "",
-    texto: "Eventos del periodo",
-    icono: CalendarDays,
-    color: "azul",
-  },
-  {
-    estado: "CONFIRMADO",
-    texto: "Confirmadas",
-    icono: CalendarCheck,
-    color: "verde",
-  },
-  {
-    estado: "PENDIENTE_ADELANTO",
-    texto: "Pendientes de adelanto",
-    icono: CalendarClock,
-    color: "naranjo",
-  },
-  {
-    estado: "REALIZADO",
-    texto: "Realizadas",
-    icono: CheckCircle2,
-    color: "morado",
-  },
+  { estado: "", texto: "Todos los eventos", icono: CalendarDays, color: "azul" },
+  { estado: "CONFIRMADO", texto: "Confirmados", icono: CalendarCheck, color: "verde" },
+  { estado: "PENDIENTE_ADELANTO", texto: "Pendientes de adelanto", icono: CalendarClock, color: "naranjo" },
+  { estado: "REALIZADO", texto: "Realizados", icono: CheckCircle2, color: "morado" },
+  { estado: "CERRADO", texto: "Cerrados", icono: Lock, color: "gris" },
 ];
 
 // ---------- Funciones de ayuda ----------
@@ -319,91 +301,34 @@ export default function Calendario() {
           <h1>Calendario</h1>
           <p>Vista general de las transmisiones agendadas</p>
         </div>
-        <div className="encabezado-botones">
-          {puedeCrear && (
-            <>
-              <button
-                type="button"
-                className="boton boton-principal"
-                onClick={() => abrirCrear()}
-              >
-                <Plus size={18} /> Nuevo evento
-              </button>
-              <button
-                type="button"
-                className="boton boton-secundario"
-                onClick={() => setGestionandoClientes(true)}
-              >
-                <Users size={18} /> Clientes
-              </button>
-              <button
-                type="button"
-                className="boton boton-secundario"
-                onClick={() => setConsultandoPersonal(true)}
-              >
-                <UserCheck size={18} /> Personal disponible
-              </button>
-              <button
-                type="button"
-                className="boton boton-secundario"
-                onClick={() => setConfigurandoMargen(true)}
-              >
-                <Timer size={18} /> Margen de traslado
-              </button>
-            </>
-          )}
-          <div className="cal-selector">
+        {puedeCrear && (
+          <div className="encabezado-botones">
+            <MenuHerramientas
+              onClientes={() => setGestionandoClientes(true)}
+              onPersonal={() => setConsultandoPersonal(true)}
+              onMargen={() => setConfigurandoMargen(true)}
+            />
             <button
               type="button"
-              className={vista === "mes" ? "activo" : ""}
-              onClick={() => setVista("mes")}
+              className="boton boton-principal"
+              onClick={() => abrirCrear()}
             >
-              Mes
-            </button>
-            <button
-              type="button"
-              className={vista === "semana" ? "activo" : ""}
-              onClick={() => setVista("semana")}
-            >
-              Semana
+              <Plus size={18} /> Nuevo evento
             </button>
           </div>
-          <button
-            type="button"
-            className="boton boton-secundario"
-            onClick={() => setFechaBase(new Date())}
-          >
-            Hoy
-          </button>
-          <div className="cal-navegador">
-            <button
-              type="button"
-              className="boton-icono"
-              onClick={() => mover(-1)}
-              aria-label="Anterior"
-            >
-              <ChevronLeft size={20} />
-            </button>
-            <strong>{titulo}</strong>
-            <button
-              type="button"
-              className="boton-icono"
-              onClick={() => mover(1)}
-              aria-label="Siguiente"
-            >
-              <ChevronRight size={20} />
-            </button>
-          </div>
-        </div>
+        )}
       </div>
 
+      {/* Tarjetas: filtran el calendario por estado (clic de nuevo para quitar el filtro) */}
       <div className="indicadores">
         {RESUMEN.map(({ estado, texto, icono: Icono, color }) => (
           <button
             key={texto}
             type="button"
             className={`indicador ${color} clickeable ${filtroEstado === estado ? "seleccionado" : ""}`}
-            onClick={() => setFiltroEstado(estado)}
+            onClick={() => setFiltroEstado(filtroEstado === estado ? "" : estado)}
+            aria-pressed={filtroEstado === estado}
+            title={estado ? `Mostrar solo ${texto.toLowerCase()}` : "Mostrar todos los eventos"}
           >
             <span className="indicador-titulo">
               <Icono size={16} /> {texto}
@@ -414,11 +339,66 @@ export default function Calendario() {
       </div>
 
       <section className="panel">
-        <div className="panel-cabecera">
-          <h2>{titulo}</h2>
-          <span>
-            {filtroEstado ? ESTADOS[filtroEstado].texto : "Todos los estados"}
-          </span>
+        {/* Navegación: Hoy, flechas, periodo y vista */}
+        <div className="panel-cabecera cal-cabecera">
+          <div className="cal-cabecera-izq">
+            <button
+              type="button"
+              className="boton boton-secundario"
+              onClick={() => setFechaBase(new Date())}
+            >
+              Hoy
+            </button>
+            <div className="cal-navegador">
+              <button
+                type="button"
+                className="boton-icono"
+                onClick={() => mover(-1)}
+                aria-label={vista === "mes" ? "Mes anterior" : "Semana anterior"}
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <button
+                type="button"
+                className="boton-icono"
+                onClick={() => mover(1)}
+                aria-label={vista === "mes" ? "Mes siguiente" : "Semana siguiente"}
+              >
+                <ChevronRight size={20} />
+              </button>
+            </div>
+            <h2>{titulo}</h2>
+          </div>
+
+          <div className="cal-cabecera-der">
+            {filtroEstado && (
+              <button
+                type="button"
+                className={`cal-filtro-activo ${ESTADOS[filtroEstado].clase}`}
+                onClick={() => setFiltroEstado("")}
+                title="Quitar filtro"
+              >
+                Solo: {RESUMEN.find((r) => r.estado === filtroEstado)?.texto}
+                <X size={14} />
+              </button>
+            )}
+            <div className="cal-selector">
+              <button
+                type="button"
+                className={vista === "mes" ? "activo" : ""}
+                onClick={() => setVista("mes")}
+              >
+                Mes
+              </button>
+              <button
+                type="button"
+                className={vista === "semana" ? "activo" : ""}
+                onClick={() => setVista("semana")}
+              >
+                Semana
+              </button>
+            </div>
+          </div>
         </div>
 
         {error && <div className="mensaje mensaje-error">{error}</div>}
@@ -444,10 +424,11 @@ export default function Calendario() {
               const limite = vista === "mes" ? 2 : lista.length; // en el mes mostramos 2 y "+N más"
               // El Dueño puede hacer clic en un día (de hoy en adelante) para agendar ahí
               const creable = puedeCrear && !fuera && k >= claveHoy;
+              const pasado = !fuera && k < claveHoy; // días que ya pasaron (se ven atenuados)
               return (
                 <div
                   key={k}
-                  className={`cal-celda ${vista === "semana" ? "alta" : ""} ${fuera ? "fuera" : ""} ${k === claveHoy ? "hoy" : ""} ${creable ? "creable" : ""}`}
+                  className={`cal-celda ${vista === "semana" ? "alta" : ""} ${fuera ? "fuera" : ""} ${k === claveHoy ? "hoy" : ""} ${pasado ? "pasado" : ""} ${creable ? "creable" : ""}`}
                   onClick={creable ? () => abrirCrear(k) : undefined}
                   title={creable ? "Clic para agendar un evento este día" : undefined}
                 >
@@ -466,7 +447,8 @@ export default function Calendario() {
                       >
                         <b>{horaDe(c.hora_inicio)}</b> {c.tipo}
                         <small>{c.cliente?.nombre}</small>
-                        <small>{c.direccion}</small>
+                        {/* En el mes la dirección no cabe: se ve en Semana, al pasar el mouse y en el detalle */}
+                        {vista === "semana" && <small>{c.direccion}</small>}
                       </button>
                     ))}
                     {!fuera && lista.length > limite && (

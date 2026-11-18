@@ -10,7 +10,7 @@
 .cal-pagina .encabezado p { margin-bottom: 10px; }
 
 /* Tarjetas de resumen en una sola línea */
-.cal-pagina .indicadores { gap: 10px; margin-bottom: 12px; }
+.cal-pagina .indicadores { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
 .cal-pagina .indicador { flex-direction: row; align-items: center; justify-content: space-between; padding: 8px 14px; }
 .cal-pagina .indicador-valor { font-size: 1.15rem; }
 
@@ -20,7 +20,6 @@
 
 /* ---------- Navegación ---------- */
 .cal-navegador { display: flex; align-items: center; gap: 4px; padding: 0 4px; height: 36px; background: var(--blanco); border: 1px solid var(--borde); border-radius: 8px; }
-.cal-navegador strong { min-width: 130px; text-align: center; font-size: 0.85rem; }
 .cal-navegador .boton-icono { padding: 4px; }
 
 .cal-selector { display: flex; height: 36px; padding: 3px; background: var(--blanco); border: 1px solid var(--borde); border-radius: 8px; }
@@ -252,3 +251,32 @@ button.cal-mas { flex-shrink: 0; padding: 0; border: 0; background: none; text-a
 /* ---------- Opción "Crear cliente" al final del buscador ---------- */
 .selector-cliente-lista li.selector-cliente-crear { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--borde); }
 .selector-cliente-lista li.selector-cliente-crear button { justify-content: flex-start; align-items: center; color: var(--primario); font-weight: 600; }
+
+/* ---------- Mejoras visuales del calendario ---------- */
+
+/* Tarjeta "Cerrados" en gris; en pantallas medianas las tarjetas bajan de línea */
+.cal-pagina .indicador.gris { --color: #9ca3af; }
+.cal-pagina .indicador.seleccionado,
+.cal-pagina .indicador.seleccionado:hover { box-shadow: inset 0 0 0 2px var(--color); } /* que se note la tarjeta elegida aunque tenga el mouse encima */
+@media (max-width: 1100px) {
+  .cal-pagina .indicadores { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+}
+
+/* Cabecera del panel: [Hoy] ‹ › Noviembre 2026 ............ [filtro] [Mes | Semana] */
+.cal-cabecera { gap: 12px; flex-wrap: wrap; }
+.cal-cabecera-izq,
+.cal-cabecera-der { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cal-cabecera-izq .boton { height: 36px; }
+.cal-cabecera-izq h2 { margin-left: 4px; font-size: 1.05rem; }
+
+/* Aviso del filtro activo (clic para quitarlo) */
+.cal-filtro-activo { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border: 0; border-radius: 999px; font-size: 0.75rem; font-weight: 600; color: var(--color); background: color-mix(in srgb, var(--color) 14%, white); cursor: pointer; }
+.cal-filtro-activo:hover { background: color-mix(in srgb, var(--color) 24%, white); }
+
+/* Menú "Herramientas" */
+.menu-herramientas { position: relative; }
+.menu-herramientas-lista { position: absolute; top: calc(100% + 6px); right: 0; z-index: 20; display: flex; flex-direction: column; min-width: 260px; padding: 6px; background: var(--blanco); border: 1px solid var(--borde); border-radius: 12px; box-shadow: 0 10px 25px rgba(17, 24, 39, 0.12); }
+.menu-herramientas-lista button { display: flex; align-items: flex-start; gap: 10px; width: 100%; padding: 10px; border: 0; border-radius: 8px; background: none; text-align: left; font-size: 0.85rem; font-weight: 600; color: var(--texto); cursor: pointer; }
+.menu-herramientas-lista button:hover { background: var(--fondo); }
+.menu-herramientas-lista button svg { flex-shrink: 0; margin-top: 2px; color: var(--primario); }
+.menu-herramientas-lista small { display: block; margin-top: 2px; font-size: 0.72rem; font-weight: 400; color: var(--texto-suave); }
