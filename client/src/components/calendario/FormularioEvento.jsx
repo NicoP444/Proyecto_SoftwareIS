@@ -60,7 +60,7 @@ export default function FormularioEvento({ evento = null, fechaInicial = "", dir
     if (!datos.hora_inicio || !datos.hora_termino) return setError("Indica la hora de inicio y de término");
     if (!horasValidas) return setError("La hora de término debe ser posterior a la de inicio (los eventos terminan el mismo día)");
     if (!Number.isInteger(Number(datos.precio_acordado)) || Number(datos.precio_acordado) <= 0)
-      return setError("El precio debe ser mayor a cero");
+      return setError("El precio debe ser un número entero mayor a cero (sin decimales)");
 
     setGuardando(true);
     try {

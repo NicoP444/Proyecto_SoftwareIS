@@ -59,7 +59,7 @@ export async function crearEvento(datos, idDueno) {
     throw new ValidationError("Las observaciones no pueden superar los 255 caracteres");
   }
   if (!Number.isInteger(precio) || precio <= 0) {
-    throw new ValidationError("El precio debe ser mayor a cero");
+    throw new ValidationError("El precio debe ser un número entero mayor a cero (sin decimales)");
   }
   if (precio > 2000000000) {
     throw new ValidationError("El precio no puede superar $2.000.000.000");
