@@ -1,0 +1,725 @@
+/* Estilos exclusivos de Gestión de Kits y Equipos (RF-P5) */
+
+.eqp-pagina {
+  --eqp-azul: var(--primario, #0b1a8c);
+  --eqp-azul-hover: #08146e;
+  --eqp-azul-suave: #eceefb;
+  padding: 10px 0;
+  width: 100%;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* ---------- Cabecera principal ---------- */
+.eqp-encabezado {
+  margin-bottom: 20px;
+}
+
+.eqp-encabezado h1 {
+  margin: 0 0 4px 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.eqp-encabezado p {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+/* ---------- Contenedor principal y pestañas ---------- */
+.eqp-panel {
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.eqp-tabs-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 12px;
+}
+
+.eqp-tabs-grupo {
+  display: flex;
+  gap: 24px;
+}
+
+.eqp-tab {
+  padding: 8px 4px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+  transition: all 0.2s;
+}
+
+.eqp-tab.activa {
+  color: var(--eqp-azul);
+  border-bottom-color: var(--eqp-azul);
+}
+
+/* ---------- Botones principales (Azul institucional #0b1a8c) ---------- */
+.eqp-btn-nuevo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--eqp-azul);
+  color: #ffffff;
+  padding: 9px 18px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: background-color 0.15s ease;
+}
+
+.eqp-btn-nuevo:hover:not(:disabled) {
+  background-color: var(--eqp-azul-hover);
+}
+
+.eqp-btn-nuevo:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ---------- Vista de Kits ---------- */
+.eqp-vacio-kits {
+  background-color: #f8fafc;
+  border-radius: 16px;
+  padding: 48px 20px;
+  text-align: center;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+}
+
+.eqp-vacio-icono {
+  color: #94a3b8;
+  margin-bottom: 12px;
+}
+
+.eqp-vacio-kits h3 {
+  margin: 0 0 6px 0;
+  font-size: 16px;
+  color: #1e293b;
+}
+
+.eqp-vacio-kits p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.eqp-kits-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.eqp-kit-card {
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+  border-top: 4px solid var(--eqp-azul);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+}
+
+.eqp-kit-cab {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.eqp-kit-titulo {
+  margin: 0;
+  font-size: 18px;
+  color: #1e293b;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.eqp-kit-sub {
+  margin: 4px 0 0 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.eqp-kit-acciones {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.eqp-btn-sec-chico {
+  padding: 5px 12px;
+  background-color: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #1e293b;
+  transition: background-color 0.15s ease;
+}
+
+.eqp-btn-sec-chico:hover {
+  background-color: #e2e8f0;
+}
+
+.eqp-btn-peligro-chico {
+  padding: 5px 12px;
+  background-color: #fee2e2;
+  border: 1px solid #fca5a5;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #991b1b;
+  transition: background-color 0.15s ease;
+}
+
+.eqp-btn-peligro-chico:hover {
+  background-color: #fecaca;
+}
+
+.eqp-kit-equipos-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.eqp-kit-eq-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 10px;
+  padding: 8px;
+  min-width: 0;
+}
+
+.eqp-kit-eq-icono {
+  padding: 8px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  color: var(--eqp-azul);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.eqp-kit-eq-info {
+  overflow: hidden;
+  min-width: 0;
+}
+
+.eqp-kit-eq-nombre {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.eqp-kit-eq-cat {
+  margin: 0;
+  font-size: 10px;
+  color: #64748b;
+}
+
+.eqp-kit-pie {
+  border-top: 1px solid #f1f5f9;
+  padding-top: 12px;
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* ---------- Vista de Equipos / Inventario ---------- */
+.eqp-seccion-cab {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.eqp-seccion-titulo {
+  margin: 0;
+  font-size: 20px;
+  color: #1e293b;
+}
+
+.eqp-seccion-sub {
+  margin: 4px 0 0 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.eqp-filtro-select {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  font-size: 13px;
+  background-color: #ffffff;
+  color: #1e293b;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.eqp-cargando {
+  color: #64748b;
+  text-align: center;
+  padding: 20px 0;
+}
+
+.eqp-vacio-tabla {
+  text-align: center;
+  padding: 36px 15px;
+  color: #64748b;
+}
+
+.eqp-vacio-tabla p {
+  margin: 0;
+}
+
+.eqp-tabla-scroll {
+  overflow-x: auto;
+}
+
+.eqp-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 14px;
+}
+
+.eqp-tabla thead tr {
+  border-bottom: 2px solid #e2e8f0;
+  color: #64748b;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.eqp-tabla th {
+  padding: 12px 14px;
+}
+
+.eqp-tabla td {
+  padding: 14px;
+}
+
+.eqp-tr {
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.eqp-tr-baja {
+  opacity: 0.65;
+}
+
+.eqp-th-der,
+.eqp-td-der {
+  text-align: right;
+}
+
+.eqp-th-centro,
+.eqp-td-centro {
+  text-align: center;
+}
+
+.eqp-td-codigo {
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+}
+
+.eqp-td-nombre {
+  font-weight: 600;
+  color: #1e293b;
+  max-width: 200px;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.eqp-td-cat {
+  color: #475569;
+}
+
+.eqp-td-marca {
+  color: #64748b;
+  max-width: 180px;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.eqp-td-fecha {
+  color: #475569;
+  white-space: nowrap;
+}
+
+.eqp-td-valor {
+  text-align: right;
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+}
+
+.eqp-td-kit-asignado {
+  text-align: center;
+  color: #0f172a;
+  font-weight: 500;
+}
+
+.eqp-td-kit-libre {
+  text-align: center;
+  color: #64748b;
+}
+
+.eqp-acciones-fila {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+/* ---------- Badges de estado ---------- */
+.eqp-badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.eqp-badge-verde { background-color: #dcfce7; color: #166534; }
+.eqp-badge-gris { background-color: #f1f5f9; color: #475569; }
+.eqp-badge-rojo { background-color: #fee2e2; color: #991b1b; }
+.eqp-badge-azul { background-color: #dbeafe; color: #1d4ed8; }
+
+/* ---------- Modales ---------- */
+.eqp-modal-fondo {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+}
+
+.eqp-modal-caja {
+  background-color: #ffffff;
+  border-radius: 20px;
+  padding: 24px;
+  width: 100%;
+  max-width: 640px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  max-height: 90vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.eqp-modal-caja-chica { max-width: 460px; }
+.eqp-modal-caja-amplia { max-width: 700px; }
+
+.eqp-modal-exito {
+  background-color: #ffffff;
+  border-radius: 20px;
+  padding: 32px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.eqp-modal-exito-contenido {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.eqp-icono-exito {
+  font-size: 56px;
+  color: #166534;
+}
+
+.eqp-modal-exito-titulo {
+  margin: 0;
+  font-size: 20px;
+  color: #1e293b;
+}
+
+.eqp-modal-exito-texto {
+  margin: 0;
+  font-size: 15px;
+  color: #166534;
+  font-weight: 600;
+}
+
+.eqp-modal-titulo {
+  margin-top: 0;
+  margin-bottom: 6px;
+  font-size: 18px;
+  color: #1e293b;
+}
+
+.eqp-modal-titulo-rojo {
+  margin-top: 0;
+  margin-bottom: 6px;
+  font-size: 18px;
+  color: #991b1b;
+}
+
+.eqp-modal-sub {
+  margin: 0 0 16px 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+/* ---------- Alertas dentro de modales ---------- */
+.eqp-alerta-error {
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  background-color: #fee2e2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.eqp-alerta-icono {
+  flex-shrink: 0;
+}
+
+.eqp-alerta-terreno {
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  background-color: #fef3c7;
+  border: 1px solid #fde68a;
+  color: #92400e;
+  font-size: 13px;
+  border-radius: 8px;
+}
+
+/* ---------- Formularios ---------- */
+.eqp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.eqp-form-fila {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 600px) {
+  .eqp-form-fila {
+    grid-template-columns: 1fr;
+  }
+}
+
+.eqp-campo-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.eqp-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 5px;
+  color: #334155;
+}
+
+.eqp-label-fuerte {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.eqp-input,
+.eqp-select,
+.eqp-textarea {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  font-size: 14px;
+  background-color: #ffffff;
+  color: #0f172a;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.eqp-input:focus,
+.eqp-select:focus,
+.eqp-textarea:focus {
+  outline: 2px solid var(--eqp-azul);
+  outline-offset: -1px;
+}
+
+.eqp-input:disabled,
+.eqp-input[readonly],
+.eqp-select:disabled {
+  background-color: #f1f5f9;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+.eqp-textarea {
+  resize: vertical;
+}
+
+/* ---------- Sección Equipos Adicionales en Kit ---------- */
+.eqp-adicionales-bloque {
+  margin-top: 6px;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 12px;
+}
+
+.eqp-adicionales-cab {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.eqp-btn-anadir-extra {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  background-color: var(--eqp-azul);
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.eqp-btn-anadir-extra:hover {
+  background-color: var(--eqp-azul-hover);
+}
+
+.eqp-adicional-fila {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+
+.eqp-adicional-select {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  font-size: 13px;
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+.eqp-btn-quitar-extra {
+  padding: 8px 10px;
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---------- Pie de modales ---------- */
+.eqp-modal-pie {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 14px;
+}
+
+.eqp-btn-cancelar {
+  padding: 8px 16px;
+  background-color: #e2e8f0;
+  color: #334155;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.eqp-btn-guardar {
+  padding: 8px 20px;
+  background-color: var(--eqp-azul);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.15s ease;
+}
+
+.eqp-btn-guardar:hover:not(:disabled) {
+  background-color: var(--eqp-azul-hover);
+}
+
+.eqp-btn-guardar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.eqp-btn-confirmar-baja {
+  padding: 8px 18px;
+  background-color: #dc2626;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.eqp-btn-confirmar-baja:hover {
+  background-color: #b91c1c;
+}
