@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "main": "index.js",
-   "scripts": {
+  "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon src/server.js",
     "seed:base": "node seeders/seed.js",
@@ -26,6 +26,7 @@
     "cors": "^2.8.6",
     "dotenv": "^18.0.3",
     "express": "^5.2.1",
+    "express-validator": "^7.3.2",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.5.0",
     "zod": "^4.6.5"

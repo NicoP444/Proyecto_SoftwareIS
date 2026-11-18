@@ -1,8 +1,8 @@
-// Importamos la "cocina" (el servicio que acabas de crear)
 import { auspiciadorService } from '../services/auspiciador.service.js';
 
 export const auspiciadorController = {
-  // 0. LISTAR TODOS
+
+  //OBTENER TODOS 
   async obtenerTodos(req, res) {
     try {
       const auspiciadores = await auspiciadorService.obtenerTodos();
@@ -12,18 +12,18 @@ export const auspiciadorController = {
     }
   },
 
-  // 1. REGISTRAR
+  //REGISTRAR AUSPICIADOR
   async crear(req, res) {
     try {
       const nuevoAuspiciador = await auspiciadorService.crear(req.body);
       res.status(201).json(nuevoAuspiciador);
     } catch (error) {
-      res.status(500).json({ error: "Ocurrió un error al registrar el auspiciador." });
+      res.status(500).json({ error: error.message || "Ocurrió un error al registrar el auspiciador." });
     }
   },
-
-  // 2. MODIFICAR
-  async modificar(req, res) {
+  
+  //MODIFICAR AUSPICIADOR
+async modificar(req, res) {
     try {
       const id = req.params.id;
       const datosActualizados = await auspiciadorService.modificar(id, req.body);
@@ -33,7 +33,7 @@ export const auspiciadorController = {
     }
   },
 
-  // 3. ELIMINAR
+  //ELIMINAR AUSPICIADOR
   async eliminar(req, res) {
     try {
       const id = req.params.id;

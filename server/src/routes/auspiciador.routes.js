@@ -1,18 +1,19 @@
 import { Router } from 'express';
 import { auspiciadorController } from '../controllers/auspiciador.controller.js';
+import { auspiciadorSchema } from '../schemas/auspiciador.schema.js';
+import { validarCampos, validarId } from '../middlewares/validate.middleware.js'; 
 
 const router = Router();
 
-// GET /api/auspiciadores -> Obtiene la lista de auspiciadores
 router.get('/', auspiciadorController.obtenerTodos);
 
-// POST /api/auspiciadores -> Registra un nuevo auspiciador
-router.post('/', auspiciadorController.crear);
+// Al crear: validamos con el schema y procesamos con validarCampos
+router.post('/', auspiciadorSchema, validarCampos, auspiciadorController.crear);
 
-// PUT /api/auspiciadores/:id -> Modifica un auspiciador existente
-router.put('/:id', auspiciadorController.modificar);
+// Al modificar: validamos que el ID sea correcto, el schema y los errores
+router.put('/:id', validarId, auspiciadorSchema, validarCampos, auspiciadorController.modificar);
 
-// DELETE /api/auspiciadores/:id -> Elimina un auspiciador
-router.delete('/:id', auspiciadorController.eliminar);
+// Al eliminar: validamos que el ID sea correcto antes de pasar al controlador
+router.delete('/:id', validarId, auspiciadorController.eliminar);
 
 export default router;
