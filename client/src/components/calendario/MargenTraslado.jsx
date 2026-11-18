@@ -59,8 +59,8 @@ export default function MargenTraslado({ onGuardado }) {
   return (
     <form className="formulario margen-form" onSubmit={guardar} noValidate>
       <p className="texto-tenue">
-        Tiempo mínimo que debe haber entre dos eventos en lugares distintos para una misma persona.
-        Si no alcanza, el sistema avisa al asignarla.
+        Tiempo mínimo que debe haber entre dos eventos en lugares distintos para una misma persona o kit.
+        Si no alcanza, el sistema avisa al asignar personal o kits.
       </p>
 
       {error && <div className="mensaje mensaje-error">{error}</div>}
