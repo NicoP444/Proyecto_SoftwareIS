@@ -691,7 +691,7 @@ export default function Calendario() {
                   <Pencil size={16} /> Modificar evento
                 </button>
               )}
-              {puedeEliminar && !pidiendoMotivo && (
+              {puedeEliminar && !pidiendoMotivo && !["REALIZADO", "CERRADO"].includes(e.estado) && (
                 <button
                   type="button"
                   className="boton boton-peligro"
