@@ -1,14 +1,9 @@
 import { useEffect, useState } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
-import {
-  listarClientes,
-  crearCliente,
-  modificarCliente,
-  eliminarCliente,
-} from "../../services/cliente.service.js";
-import { formatearRut, limpiarRut, rutEsValido } from "../../utils/rut.js";
+import { listarClientes, eliminarCliente } from "../../services/cliente.service.js";
+import { formatearRut } from "../../utils/rut.js";
+import FormularioCliente from "./FormularioCliente";
 
-const VACIO = { rut: "", nombre: "", telefono: "", correo: "" };
 const LIMITE = 50;
 
 /**
@@ -22,9 +17,8 @@ export default function GestionClientes({ onCambio }) {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
 
-  const [formulario, setFormulario] = useState(null); // null = se ve la lista
-  const [errorForm, setErrorForm] = useState("");
-  const [guardando, setGuardando] = useState(false);
+  // null = se ve la lista · "nuevo" = formulario vacío · un cliente = formulario para modificarlo
+  const [formulario, setFormulario] = useState(null);
 
   // Pide la lista 300 ms después de escribir en el buscador
   useEffect(() => {
@@ -48,53 +42,11 @@ export default function GestionClientes({ onCambio }) {
     };
   }, [buscar, recarga]);
 
-  const cambiar = (campo) => (e) => setFormulario({ ...formulario, [campo]: e.target.value });
-
-  function abrirNuevo() {
-    setErrorForm("");
-    setFormulario({ ...VACIO });
-  }
-
-  function abrirEditar(c) {
-    setErrorForm("");
-    setFormulario({
-      id_cliente: c.id_cliente,
-      rut: formatearRut(c.rut),
-      nombre: c.nombre,
-      telefono: c.telefono,
-      correo: c.correo ?? "",
-    });
-  }
-
-  async function guardar(e) {
-    e.preventDefault();
-    setErrorForm("");
-    const f = formulario;
-
-    if (!f.rut.trim()) return setErrorForm("El RUT es obligatorio");
-    if (!rutEsValido(f.rut)) return setErrorForm("El RUT no es válido");
-    if (!f.nombre.trim()) return setErrorForm("Indica el nombre del cliente");
-    if (!f.telefono.trim()) return setErrorForm("Indica el teléfono del cliente");
-
-    const datos = {
-      rut: limpiarRut(f.rut),
-      nombre: f.nombre.trim(),
-      telefono: f.telefono.trim(),
-      correo: f.correo.trim(),
-    };
-
-    setGuardando(true);
-    try {
-      if (f.id_cliente) await modificarCliente(f.id_cliente, datos);
-      else await crearCliente(datos);
-      setFormulario(null);
-      setRecarga((n) => n + 1);
-      onCambio?.(); // para que el calendario refresque los nombres
-    } catch (err) {
-      setErrorForm(err.message);
-    } finally {
-      setGuardando(false);
-    }
+  // Después de crear o modificar: vuelve a la lista y la refresca
+  function alGuardar() {
+    setFormulario(null);
+    setRecarga((n) => n + 1);
+    onCambio?.(); // para que el calendario refresque los nombres
   }
 
   async function eliminar(c) {
@@ -120,48 +72,15 @@ export default function GestionClientes({ onCambio }) {
   // ---------- Formulario (nuevo / editar) ----------
   if (formulario) {
     return (
-      <form className="formulario" onSubmit={guardar} noValidate>
-        {errorForm && <div className="mensaje mensaje-error">{errorForm}</div>}
-
-        <div className="campo">
-          <label htmlFor="cli-rut">RUT</label>
-          <input
-            id="cli-rut"
-            value={formulario.rut}
-            onChange={cambiar("rut")}
-            onBlur={() => setFormulario({ ...formulario, rut: formatearRut(formulario.rut) })}
-            placeholder="12.345.678-5"
-            maxLength={12}
-            autoFocus
-          />
-        </div>
-        <div className="campo">
-          <label htmlFor="cli-nombre">Nombre</label>
-          <input id="cli-nombre" value={formulario.nombre} onChange={cambiar("nombre")} maxLength={80} />
-        </div>
-        <div className="fila-doble">
-          <div className="campo">
-            <label htmlFor="cli-telefono">Teléfono</label>
-            <input id="cli-telefono" value={formulario.telefono} onChange={cambiar("telefono")} placeholder="+56 9 1234 5678" maxLength={20} />
-          </div>
-          <div className="campo">
-            <label htmlFor="cli-correo">Correo (opcional)</label>
-            <input id="cli-correo" type="email" value={formulario.correo} onChange={cambiar("correo")} maxLength={120} />
-          </div>
-        </div>
-
-        <div className="acciones">
-          <button type="button" className="boton boton-secundario" onClick={() => setFormulario(null)}>
-            Cancelar
-          </button>
-          <button type="submit" className="boton boton-principal" disabled={guardando}>
-            {guardando ? "Guardando…" : formulario.id_cliente ? "Guardar cambios" : "Crear cliente"}
-          </button>
-        </div>
-      </form>
+      <FormularioCliente
+        key={formulario === "nuevo" ? "nuevo" : formulario.id_cliente}
+        cliente={formulario === "nuevo" ? null : formulario}
+        onGuardado={alGuardar}
+        onCancelar={() => setFormulario(null)}
+      />
     );
   }
-
+  
   // ---------- Lista ----------
   return (
     <div className="cli-gestion">
@@ -176,7 +95,7 @@ export default function GestionClientes({ onCambio }) {
             autoComplete="off"
           />
         </div>
-        <button type="button" className="boton boton-principal" onClick={abrirNuevo}>
+        <button type="button" className="boton boton-principal" onClick={() => setFormulario("nuevo")}>
           <Plus size={18} /> Nuevo cliente
         </button>
       </div>
@@ -210,7 +129,7 @@ export default function GestionClientes({ onCambio }) {
                     <td>{c.correo ?? "—"}</td>
                     <td>
                       <div className="cli-acciones">
-                        <button type="button" className="boton-icono" onClick={() => abrirEditar(c)} aria-label="Modificar">
+                        <button type="button" className="boton-icono" onClick={() => setFormulario(c)} aria-label="Modificar">
                           <Pencil size={16} />
                         </button>
                         <button

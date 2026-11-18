@@ -1,11 +1,14 @@
 import { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 /**
  * Ventana emergente reutilizable (la puede usar cualquier compañero).
  * es la parte de la pantalla que aparece encima de todo lo demás, con un fondo semitransparente y un cuadro blanco con contenido.
+ * Se dibuja directo en <body> (portal), así se puede abrir una ventana encima de otra sin problemas.
+ * cerrarConFondo = false: hacer clic en el fondo oscuro NO cierra la ventana (úsalo en formularios para no perder lo escrito).
  */
-export default function Modal({ abierto, onCerrar, titulo, ancho = 'normal', children }) {
+export default function Modal({ abierto, onCerrar, titulo, ancho = 'normal', cerrarConFondo = true, children }) {
   const fondo = useRef(null);
 
   // Cerrar con la tecla Escape (solo la ventana de más arriba, si hay dos abiertas)
@@ -21,8 +24,15 @@ export default function Modal({ abierto, onCerrar, titulo, ancho = 'normal', chi
 
   if (!abierto) return null;
 
-  return (
-    <div ref={fondo} className="modal-fondo" onMouseDown={onCerrar}>
+  return createPortal(
+    <div
+      ref={fondo}
+      className="modal-fondo"
+      onMouseDown={(e) => {
+        e.stopPropagation(); // que el clic no llegue a la ventana de abajo (si hay una)
+        if (cerrarConFondo) onCerrar();
+      }}
+    >
       <div
         className={`modal modal-${ancho}`}
         role="dialog"
@@ -38,6 +48,7 @@ export default function Modal({ abierto, onCerrar, titulo, ancho = 'normal', chi
         </div>
         <div className="modal-contenido">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

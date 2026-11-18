@@ -1,19 +1,23 @@
 import { useEffect, useRef, useState } from "react";
-import { X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { listarClientes } from "../../services/cliente.service.js";
 import { formatearRut } from "../../utils/rut.js";
+import Modal from "../Modal";
+import FormularioCliente from "./FormularioCliente";
 
 /**
  * Buscador de clientes por nombre o RUT (RF-P1-01).
  * No carga todos los clientes: le pregunta al back mientras se escribe
  * y trae máximo 8, así sigue funcionando aunque haya miles de clientes.
+ * Si el cliente no existe, se puede crear ahí mismo (puedeCrear) sin cerrar el formulario del evento.
  */
-export default function SelectorCliente({ valor, onCambiar }) {
+export default function SelectorCliente({ valor, onCambiar, puedeCrear = true }) {
   const [texto, setTexto] = useState("");
   const [resultados, setResultados] = useState([]);
   const [abierto, setAbierto] = useState(false);
   const [buscando, setBuscando] = useState(false);
   const [error, setError] = useState("");
+  const [creando, setCreando] = useState(false); // ventana "Nuevo cliente"
   const contenedor = useRef(null);
 
   // Busca 300 ms después de que el usuario deja de escribir
@@ -55,12 +59,37 @@ export default function SelectorCliente({ valor, onCambiar }) {
     setAbierto(false);
   }
 
+  function abrirCrear() {
+    setAbierto(false);
+    setCreando(true);
+  }
+
+  // Cliente recién creado: queda elegido de inmediato
+  function alCrear(cliente) {
+    setCreando(false);
+    elegir(cliente);
+  }
+
   // Enter elige el primer resultado (sin esto enviaría el formulario)
   function alPresionar(e) {
     if (e.key !== "Enter") return;
     e.preventDefault();
     if (resultados[0]) elegir(resultados[0]);
   }
+
+  // Si lo escrito parece un RUT no lo usamos como nombre del cliente nuevo
+  const pareceRut = /^[\d.\-kK\s]+$/.test(texto.trim());
+
+  // Ventana para crear el cliente (se dibuja encima del formulario del evento)
+  const ventanaCrear = (
+    <Modal abierto={creando} onCerrar={() => setCreando(false)} titulo="Nuevo cliente" cerrarConFondo={false}>
+      <FormularioCliente
+        nombreInicial={pareceRut ? "" : texto.trim()}
+        onGuardado={alCrear}
+        onCancelar={() => setCreando(false)}
+      />
+    </Modal>
+  );
 
   // Ya hay un cliente elegido
   if (valor) {
@@ -102,9 +131,7 @@ export default function SelectorCliente({ valor, onCambiar }) {
             <li className="selector-cliente-vacio">Buscando…</li>
           )}
           {!error && !buscando && resultados.length === 0 && (
-            <li className="selector-cliente-vacio">
-              Sin resultados. Registra al cliente desde el botón Clientes.
-            </li>
+            <li className="selector-cliente-vacio">No hay clientes que coincidan.</li>
           )}
           {resultados.map((c) => (
             <li key={c.id_cliente}>
@@ -114,8 +141,17 @@ export default function SelectorCliente({ valor, onCambiar }) {
               </button>
             </li>
           ))}
+          {puedeCrear && (
+            <li className="selector-cliente-crear">
+              <button type="button" onClick={abrirCrear}>
+                <Plus size={16} />
+                {texto.trim() && !pareceRut ? `Crear cliente «${texto.trim()}»` : "Crear cliente nuevo"}
+              </button>
+            </li>
+          )}
         </ul>
       )}
+      {ventanaCrear}
     </div>
   );
 }
