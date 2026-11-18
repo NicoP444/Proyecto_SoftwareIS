@@ -42,7 +42,7 @@ async modificar(req, res) {
     } catch (error) {
       // Retorna el mensaje exacto con la clave "mensaje" que espera el frontend
       const msg = error.message || "No se puede eliminar el auspiciador.";
-      return res.status(400).json({ mensaje: msg });
+      res.status(400).json({ mensaje: error.message || 'Error en la operación', error: error.message });
     }
   }
 };
