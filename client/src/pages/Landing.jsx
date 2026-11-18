@@ -36,9 +36,9 @@ export default function Landing() {
           <img
             className="brand-icon"
             src="/img/NombreEmpresa.png"
-            alt="Logo de Enfoque"
+            alt="Logo de SixSeven"
           />
-          NombreSistema
+          SixSeven
         </div>
         <div className="nav-links">
           <a href="#funciones">Funciones</a>
