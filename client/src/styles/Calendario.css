@@ -244,3 +244,7 @@ button.cal-mas { flex-shrink: 0; padding: 0; border: 0; background: none; text-a
 .cal-dia-lista .cal-evento,
 .cal-dia-lista .cal-evento small { white-space: normal; overflow-wrap: anywhere; }
 .cal-dia-lista .cal-evento { padding: 8px 10px; font-size: 0.8rem; }
+
+/* ---------- Clic en un día para agendar ---------- */
+.cal-celda.creable { cursor: pointer; }
+.cal-celda.creable:hover { background: var(--primario-suave); }

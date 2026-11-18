@@ -442,10 +442,14 @@ export default function Calendario() {
               const lista = porDia[k] ?? [];
               const fuera = vista === "mes" && fecha.getMonth() !== mes;
               const limite = vista === "mes" ? 2 : lista.length; // en el mes mostramos 2 y "+N más"
+              // El Dueño puede hacer clic en un día (de hoy en adelante) para agendar ahí
+              const creable = puedeCrear && !fuera && k >= claveHoy;
               return (
                 <div
                   key={k}
-                  className={`cal-celda ${vista === "semana" ? "alta" : ""} ${fuera ? "fuera" : ""} ${k === claveHoy ? "hoy" : ""}`}
+                  className={`cal-celda ${vista === "semana" ? "alta" : ""} ${fuera ? "fuera" : ""} ${k === claveHoy ? "hoy" : ""} ${creable ? "creable" : ""}`}
+                  onClick={creable ? () => abrirCrear(k) : undefined}
+                  title={creable ? "Clic para agendar un evento este día" : undefined}
                 >
                   <span className="cal-numero">{fecha.getDate()}</span>
                   {!fuera &&
@@ -455,7 +459,10 @@ export default function Calendario() {
                         type="button"
                         className={`cal-evento ${ESTADOS[c.estado]?.clase ?? "cerrado"}`}
                         title={`${c.tipo} · ${c.cliente?.nombre ?? ""} · ${c.direccion} · ${ESTADOS[c.estado]?.texto ?? c.estado}`}
-                        onClick={() => setEventoAbierto(c)}
+                        onClick={(ev) => {
+                          ev.stopPropagation(); // que no abra también "Nuevo evento"
+                          setEventoAbierto(c);
+                        }}
                       >
                         <b>{horaDe(c.hora_inicio)}</b> {c.tipo}
                         <small>{c.cliente?.nombre}</small>
@@ -466,7 +473,10 @@ export default function Calendario() {
                     <button
                       type="button"
                       className="cal-mas"
-                      onClick={() => setDiaAbierto(k)}
+                      onClick={(ev) => {
+                        ev.stopPropagation(); // que no abra también "Nuevo evento"
+                        setDiaAbierto(k);
+                      }}
                     >
                       +{lista.length - limite} más
                     </button>
