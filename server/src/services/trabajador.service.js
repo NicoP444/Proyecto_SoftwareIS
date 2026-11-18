@@ -18,7 +18,7 @@ const ObtenerTrabajador = async (id_trabajador) => {
 //obterner trabajadores, una lista
 export const ListarTrabajadores = async (id_dueno) => {
   const trabajadores = await prisma.trabajador.findMany({
-    where: { id_dueno: Number(id_dueno) },
+    where: id_dueno ? { id_dueno: Number(id_dueno) } : {},
     orderBy: { nombre: 'asc' },
     include: { roles: { include: { rol: true } } },
   });
