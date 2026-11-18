@@ -16,6 +16,12 @@ import panelRoutes from './routes/panel.routes.js'; //jorge
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+
+// Fechas "de hoy" en hora de Chile, aunque el servidor esté en UTC.
+// Sin esto, después de las 21:00 el sistema cree que ya es mañana
+// (no deja agendar eventos para hoy y el panel se corre un día).
+process.env.TZ = 'America/Santiago';
+
 //encontrar front
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distPath = path.join(__dirname, '../../client/dist');
