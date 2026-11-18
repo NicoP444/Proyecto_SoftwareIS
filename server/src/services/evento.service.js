@@ -218,6 +218,10 @@ export const actualizarEvento = async (id, datos, idDueno) => {
   if (existente.estado === "CERRADO") {
     throw new ValidationError("La jornada está cerrada: el evento ya no puede modificarse");
   }
+  // Un evento realizado se puede corregir, pero no cambiar de día: la transmisión ya ocurrió
+  if (existente.estado === "REALIZADO" && datos.fecha !== aFecha(existente.fecha)) {
+    throw new ValidationError("El evento ya se realizó: puedes corregir sus datos, pero no cambiar su fecha");
+  }
   // Un evento ya pasado se puede corregir, pero no se puede mover a una fecha pasada
   if (datos.fecha !== aFecha(existente.fecha) && datos.fecha < hoyTexto()) {
     throw new ValidationError("No puedes mover el evento a una fecha anterior a hoy");
