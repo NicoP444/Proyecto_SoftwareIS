@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import * as equipoController from '../controllers/equipo.controller.js';
 import { validarCampos } from '../middlewares/validate.middleware.js';
+import { autenticar, permitirRoles } from '../middlewares/auth.middleware.js';
 import {
   validarEquipoExiste,
   validarEquipoNoDadoDeBaja,
@@ -15,8 +16,8 @@ import {
 
 const router = Router();
 
-// Obtener todos los equipos
-router.get('/', equipoController.obtenerEquipos);
+// Obtener todos los equiposs
+router.use(autenticar, permitirRoles('JEFE_TECNICO'));
 
 // Registrar equipo (RF-P5-01)
 router.post(

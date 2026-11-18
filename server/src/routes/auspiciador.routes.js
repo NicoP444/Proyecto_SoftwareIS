@@ -1,19 +1,20 @@
 import { Router } from 'express';
 import { auspiciadorController } from '../controllers/auspiciador.controller.js';
 import { auspiciadorSchema } from '../schemas/auspiciador.schema.js';
-import { validarCampos, validarId } from '../middlewares/validate.middleware.js'; 
+import { validarCampos, validarId } from '../middlewares/validate.middleware.js';
+import { autenticar, permitirRoles } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
-router.get('/', auspiciadorController.obtenerTodos);
+// Todas las rutas exigen sesión iniciada
+router.use(autenticar);
 
-// Al crear: validamos con el schema y procesamos con validarCampos
-router.post('/', auspiciadorSchema, validarCampos, auspiciadorController.crear);
+// Ver auspiciadores: Dueño y Contador 
+router.get('/', permitirRoles('DUENO', 'CONTADOR'), auspiciadorController.obtenerTodos);
 
-// Al modificar: validamos que el ID sea correcto, el schema y los errores
-router.put('/:id', validarId, auspiciadorSchema, validarCampos, auspiciadorController.modificar);
-
-// Al eliminar: validamos que el ID sea correcto antes de pasar al controlador
-router.delete('/:id', validarId, auspiciadorController.eliminar);
+// Registrar, modificar/clasificar y eliminar: solo Dueño 
+router.post('/', permitirRoles('DUENO'), auspiciadorSchema, validarCampos, auspiciadorController.crear);
+router.put('/:id', permitirRoles('DUENO'), validarId, auspiciadorSchema, validarCampos, auspiciadorController.modificar);
+router.delete('/:id', permitirRoles('DUENO'), validarId, auspiciadorController.eliminar);
 
 export default router;

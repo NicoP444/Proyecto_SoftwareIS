@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import * as acuerdoController from '../controllers/acuerdo.controller.js';
 import { validarId, validarCampos } from '../middlewares/validate.middleware.js';
+import { autenticar, permitirRoles } from '../middlewares/auth.middleware.js';
 import {
   validarAcuerdoExiste,
   validarRelacionesAcuerdo
@@ -14,21 +15,26 @@ import {
 
 const router = Router();
 
-// Obtener todos los acuerdos
-router.get('/', acuerdoController.obtenerAcuerdos);
+// Todas las rutas exigen sesión iniciada
+router.use(autenticar);
 
-// Crear acuerdo
+// Ver acuerdos: Dueño y Contador 
+router.get('/', permitirRoles('DUENO', 'CONTADOR'), acuerdoController.obtenerAcuerdos);
+
+// Registrar acuerdo: Dueño (RF-P4-02)
 router.post(
   '/',
+  permitirRoles('DUENO'),
   crearAcuerdoSchema,
   validarCampos,
   validarRelacionesAcuerdo,
   acuerdoController.crearAcuerdo
 );
 
-// Registrar cumplimiento del aporte (RF-P4-04)
+// Registrar cumplimiento del aporte: Contador 
 router.put(
   '/:id/cumplimiento',
+  permitirRoles('CONTADOR'),
   validarId,
   validarAcuerdoExiste,
   cumplimientoAcuerdoSchema,
@@ -36,9 +42,10 @@ router.put(
   acuerdoController.registrarCumplimiento
 );
 
-// Declarar aporte incobrable (RF-P4-06)
+// Declarar aporte incobrable: Dueño 
 router.patch(
   '/:id/incobrable',
+  permitirRoles('DUENO'),
   validarId,
   validarAcuerdoExiste,
   incobrableAcuerdoSchema,
@@ -46,9 +53,10 @@ router.patch(
   acuerdoController.declararIncobrable
 );
 
-// Modificar acuerdo
+// Modificar acuerdo: Dueño
 router.put(
   '/:id',
+  permitirRoles('DUENO'),
   validarId,
   validarAcuerdoExiste,
   modificarAcuerdoSchema,
@@ -56,9 +64,10 @@ router.put(
   acuerdoController.modificarAcuerdo
 );
 
-// Eliminar acuerdo
+// Eliminar acuerdo: Dueño
 router.delete(
   '/:id',
+  permitirRoles('DUENO'),
   validarId,
   validarAcuerdoExiste,
   acuerdoController.eliminarAcuerdo
