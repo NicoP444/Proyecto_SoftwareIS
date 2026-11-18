@@ -64,6 +64,9 @@ export async function registrarPago(
   if (!Number.isInteger(montoNum) || montoNum <= 0) {
     throw new ValidationError('El monto debe ser un número entero mayor a cero', 'monto');
   }
+  if (montoNum > 2000000000) {
+    throw new ValidationError('El monto no puede superar $2.000.000.000', 'monto');
+  }
   const fechaValida =
     /^\d{4}-\d{2}-\d{2}$/.test(fechaTexto) &&
     new Date(`${fechaTexto}T00:00:00Z`).toISOString().slice(0, 10) === fechaTexto;

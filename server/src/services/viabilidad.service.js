@@ -54,6 +54,9 @@ export async function guardarGastosEstimados(id_evento, { gastos_estimados, moti
   if (!Number.isInteger(gastos) || gastos < 0) {
     throw new ValidationError('Los gastos estimados deben ser un número entero igual o mayor a cero', 'gastos_estimados');
   }
+  if (gastos > 2000000000) {
+    throw new ValidationError('Los gastos estimados no pueden superar $2.000.000.000', 'gastos_estimados');
+  }
 
   const evento = await prisma.evento.findFirst({
     where: { id_evento, id_dueno: idDueno },

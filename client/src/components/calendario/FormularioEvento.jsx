@@ -119,7 +119,7 @@ export default function FormularioEvento({ evento = null, fechaInicial = "", dir
         </div>
         <div className="campo">
           <label htmlFor="ev-camaras">Cantidad de cámaras</label>
-          <input id="ev-camaras" type="number" min="1" value={datos.cantidad_camaras} onChange={cambiar("cantidad_camaras")} />
+          <input id="ev-camaras" type="number" min="1" max="99" value={datos.cantidad_camaras} onChange={cambiar("cantidad_camaras")} />
         </div>
       </div>
 
@@ -136,7 +136,7 @@ export default function FormularioEvento({ evento = null, fechaInicial = "", dir
 
       <div className="campo">
         <label htmlFor="ev-precio">Precio acordado (CLP)</label>
-        <input id="ev-precio" type="number" min="1" value={datos.precio_acordado} onChange={cambiar("precio_acordado")} placeholder="Ej: 250000" />
+        <input id="ev-precio" type="number" min="1" max="2000000000" value={datos.precio_acordado} onChange={cambiar("precio_acordado")} placeholder="Ej: 250000" />
       </div>
 
       <div className="campo">

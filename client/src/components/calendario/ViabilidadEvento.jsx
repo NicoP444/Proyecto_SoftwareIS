@@ -11,7 +11,7 @@ const plata = (n) => "$" + Number(n).toLocaleString("es-CL");
  * RF-P1-06: resultado estimado del evento (precio + aportes - remuneraciones - gastos).
  * Solo se muestra a Dueño y Contador; solo el Dueño puede cambiar los gastos estimados.
  */
-export default function ViabilidadEvento({ idEvento, puedeEditar }) {
+export default function ViabilidadEvento({ idEvento, puedeEditar, version }) {
   const [datos, setDatos] = useState(null);
   const [gastos, setGastos] = useState("");
   const [error, setError] = useState("");
@@ -30,7 +30,7 @@ export default function ViabilidadEvento({ idEvento, puedeEditar }) {
 
   useEffect(() => {
     cargar();
-  }, [idEvento]);
+  }, [idEvento, version]);
 
   async function guardar() {
     setError("");

@@ -62,8 +62,14 @@ export async function crearEvento(datos, idDueno) {
   if (!Number.isInteger(cantidadCamaras) || cantidadCamaras < 1) {
     throw new ValidationError("Debe indicar al menos 1 cámara");
   }
+  if (cantidadCamaras > 99) {
+    throw new ValidationError("La cantidad de cámaras no puede superar 99");
+  }
   if (!Number.isInteger(precio) || precio <= 0) {
     throw new ValidationError("El precio debe ser mayor a cero");
+  }
+  if (precio > 2000000000) {
+    throw new ValidationError("El precio no puede superar $2.000.000.000");
   }
   if (!Number.isInteger(idCliente) || idCliente <= 0) {
     throw new ValidationError("Debe seleccionar un cliente");

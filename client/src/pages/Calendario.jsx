@@ -595,7 +595,10 @@ export default function Calendario() {
                       hora_termino: horaDe(e.hora_termino),
                     }}
                     puedeEditar={puedeCrear}
-                    onCambio={cargarDatos}
+                    onCambio={() => {
+                      cargarDatos();
+                      setVersionFin((v) => v + 1);
+                    }}
                   />
                 </section>
                 {/* Kits del evento (RF-P1-05) */}
@@ -643,6 +646,7 @@ export default function Calendario() {
                       <ViabilidadEvento
                         idEvento={e.id_evento}
                         puedeEditar={puedeCrear}
+                        version={versionFin}
                       />
                     </section>
                   )}
@@ -652,6 +656,7 @@ export default function Calendario() {
                         idEvento={e.id_evento}
                         puedeRegistrar={rol === "CONTADOR"}
                         onCambio={refrescarDetalle}
+                        version={versionFin}
                       />
                     </section>
                   )}
