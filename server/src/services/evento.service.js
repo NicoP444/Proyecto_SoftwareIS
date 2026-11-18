@@ -231,16 +231,16 @@ export const actualizarEvento = async (id, datos, idDueno) => {
     idDueno,
   );
 
-  // 4. Estado: solo se recalcula si el evento no tiene pagos
-  const pagos = await prisma.pagoCliente.count({ where: { id_evento } });
+  // 4. Estado: según la duración nueva, el precio nuevo y lo ya pagado
+  const { _sum } = await prisma.pagoCliente.aggregate({ _sum: { monto: true }, where: { id_evento } });
+  const pagado = _sum.monto ?? 0;
   const duracionHoras = (termino - inicio) / (1000 * 60 * 60);
   const estadoRecalculable = ["PENDIENTE_ADELANTO", "CONFIRMADO"].includes(existente.estado);
-  const estado =
-    pagos > 0 || !estadoRecalculable
-      ? existente.estado
-      : duracionHoras >= HORAS_LIMITE_ADELANTO
-        ? "PENDIENTE_ADELANTO"
-        : "CONFIRMADO";
+  const estado = !estadoRecalculable
+    ? existente.estado
+    : duracionHoras < HORAS_LIMITE_ADELANTO || pagado * 2 >= precio
+      ? "CONFIRMADO"
+      : "PENDIENTE_ADELANTO";
 
   // 5. Qué cambió realmente (cada cambio queda en el historial)
   const texto = (v) => (v === null || v === undefined || v === "" ? null : String(v).slice(0, 255));
