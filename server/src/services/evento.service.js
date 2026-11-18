@@ -47,7 +47,6 @@ export async function crearEvento(datos, idDueno) {
   const tipo = String(datos.tipo ?? "").trim();
   const direccion = String(datos.direccion ?? "").trim();
   const observaciones = String(datos.observaciones ?? "").trim() || null;
-  const cantidadCamaras = Number(datos.cantidad_camaras);
   const precio = Number(datos.precio_acordado);
   const idCliente = Number(datos.id_cliente);
 
@@ -58,12 +57,6 @@ export async function crearEvento(datos, idDueno) {
   if (direccion.length > 120) throw new ValidationError("La dirección no puede superar los 120 caracteres");
   if (observaciones && observaciones.length > 255) {
     throw new ValidationError("Las observaciones no pueden superar los 255 caracteres");
-  }
-  if (!Number.isInteger(cantidadCamaras) || cantidadCamaras < 1) {
-    throw new ValidationError("Debe indicar al menos 1 cámara");
-  }
-  if (cantidadCamaras > 99) {
-    throw new ValidationError("La cantidad de cámaras no puede superar 99");
   }
   if (!Number.isInteger(precio) || precio <= 0) {
     throw new ValidationError("El precio debe ser mayor a cero");
@@ -100,7 +93,6 @@ export async function crearEvento(datos, idDueno) {
       hora_inicio: inicio,
       hora_termino: termino,
       direccion,
-      cantidad_camaras: cantidadCamaras,
       precio_acordado: precio,
       observaciones,
       estado,
@@ -184,7 +176,6 @@ export const actualizarEvento = async (id, datos, idDueno) => {
   const tipo = String(datos.tipo ?? "").trim();
   const direccion = String(datos.direccion ?? "").trim();
   const observaciones = String(datos.observaciones ?? "").trim() || null;
-  const cantidadCamaras = Number(datos.cantidad_camaras);
   const precio = Number(datos.precio_acordado);
   const idCliente = Number(datos.id_cliente);
 
@@ -195,12 +186,6 @@ export const actualizarEvento = async (id, datos, idDueno) => {
   if (direccion.length > 120) throw new ValidationError("La dirección no puede superar los 120 caracteres");
   if (observaciones && observaciones.length > 255) {
     throw new ValidationError("Las observaciones no pueden superar los 255 caracteres");
-  }
-  if (!Number.isInteger(cantidadCamaras) || cantidadCamaras < 1) {
-    throw new ValidationError("Debe indicar al menos 1 cámara");
-  }
-  if (cantidadCamaras > 99) {
-    throw new ValidationError("La cantidad de cámaras no puede superar 99");
   }
   if (!Number.isInteger(precio) || precio <= 0) {
     throw new ValidationError("El precio debe ser mayor a cero");
@@ -262,7 +247,6 @@ export const actualizarEvento = async (id, datos, idDueno) => {
     ["hora_inicio", aHora(existente.hora_inicio), datos.hora_inicio],
     ["hora_termino", aHora(existente.hora_termino), datos.hora_termino],
     ["direccion", existente.direccion, direccion],
-    ["cantidad_camaras", existente.cantidad_camaras, cantidadCamaras],
     ["precio_acordado", existente.precio_acordado, precio],
     ["id_cliente", existente.id_cliente, idCliente],
     ["observaciones", existente.observaciones, observaciones],
@@ -281,7 +265,6 @@ export const actualizarEvento = async (id, datos, idDueno) => {
         hora_inicio: inicio,
         hora_termino: termino,
         direccion,
-        cantidad_camaras: cantidadCamaras,
         precio_acordado: precio,
         observaciones,
         estado,

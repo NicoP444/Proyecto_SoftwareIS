@@ -14,7 +14,6 @@ import {
   Trash2,
   UserCheck,
   Users,
-  Video,
   Wallet,
 } from "lucide-react";
 import Modal from "../components/Modal";
@@ -532,18 +531,6 @@ export default function Calendario() {
                 <div>
                   <small>Dirección</small>
                   <strong>{e.direccion}</strong>
-                </div>
-              </div>
-              <div className="cal-dato">
-                <span className="cal-dato-icono">
-                  <Video />
-                </span>
-                <div>
-                  <small>Cámaras</small>
-                  <strong>
-                    {e.cantidad_camaras}{" "}
-                    {e.cantidad_camaras === 1 ? "cámara" : "cámaras"}
-                  </strong>
                 </div>
               </div>
               <div className="cal-dato">
