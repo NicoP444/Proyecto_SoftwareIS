@@ -203,6 +203,7 @@ export default function PagosEvento({ idEvento, puedeRegistrar, onCambio, versio
               <input
                 id="pago-fecha"
                 type="date"
+                max={hoy()}
                 value={form.fecha}
                 onChange={cambiar("fecha")}
               />

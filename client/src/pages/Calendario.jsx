@@ -632,7 +632,7 @@ export default function Calendario() {
                     <section className="cal-bloque">
                       <ViabilidadEvento
                         idEvento={e.id_evento}
-                        puedeEditar={puedeCrear}
+                        puedeEditar={puedeCrear && e.estado !== "CERRADO"}
                         version={versionFin}
                       />
                     </section>
@@ -641,7 +641,7 @@ export default function Calendario() {
                     <section className="cal-bloque">
                       <PagosEvento
                         idEvento={e.id_evento}
-                        puedeRegistrar={rol === "CONTADOR"}
+                        puedeRegistrar={rol === "CONTADOR" && e.estado !== "CERRADO"}
                         onCambio={refrescarDetalle}
                         version={versionFin}
                       />
