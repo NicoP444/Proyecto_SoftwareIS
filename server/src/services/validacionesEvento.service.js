@@ -36,11 +36,17 @@ const mismaDireccion = (a, b) => normalizar(a) === normalizar(b);
 const cubreFecha = (bloques, fecha) =>
   bloques.some((b) => aFecha(b.fecha_inicio) <= fecha && aFecha(b.fecha_termino) >= fecha);
 
+// true si "AAAA-MM-DD" es una fecha que existe. Rechaza "2026-02-31" (JS la pasaría al 3 de marzo)
+// y "2026-13-45" (sin este chequeo, toISOString() lanza un error y el servidor respondía 500)
+export const fechaEsReal = (fecha) => {
+  if (!FECHA.test(fecha ?? '')) return false;
+  const d = new Date(`${fecha}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === fecha;
+};
+
 // ---------- Agenda: la fecha y las horas deben existir y tener sentido ----------
 export function validarFormatoAgenda({ fecha, hora_inicio, hora_termino }) {
-  const fechaValida =
-    FECHA.test(fecha ?? '') && new Date(`${fecha}T00:00:00Z`).toISOString().slice(0, 10) === fecha; // evita "2026-02-31"
-  if (!fechaValida) throw new ValidationError('La fecha no es válida (usa AAAA-MM-DD)');
+  if (!fechaEsReal(fecha)) throw new ValidationError('La fecha no es válida (usa AAAA-MM-DD)');
 
   for (const [nombre, hora] of [['inicio', hora_inicio], ['término', hora_termino]]) {
     const ok = HORA.test(hora ?? '') && !Number.isNaN(new Date(`2000-01-01T${hora}:00Z`).getTime());

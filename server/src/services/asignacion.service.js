@@ -1,5 +1,6 @@
 import prisma from '../config/prisma.js';
 import { ValidationError, NotFoundError } from '../utils/errores.js';
+import { fechaEsReal } from './validacionesEvento.service.js';
 
 const FECHA = /^\d{4}-\d{2}-\d{2}$/; // AAAA-MM-DD
 const HORA = /^([01]\d|2[0-3]):[0-5]\d$/; // HH:MM real, de 00:00 a 23:59
@@ -34,7 +35,7 @@ const cubreFecha = (bloques, fecha) =>
 
 // Valida fecha y horas que vienen por la URL (RF-P1-03)
 const validarFranja = ({ fecha, hora_inicio, hora_termino }) => {
-  if (!FECHA.test(fecha ?? '')) throw new ValidationError('La fecha no es válida', 'fecha');
+  if (!fechaEsReal(fecha)) throw new ValidationError('La fecha no es válida', 'fecha');
   if (!HORA.test(hora_inicio ?? '')) throw new ValidationError('La hora de inicio no es válida', 'hora_inicio');
   if (!HORA.test(hora_termino ?? '')) throw new ValidationError('La hora de término no es válida', 'hora_termino');
   if (hora_termino <= hora_inicio) {

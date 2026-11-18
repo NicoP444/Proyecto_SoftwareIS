@@ -1,6 +1,6 @@
 import prisma from '../config/prisma.js';
 import { ValidationError, NotFoundError } from '../utils/errores.js';
-import { hoyTexto } from './validacionesEvento.service.js';
+import { hoyTexto, fechaEsReal } from './validacionesEvento.service.js';
 
 const TIPOS_PAGO = ['ADELANTO', 'SALDO', 'PAGO_TOTAL'];
 const NOMBRE_TIPO = { SALDO: 'saldo', PAGO_TOTAL: 'pago total' };
@@ -67,10 +67,7 @@ export async function registrarPago(
   if (montoNum > 2000000000) {
     throw new ValidationError('El monto no puede superar $2.000.000.000', 'monto');
   }
-  const fechaValida =
-    /^\d{4}-\d{2}-\d{2}$/.test(fechaTexto) &&
-    new Date(`${fechaTexto}T00:00:00Z`).toISOString().slice(0, 10) === fechaTexto;
-  if (!fechaValida) {
+  if (!fechaEsReal(fechaTexto)) {
     throw new ValidationError('La fecha no es válida (usa AAAA-MM-DD)', 'fecha');
   }
     if (fechaTexto > hoyTexto()) {
