@@ -2,8 +2,8 @@ import prisma from '../config/prisma.js';
 import { ValidationError } from '../utils/errores.js';
 import bcrypt from 'bcrypt';
 
-// 1. Listar todos los usuarios de todos los roles
-export const ListarTodosLosUsuarios = async (id_dueno) => {
+// 1. Listar todos los usuarios sin exponer contraseñas y con rol JEFE_TECNICO
+export const ListarTodosLosUsuarios = async () => {
   const duenos = await prisma.dueno.findMany({
     select: { id_dueno: true, nombre: true, correo: true, estado: true }
   });
@@ -16,19 +16,17 @@ export const ListarTodosLosUsuarios = async (id_dueno) => {
     select: { id_jefe: true, nombre: true, correo: true, estado: true }
   });
 
-  // Unificamos y etiquetamos con su rol correspondiente
   return [
     ...duenos.map(u => ({ ...u, id: u.id_dueno, rol: 'DUENO' })),
     ...contadores.map(u => ({ ...u, id: u.id_contador, rol: 'CONTADOR' })),
-    ...jefes.map(u => ({ ...u, id: u.id_jefe, rol: 'JEFE_TECNICA' }))
+    ...jefes.map(u => ({ ...u, id: u.id_jefe, rol: 'JEFE_TECNICO' }))
   ];
 };
 
-// 2. Crear usuario validando correo único en las 3 tablas
-export const CrearUsuarioGlobal = async ({ nombre, correo, contrasena, rol, id_dueno }) => {
+// 2. Crear usuario validando correo único global
+export const CrearUsuarioGlobal = async ({ nombre, correo, contrasena, rol }) => {
   const correoLimpio = String(correo).trim().toLowerCase();
   
-  // Validar si el correo ya existe en cualquiera de las tablas
   const [existeDueno, existeContador, existeJefe] = await Promise.all([
     prisma.dueno.findUnique({ where: { correo: correoLimpio } }),
     prisma.contador.findUnique({ where: { correo: correoLimpio } }),
@@ -50,7 +48,7 @@ export const CrearUsuarioGlobal = async ({ nombre, correo, contrasena, rol, id_d
     return prisma.contador.create({
       data: { nombre: String(nombre).trim(), correo: correoLimpio, contrasena: hashedPassword }
     });
-  } else if (rolUpper === 'JEFE_TECNICA') {
+  } else if (rolUpper === 'JEFE_TECNICO') {
     return prisma.jefeAreaTecnica.create({
       data: { nombre: String(nombre).trim(), correo: correoLimpio, contrasena: hashedPassword }
     });
@@ -64,7 +62,6 @@ export const ActualizarEstadoUsuario = async (id, rol, { estado }) => {
   const idNum = Number(id);
   const rolUpper = String(rol).toUpperCase();
 
-  // Si intentan desactivar un Dueño, verificar que no sea el último activo
   if (rolUpper === 'DUENO' && estado === 'INACTIVO') {
     const duenosActivos = await prisma.dueno.count({
       where: { estado: 'ACTIVO', id_dueno: { not: idNum } }
@@ -75,20 +72,22 @@ export const ActualizarEstadoUsuario = async (id, rol, { estado }) => {
     }
   }
 
+  const nuevoEstado = String(estado).toUpperCase();
+
   if (rolUpper === 'DUENO') {
     return prisma.dueno.update({
       where: { id_dueno: idNum },
-      data: { estado: estado.toUpperCase() }
+      data: { estado: nuevoEstado }
     });
   } else if (rolUpper === 'CONTADOR') {
     return prisma.contador.update({
       where: { id_contador: idNum },
-      data: { estado: estado.toUpperCase() }
+      data: { estado: nuevoEstado }
     });
-  } else if (rolUpper === 'JEFE_TECNICA') {
+  } else if (rolUpper === 'JEFE_TECNICO') {
     return prisma.jefeAreaTecnica.update({
       where: { id_jefe: idNum },
-      data: { estado: estado.toUpperCase() }
+      data: { estado: nuevoEstado }
     });
   } else {
     throw new ValidationError('Rol no reconocido', 'rol');

@@ -3,7 +3,7 @@ import { manejarError } from '../utils/errores.js';
 
 export const ListarUsuarios = async (req, res) => {
   try {
-    const lista = await UsuarioServicio.ListarTodosLosUsuarios(req.query.id_dueno);
+    const lista = await UsuarioServicio.ListarTodosLosUsuarios();
     res.json(lista);
   } catch (error) {
     manejarError(res, error);

@@ -62,7 +62,7 @@ export default function ModalGestionUsuarios({ isOpen, onClose, idDueno }) {
         
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", borderBottom: "1px solid #f1f5f9", paddingBottom: "12px" }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: "18px", color: "#0f172a" }}>Administración de Usuarios (RF-T-03)</h2>
+            <h2 style={{ margin: 0, fontSize: "18px", color: "#0f172a" }}>Administración de Usuarios </h2>
             <p style={{ margin: "2px 0 0 0", fontSize: "13px", color: "#64748b" }}>Crear, modificar y gestionar cuentas del sistema con rol y correo único.</p>
           </div>
           <button 
