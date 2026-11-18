@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  listarEventosConfirmados,
-  marcarEventoComoRealizado,
-} from '../services/marcarEvento.service.js';
+import { listarEventosConfirmados } from '../services/marcarEvento.service.js';
+import BotonMarcarRealizado from '../components/evento/BotonMarcarRealizado.jsx';
 import '../styles/MarcarEvento.css';
 
 export default function MarcarEventoRealizado() {
@@ -11,7 +9,6 @@ export default function MarcarEventoRealizado() {
   const [eventos, setEventos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [mensaje, setMensaje] = useState({ tipo: '', texto: '' });
-  const [procesandoId, setProcesandoId] = useState(null);
 
   const cargarEventos = async () => {
     try {
@@ -32,24 +29,12 @@ export default function MarcarEventoRealizado() {
     cargarEventos();
   }, []);
 
-  const handleMarcarRealizado = async (idEvento) => {
-    setMensaje({ tipo: '', texto: '' });
-    setProcesandoId(idEvento);
-    try {
-      await marcarEventoComoRealizado(idEvento);
-      setMensaje({
-        tipo: 'exito',
-        texto: `Evento #${idEvento} marcado como Realizado exitosamente. Las rendiciones del personal quedaron en estado Pendiente.`,
-      });
-      cargarEventos();
-    } catch (err) {
-      setMensaje({
-        tipo: 'error',
-        texto: err.message || 'No se pudo marcar el evento como realizado.',
-      });
-    } finally {
-      setProcesandoId(null);
-    }
+  const handleEventoActualizado = (idEvento) => {
+    setMensaje({
+      tipo: 'exito',
+      texto: `Evento #${idEvento} marcado como Realizado exitosamente. Las rendiciones del personal quedaron en estado Pendiente.`,
+    });
+    cargarEventos();
   };
 
   return (
@@ -116,23 +101,20 @@ export default function MarcarEventoRealizado() {
                       {new Date(ev.fecha).toLocaleDateString('es-CL', { timeZone: 'UTC' })}
                     </td>
                     <td className="mev-td-hora">
-                      {new Date(ev.hora_termino).toLocaleTimeString([], {
+                      {new Date(ev.hora_termino).toLocaleTimeString('es-CL', {
                         hour: '2-digit',
                         minute: '2-digit',
+                        timeZone: 'UTC',
                       })}
                     </td>
                     <td className="mev-td-personal">
                       {ev.asignaciones?.length || 0} trabajador(es)
                     </td>
                     <td className="mev-td-centro">
-                      <button
-                        type="button"
-                        onClick={() => handleMarcarRealizado(ev.id_evento)}
-                        disabled={procesandoId === ev.id_evento}
-                        className="mev-btn-realizado"
-                      >
-                        {procesandoId === ev.id_evento ? 'Validando...' : 'Marcar Realizado'}
-                      </button>
+                      <BotonMarcarRealizado
+                        evento={ev}
+                        onEventoActualizado={handleEventoActualizado}
+                      />
                     </td>
                   </tr>
                 ))}

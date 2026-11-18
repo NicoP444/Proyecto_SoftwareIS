@@ -12,7 +12,7 @@ export const validarPreCierreMes = async (req, res) => {
 
 export const cerrarMesContable = async (req, res) => {
   try {
-    const id_contador = req.usuario?.id_contador || req.body?.id_contador || null;
+    const id_contador = req.usuario?.id_contador;
     const resultado = await cerrarMesContableService({
       ...req.periodo,
       id_contador,

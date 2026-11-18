@@ -3,6 +3,8 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '../config/jwt.js';
 
+const MENSAJE_ERROR_LOGIN = 'No se pudo iniciar sesión. Verifica tus datos o intenta más tarde';
+
 // Buscar correo en las 3 tablas de perfil
 async function buscarUsuario(correo) {
   const correoNormalizado = correo.trim().toLowerCase();
@@ -25,19 +27,19 @@ export async function iniciarSesion(correo, contrasena) {
   const cuenta = await buscarUsuario(correo);
 
   if (!cuenta) {
-    throw new Error('Credenciales inválidas');
+    throw new Error(MENSAJE_ERROR_LOGIN);
   }
 
   const { usuario, rol, tabla, campoId } = cuenta;
 
   // 2. Verificar que la cuenta esté ACTIVA
   if (usuario.estado && usuario.estado !== 'ACTIVO') {
-    throw new Error('La cuenta se encuentra inactiva o con licencia. Contacte al administrador');
+    throw new Error(MENSAJE_ERROR_LOGIN);
   }
 
   // 3. Verificar si la cuenta sigue bloqueada por 15 minutos
   if (usuario.bloqueado_hasta && new Date() < new Date(usuario.bloqueado_hasta)) {
-    throw new Error('La cuenta está bloqueada temporalmente. Intente más tarde');
+    throw new Error(MENSAJE_ERROR_LOGIN);
   }
 
   // 4. Comparar la contraseña escrita con la encriptada
@@ -58,7 +60,7 @@ export async function iniciarSesion(correo, contrasena) {
       data: datosActualizar,
     });
 
-    throw new Error('Credenciales inválidas');
+    throw new Error(MENSAJE_ERROR_LOGIN);
   }
 
   // 5. Reiniciar intentos y bloqueos tras login exitoso

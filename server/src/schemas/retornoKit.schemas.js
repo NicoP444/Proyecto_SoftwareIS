@@ -16,7 +16,7 @@ export const validarRegistrarRetorno = (body) => {
 
   const idSalidaValido = enteroPositivo(id_salida, 'id_salida');
 
-  let idJefeValido = 1;
+  let idJefeValido = undefined;
   if (id_jefe !== undefined && id_jefe !== null && id_jefe !== '') {
     idJefeValido = enteroPositivo(id_jefe, 'id_jefe');
   }

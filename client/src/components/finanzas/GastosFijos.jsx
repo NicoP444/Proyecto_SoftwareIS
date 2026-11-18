@@ -1,5 +1,10 @@
-import { useState, useEffect } from 'react';
-import { listarGastosFijos, registrarGastoFijo } from '../../services/gastosFijos.service.js';
+import { useState, useEffect, useRef } from 'react';
+import {
+  listarGastosFijos,
+  registrarGastoFijo,
+  actualizarGastoFijo,
+  eliminarGastoFijo,
+} from '../../services/gastosFijos.service.js';
 import { API_URL } from '../../services/config.js';
 import '../../styles/CierreMensual.css';
 
@@ -22,6 +27,7 @@ export default function GastosFijos() {
   const hoy = new Date();
   const anioActual = hoy.getFullYear();
   const mesActual = hoy.getMonth() + 1;
+  const formRef = useRef(null);
 
   const [anio, setAnio] = useState(anioActual);
   const [mes, setMes] = useState(mesActual);
@@ -33,6 +39,7 @@ export default function GastosFijos() {
   const [descripcion, setDescripcion] = useState('');
   const [monto, setMonto] = useState('');
   const [archivo, setArchivo] = useState(null);
+  const [editandoId, setEditandoId] = useState(null);
 
   const [cargando, setCargando] = useState(false);
   const [guardando, setGuardando] = useState(false);
@@ -42,6 +49,14 @@ export default function GastosFijos() {
   const esMesActual = Number(anio) === anioActual && Number(mes) === mesActual;
   const mesCerrado = estadoMes === 'CERRADO';
   const formularioBloqueado = mesCerrado || !esMesActual || guardando;
+
+  const limpiarFormulario = () => {
+    setDescripcion('');
+    setMonto('');
+    setArchivo(null);
+    setEditandoId(null);
+    if (formRef.current) formRef.current.reset();
+  };
 
   const cargarGastos = async () => {
     try {
@@ -60,8 +75,41 @@ export default function GastosFijos() {
   };
 
   useEffect(() => {
+    limpiarFormulario();
     cargarGastos();
   }, [anio, mes]);
+
+  const handleIniciarEdicion = (gasto) => {
+    setError('');
+    setExito('');
+    setEditandoId(gasto.id_gasto_fijo);
+    setDescripcion(gasto.descripcion || '');
+    setMonto(String(gasto.monto || ''));
+    setArchivo(null);
+    if (formRef.current) formRef.current.reset();
+  };
+
+  const handleEliminar = async (gasto) => {
+    if (!window.confirm(`¿Eliminar el gasto fijo "${gasto.descripcion}" por $${Number(gasto.monto).toLocaleString('es-CL')}?`)) {
+      return;
+    }
+
+    try {
+      setGuardando(true);
+      setError('');
+      setExito('');
+      await eliminarGastoFijo(gasto.id_gasto_fijo);
+      if (editandoId === gasto.id_gasto_fijo) {
+        limpiarFormulario();
+      }
+      setExito('Gasto fijo eliminado correctamente.');
+      await cargarGastos();
+    } catch (err) {
+      setError(err.message || 'No se pudo eliminar el gasto fijo.');
+    } finally {
+      setGuardando(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -81,16 +129,18 @@ export default function GastosFijos() {
         formData.append('evidencia', archivo);
       }
 
-      await registrarGastoFijo(formData);
+      if (editandoId) {
+        await actualizarGastoFijo(editandoId, formData);
+        setExito('Gasto fijo actualizado correctamente.');
+      } else {
+        await registrarGastoFijo(formData);
+        setExito('Gasto fijo registrado correctamente.');
+      }
 
-      setDescripcion('');
-      setMonto('');
-      setArchivo(null);
-      e.target.reset();
-      setExito('Gasto fijo registrado correctamente.');
+      limpiarFormulario();
       await cargarGastos();
     } catch (err) {
-      setError(err.message || 'No se pudo registrar el gasto fijo.');
+      setError(err.message || 'No se pudo guardar el gasto fijo.');
     } finally {
       setGuardando(false);
     }
@@ -154,18 +204,33 @@ export default function GastosFijos() {
 
       {/* Formulario RF-P8-01 */}
       <div className="cm-card">
-        <h3 className="cm-card-titulo-lg">Registrar Gasto Fijo Mensual</h3>
-        <p className="cm-card-sub">
-          Gastos recurrentes no asociados a un evento (ej. internet satelital, bodega, suscripciones).
-        </p>
+        <div className="cm-card-cab-flex">
+          <div>
+            <h3 className="cm-card-titulo-lg">
+              {editandoId ? 'Modificar Gasto Fijo Mensual' : 'Registrar Gasto Fijo Mensual'}
+            </h3>
+            <p className="cm-card-sub">
+              Gastos recurrentes no asociados a un evento (ej. internet satelital, bodega, suscripciones).
+            </p>
+          </div>
+          {editandoId && (
+            <button
+              type="button"
+              onClick={limpiarFormulario}
+              className="cm-enlace"
+            >
+              Cancelar edición
+            </button>
+          )}
+        </div>
 
         {!esMesActual && (
           <div className="cm-alerta-historial">
-            Estás consultando el historial de un período anterior. Solo se permite registrar gastos fijos en el mes en curso.
+            Estás consultando el historial de un período anterior. Solo se permite registrar o modificar gastos fijos en el mes en curso.
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="cm-form-gastos">
+        <form ref={formRef} onSubmit={handleSubmit} className="cm-form-gastos">
           <div>
             <label className="cm-label">DESCRIPCIÓN *</label>
             <input
@@ -197,7 +262,9 @@ export default function GastosFijos() {
           </div>
 
           <div>
-            <label className="cm-label">COMPROBANTE (OPCIONAL)</label>
+            <label className="cm-label">
+              {editandoId ? 'REEMPLAZAR COMPROBANTE (OPCIONAL)' : 'COMPROBANTE (OPCIONAL)'}
+            </label>
 
             <label className={`cm-file-box ${formularioBloqueado ? 'bloqueado' : ''}`}>
               <span className="cm-file-btn">Subir archivo</span>
@@ -219,7 +286,11 @@ export default function GastosFijos() {
             disabled={formularioBloqueado}
             className="cm-btn-primario"
           >
-            {guardando ? 'Guardando...' : '+ Registrar Gasto Fijo'}
+            {guardando
+              ? 'Guardando...'
+              : editandoId
+                ? 'Guardar Cambios'
+                : '+ Registrar Gasto Fijo'}
           </button>
         </form>
       </div>
@@ -250,6 +321,7 @@ export default function GastosFijos() {
                   <th>EVIDENCIA</th>
                   <th>REGISTRADO POR</th>
                   <th className="cm-th-der">MONTO</th>
+                  {!mesCerrado && esMesActual && <th className="cm-th-der">ACCIONES</th>}
                 </tr>
               </thead>
               <tbody>
@@ -274,6 +346,27 @@ export default function GastosFijos() {
                     <td className="cm-td-monto">
                       ${Number(g.monto || 0).toLocaleString('es-CL')}
                     </td>
+                    {!mesCerrado && esMesActual && (
+                      <td className="cm-td-monto">
+                        <button
+                          type="button"
+                          onClick={() => handleIniciarEdicion(g)}
+                          disabled={guardando}
+                          className="cm-enlace"
+                        >
+                          Editar
+                        </button>
+                        {' · '}
+                        <button
+                          type="button"
+                          onClick={() => handleEliminar(g)}
+                          disabled={guardando}
+                          className="cm-enlace"
+                        >
+                          Eliminar
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

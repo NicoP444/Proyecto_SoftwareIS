@@ -70,7 +70,6 @@ export default function RetornoKits() {
 
       const res = await registrarRetornoKit({
         id_salida: salidaSeleccionada.id_salida,
-        id_jefe: 1,
         revisiones: listaRevisiones,
       });
 

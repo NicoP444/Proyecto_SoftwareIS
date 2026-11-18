@@ -47,8 +47,13 @@ export default function ResumenInventario() {
 
   const nombreMes = MESES.find((m) => m.valor === Number(mes))?.nombre || '';
   const comprados = datos?.comprados || [];
-  const bajas = datos?.bajas || datos?.perdidos || [];
-  const activos = datos?.activos || datos?.inventario_activo || [];
+  const bajas = datos?.perdidos_o_bajas || datos?.bajas || [];
+  const activos = datos?.activos || [];
+  const totales = datos?.totales || {};
+
+  const totalCompras = Number(totales.total_comprado_mes ?? datos?.total_compras ?? 0);
+  const totalBajas = Number(totales.total_bajas_mes ?? datos?.total_bajas ?? 0);
+  const valorInventarioActivo = Number(totales.valor_inventario_activo ?? datos?.valor_inventario_activo ?? 0);
 
   return (
     <div className="cm-contenedor">
@@ -89,7 +94,7 @@ export default function ResumenInventario() {
         </div>
 
         <span className="cm-total-azul">
-          Valor Inventario Activo: ${Number(datos?.valor_inventario_activo || 0).toLocaleString('es-CL')}
+          Valor Inventario Activo: ${valorInventarioActivo.toLocaleString('es-CL')}
         </span>
       </div>
 
@@ -100,21 +105,21 @@ export default function ResumenInventario() {
         <div className="cm-kpi cm-kpi-verde">
           <span className="cm-kpi-label">Compras en {nombreMes} ({comprados.length})</span>
           <div className="cm-kpi-valor positivo">
-            +${Number(datos?.total_compras || 0).toLocaleString('es-CL')}
+            +${totalCompras.toLocaleString('es-CL')}
           </div>
         </div>
 
         <div className="cm-kpi cm-kpi-rojo">
           <span className="cm-kpi-label">Bajas / Pérdidas ({bajas.length})</span>
           <div className="cm-kpi-valor negativo">
-            -${Number(datos?.total_bajas || 0).toLocaleString('es-CL')}
+            -${totalBajas.toLocaleString('es-CL')}
           </div>
         </div>
 
         <div className="cm-kpi">
           <span className="cm-kpi-label">Inventario Activo ({activos.length} eq.)</span>
           <div className="cm-kpi-valor">
-            ${Number(datos?.valor_inventario_activo || 0).toLocaleString('es-CL')}
+            ${valorInventarioActivo.toLocaleString('es-CL')}
           </div>
         </div>
       </div>
@@ -124,7 +129,7 @@ export default function ResumenInventario() {
         <div className="cm-card-cab-flex">
           <h3>Equipos Comprados en {nombreMes} {anio}</h3>
           <span className="cm-total-azul">
-            Total Compras: ${Number(datos?.total_compras || 0).toLocaleString('es-CL')}
+            Total Compras: ${totalCompras.toLocaleString('es-CL')}
           </span>
         </div>
 
@@ -171,7 +176,7 @@ export default function ResumenInventario() {
         <div className="cm-card-cab-flex">
           <h3>Equipos Perdidos o Dados de Baja en {nombreMes} {anio}</h3>
           <span className="cm-total-perdido-cab">
-            Total Bajas: ${Number(datos?.total_bajas || 0).toLocaleString('es-CL')}
+            Total Bajas: ${totalBajas.toLocaleString('es-CL')}
           </span>
         </div>
 
@@ -212,7 +217,7 @@ export default function ResumenInventario() {
         <div className="cm-card-cab-flex">
           <h3>Inventario Activo ({activos.length} equipos operativos)</h3>
           <span className="cm-total-azul">
-            Valor Activo Total: ${Number(datos?.valor_inventario_activo || 0).toLocaleString('es-CL')}
+            Valor Activo Total: ${valorInventarioActivo.toLocaleString('es-CL')}
           </span>
         </div>
 

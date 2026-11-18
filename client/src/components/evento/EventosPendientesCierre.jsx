@@ -82,9 +82,10 @@ export default function EventosPendientesCierre() {
                 </div>
                 <p className="mev-home-card-detalle">
                   Cliente: {ev.cliente?.nombre || 'General'} | Término:{' '}
-                  {new Date(ev.hora_termino).toLocaleTimeString([], {
+                  {new Date(ev.hora_termino).toLocaleTimeString('es-CL', {
                     hour: '2-digit',
                     minute: '2-digit',
+                    timeZone: 'UTC',
                   })}
                 </p>
               </div>
