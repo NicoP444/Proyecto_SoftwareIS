@@ -1,7 +1,6 @@
 import { Router } from 'express';
-import { autenticar, permitirRoles } from '../middlewares/auth.middleware.js';
-import { validarId, validarBody, validarDueno } from '../middlewares/validate.middleware.js';
 import { autenticar, permitirRoles, idDesdeSesion } from '../middlewares/auth.middleware.js';
+import { validarId, validarBody, validarDueno } from '../middlewares/validate.middleware.js';
 import * as controller from '../controllers/cierre.controller.js';
 
 const router = Router();
