@@ -19,7 +19,7 @@ router.put(
   autenticar,
   permitirRoles('DUENO'),
   validarId,
-  camposObligatorios('tipo', 'fecha', 'hora_inicio', 'hora_termino', 'direccion', 'cantidad_camaras', 'precio_acordado', 'id_cliente'),
+  camposObligatorios('tipo', 'fecha', 'hora_inicio', 'hora_termino', 'direccion', 'precio_acordado', 'id_cliente'),
   putEvento
 );
 router.delete('/:id', autenticar, permitirRoles('DUENO'), validarId, camposObligatorios('motivo'), deleteEvento);
