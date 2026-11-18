@@ -18,7 +18,43 @@ import {
 import { listarEventos } from '../services/evento.service.js';
 import '../styles/Auspiciadores.css';
 
+// Fecha actual en formato local YYYY-MM-DD para restringir inputs date (min)
+const obtenerFechaHoyLocal = () => {
+  const hoy = new Date();
+  const anio = hoy.getFullYear();
+  const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+  const dia = String(hoy.getDate()).padStart(2, '0');
+  return `${anio}-${mes}-${dia}`;
+};
+
+// Formatea fechas ISO ("2026-11-20T...") a "DD-MM-YYYY" sin desfase de zona horaria ni error 1969
+const formatearFechaEvento = (valorFecha) => {
+  if (!valorFecha) return '';
+  const iso = String(valorFecha).slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso) || iso.startsWith('1969') || iso.startsWith('1970')) {
+    return '';
+  }
+  const [a, m, d] = iso.split('-');
+  return `${d}-${m}-${a}`;
+};
+
+// Impide escribir signos negativos, decimales o notación científica en campos numéricos enteros
+const bloquearNegativosTeclado = (e) => {
+  if (['-', '+', 'e', 'E', '.', ','].includes(e.key)) {
+    e.preventDefault();
+  }
+};
+
+// Valida que un texto contenga al menos N letras reales (evita que pongan solo números como "222222")
+const tieneMinimoLetras = (texto, minLetras = 3) => {
+  const limpio = String(texto || '').trim();
+  const coincidencias = limpio.match(/[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]/g) || [];
+  return coincidencias.length >= minLetras;
+};
+
 export default function Auspiciadores() {
+  const fechaHoyLocal = obtenerFechaHoyLocal();
+
   const [formData, setFormData] = useState({
     nombre: '',
     rubro: '',
@@ -29,9 +65,10 @@ export default function Auspiciadores() {
 
   const [idEditando, setIdEditando] = useState(null);
   const [mensajeExitoModal, setMensajeExitoModal] = useState('');
+  const [errorModal, setErrorModal] = useState('');
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
 
-  // Modal para Registrar Acuerdo (mismo estilo que Registrar Auspiciador)
+  // Modal para Registrar Acuerdo
   const [mostrarModalAcuerdo, setMostrarModalAcuerdo] = useState(false);
   const [formAcuerdo, setFormAcuerdo] = useState({
     id_auspiciador: '',
@@ -40,7 +77,7 @@ export default function Auspiciadores() {
     monto_comprometido: '',
     descripcion_canje: '',
     cant_menciones: '',
-    fecha_comprometida: '',
+    fecha_comprometida: fechaHoyLocal,
     glosa: ''
   });
 
@@ -57,7 +94,6 @@ export default function Auspiciadores() {
   const [listaAuspiciadores, setListaAuspiciadores] = useState([]);
   const [listaEventos, setListaEventos] = useState([]);
 
-  // Estado para el menú desplegable de acciones
   const [menuAccionesAbierto, setMenuAccionesAbierto] = useState(null);
 
   const [modalClasificacion, setModalClasificacion] = useState({
@@ -71,7 +107,7 @@ export default function Auspiciadores() {
     abierto: false,
     acuerdo: null,
     monto_recibido: '',
-    fecha_recibida: new Date().toISOString().split('T')[0]
+    fecha_recibida: fechaHoyLocal
   });
 
   const [modalIncobrable, setModalIncobrable] = useState({
@@ -94,7 +130,7 @@ export default function Auspiciadores() {
     monto_comprometido: '',
     descripcion_canje: '',
     cant_menciones: '',
-    fecha_comprometida: ''
+    fecha_comprometida: fechaHoyLocal
   });
 
   const mostrarExitoTemporal = (mensaje) => {
@@ -102,6 +138,17 @@ export default function Auspiciadores() {
     setTimeout(() => {
       setMensajeExitoModal('');
     }, 1300);
+  };
+
+  const extraerMensajeError = (error, mensajePorDefecto) => {
+    return (
+      error?.errores?.[0]?.msg ||
+      error?.response?.data?.errores?.[0]?.msg ||
+      error?.mensaje ||
+      error?.error ||
+      error?.message ||
+      mensajePorDefecto
+    );
   };
 
   const cargarAcuerdos = async () => {
@@ -143,17 +190,44 @@ export default function Auspiciadores() {
     cargarEventos();
   }, []);
 
+  // Filtro en tiempo real para el formulario de Auspiciador
   const manejarCambio = (e) => {
     const { name, value } = e.target;
+    setErrorModal('');
+
+    if (name === 'rubro' || name === 'contacto') {
+      // Bloquea números en rubro y nombre de contacto mientras el usuario escribe
+      const soloLetras = value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s.,'-]/g, '');
+      setFormData({ ...formData, [name]: soloLetras });
+      return;
+    }
+
+    if (name === 'telefono') {
+      // Solo permite "+" al inicio y dígitos numéricos
+      const limpio = value.replace(/(?!^\+)[^\d]/g, '');
+      setFormData({ ...formData, telefono: limpio });
+      return;
+    }
+
     setFormData({ ...formData, [name]: value });
   };
 
   const manejarCambioNuevoAcuerdo = (e) => {
     const { name, value } = e.target;
+    setErrorModal('');
     setFormAcuerdo({ ...formAcuerdo, [name]: value });
   };
 
+  // Detecta si el auspiciador elegido en el modal de nuevo acuerdo es NO_CONFIABLE
+  const auspiciadorElegidoAcuerdo = useMemo(() => {
+    if (!formAcuerdo.id_auspiciador) return null;
+    return listaAuspiciadores.find(
+      (a) => String(a.id_auspiciador || a.id) === String(formAcuerdo.id_auspiciador)
+    );
+  }, [formAcuerdo.id_auspiciador, listaAuspiciadores]);
+
   const iniciarEdicion = (item) => {
+    setErrorModal('');
     setMostrarFormulario(true);
     setIdEditando(item.id_auspiciador || item.id);
     setFormData({
@@ -166,6 +240,7 @@ export default function Auspiciadores() {
   };
 
   const cancelarEdicion = () => {
+    setErrorModal('');
     setIdEditando(null);
     setFormData({
       nombre: '',
@@ -179,12 +254,41 @@ export default function Auspiciadores() {
 
   const manejarEnvio = async (e) => {
     e.preventDefault();
+    setErrorModal('');
+
+    if (!tieneMinimoLetras(formData.nombre, 2)) {
+      setErrorModal('El nombre del auspiciador debe contener al menos 2 letras y no puede ser solo números.');
+      return;
+    }
+
+    if (!tieneMinimoLetras(formData.rubro, 3)) {
+      setErrorModal('El rubro debe contener al menos 3 letras válidas.');
+      return;
+    }
+
+    if (!tieneMinimoLetras(formData.contacto, 3)) {
+      setErrorModal('El nombre del contacto debe contener al menos 3 letras válidas.');
+      return;
+    }
+
+    if (!/^\+?\d{7,15}$/.test(formData.telefono.trim())) {
+      setErrorModal('El teléfono debe tener entre 7 y 15 dígitos numéricos (opcionalmente "+" al inicio).');
+      return;
+    }
 
     try {
+      const datosLimpios = {
+        ...formData,
+        nombre: formData.nombre.trim(),
+        rubro: formData.rubro.trim(),
+        contacto: formData.contacto.trim(),
+        telefono: formData.telefono.trim()
+      };
+
       if (idEditando) {
-        await modificarAuspiciador(idEditando, formData);
+        await modificarAuspiciador(idEditando, datosLimpios);
       } else {
-        await registrarAuspiciador(formData);
+        await registrarAuspiciador(datosLimpios);
         mostrarExitoTemporal('Auspiciador registrado con éxito en el sistema');
       }
 
@@ -192,17 +296,12 @@ export default function Auspiciadores() {
       cancelarEdicion();
       cargarAuspiciadores();
     } catch (error) {
-      console.error(error);
-      const msgEspecifico =
-        error?.errores?.[0]?.msg ||
-        error?.response?.data?.errores?.[0]?.msg ||
-        error?.message ||
-        'Hubo un error al guardar.';
-      alert(msgEspecifico);
+      setErrorModal(extraerMensajeError(error, 'Hubo un error al guardar el auspiciador.'));
     }
   };
 
   const abrirModalNuevoAcuerdo = () => {
+    setErrorModal('');
     setFormAcuerdo({
       id_auspiciador: '',
       id_evento: '',
@@ -210,45 +309,67 @@ export default function Auspiciadores() {
       monto_comprometido: '',
       descripcion_canje: '',
       cant_menciones: '',
-      fecha_comprometida: '',
+      fecha_comprometida: fechaHoyLocal,
       glosa: ''
     });
     setMostrarModalAcuerdo(true);
   };
 
   const cancelarNuevoAcuerdo = () => {
+    setErrorModal('');
     setMostrarModalAcuerdo(false);
   };
 
   const manejarEnvioNuevoAcuerdo = async (e) => {
     e.preventDefault();
+    setErrorModal('');
+
+    const monto = Number(formAcuerdo.monto_comprometido);
+    if (!Number.isInteger(monto) || monto <= 0 || monto > 500000000) {
+      setErrorModal('El monto comprometido debe ser un número entero entre $1 y $500.000.000.');
+      return;
+    }
+
+    if (formAcuerdo.tipo_aporte === 'CANJE' && !tieneMinimoLetras(formAcuerdo.descripcion_canje, 3)) {
+      setErrorModal('La descripción del canje debe explicar el producto o servicio con palabras (no puede ser solo números).');
+      return;
+    }
+
+    if (formAcuerdo.cant_menciones !== '' && (Number(formAcuerdo.cant_menciones) < 0 || Number(formAcuerdo.cant_menciones) > 500)) {
+      setErrorModal('La cantidad de menciones debe estar entre 0 y 500.');
+      return;
+    }
+
+    if (formAcuerdo.fecha_comprometida < fechaHoyLocal) {
+      setErrorModal('La fecha límite de pago debe ser desde hoy en adelante.');
+      return;
+    }
+
+    if (!tieneMinimoLetras(formAcuerdo.glosa, 3)) {
+      setErrorModal('La glosa debe describir el acuerdo con palabras (no se permiten solo números).');
+      return;
+    }
 
     try {
       await registrarAcuerdo({
         id_auspiciador: Number(formAcuerdo.id_auspiciador),
         id_evento: Number(formAcuerdo.id_evento),
         tipo_aporte: formAcuerdo.tipo_aporte,
-        monto_comprometido: Number(formAcuerdo.monto_comprometido),
+        monto_comprometido: monto,
         descripcion_canje:
-          formAcuerdo.tipo_aporte === 'CANJE' ? formAcuerdo.descripcion_canje : null,
-        cant_menciones: formAcuerdo.cant_menciones
+          formAcuerdo.tipo_aporte === 'CANJE' ? formAcuerdo.descripcion_canje.trim() : null,
+        cant_menciones: formAcuerdo.cant_menciones !== ''
           ? Number(formAcuerdo.cant_menciones)
           : null,
         fecha_comprometida: formAcuerdo.fecha_comprometida,
-        glosa: formAcuerdo.glosa
+        glosa: formAcuerdo.glosa.trim()
       });
 
       setMostrarModalAcuerdo(false);
       cargarAcuerdos();
       mostrarExitoTemporal('Acuerdo registrado con éxito en el sistema');
     } catch (error) {
-      console.error(error);
-      const msgEspecifico =
-        error?.errores?.[0]?.msg ||
-        error?.response?.data?.errores?.[0]?.msg ||
-        error?.message ||
-        'Hubo un error al registrar el acuerdo.';
-      alert(msgEspecifico);
+      setErrorModal(extraerMensajeError(error, 'Hubo un error al registrar el acuerdo.'));
     }
   };
 
@@ -260,12 +381,12 @@ export default function Auspiciadores() {
       await eliminarAuspiciador(id);
       cargarAuspiciadores();
     } catch (error) {
-      console.error(error);
-      alert(error.message || 'No se puede eliminar el auspiciador.');
+      alert(extraerMensajeError(error, 'No se puede eliminar el auspiciador.'));
     }
   };
 
   const abrirModalCambio = (item) => {
+    setErrorModal('');
     const esNoConfiable = item.clasificacion === 'NO_CONFIABLE';
     setModalClasificacion({
       abierto: true,
@@ -277,61 +398,77 @@ export default function Auspiciadores() {
 
   const confirmarCambioClasificacion = async (e) => {
     e.preventDefault();
+    setErrorModal('');
     const { auspiciador, nuevoEstado, motivo } = modalClasificacion;
     const id = auspiciador.id_auspiciador || auspiciador.id;
+
+    if (!tieneMinimoLetras(motivo, 3)) {
+      setErrorModal('El motivo del cambio debe ser una explicación real con palabras (no solo números).');
+      return;
+    }
 
     try {
       await modificarAuspiciador(id, {
         ...auspiciador,
         clasificacion: nuevoEstado,
-        motivo_clasificacion: motivo
+        motivo_clasificacion: motivo.trim()
       });
 
       setModalClasificacion({ abierto: false, auspiciador: null, nuevoEstado: '', motivo: '' });
       cargarAuspiciadores();
     } catch (error) {
-      alert('Error al actualizar: ' + error.message);
+      setErrorModal(extraerMensajeError(error, 'Error al actualizar clasificación.'));
     }
   };
 
   const abrirModalCumplimiento = (acuerdo) => {
-    const totalPagado = (acuerdo.cumplimientos || []).reduce(
-      (acc, c) => acc + Number(c.monto_recibido || 0),
-      0
-    );
-
+    setErrorModal('');
     setModalCumplimiento({
       abierto: true,
       acuerdo,
-      monto_recibido: totalPagado || acuerdo.monto_comprometido || '',
-      fecha_recibida: new Date().toISOString().split('T')[0]
+      monto_recibido: acuerdo.monto_comprometido || '',
+      fecha_recibida: fechaHoyLocal
     });
   };
 
   const confirmarCumplimiento = async (e) => {
     e.preventDefault();
+    setErrorModal('');
     const { acuerdo, monto_recibido, fecha_recibida } = modalCumplimiento;
     const id = acuerdo.id_acuerdo || acuerdo.id;
+    const valorNum = Number(monto_recibido);
+
+    if (Number.isNaN(valorNum) || valorNum <= 0) {
+      setErrorModal('El monto recibido no es válido.');
+      return;
+    }
+
+    if (fecha_recibida < fechaHoyLocal) {
+      setErrorModal('La fecha de recepción no puede ser anterior a hoy.');
+      return;
+    }
+
     const teniaPagosPrevios = (acuerdo?.cumplimientos || []).length > 0;
 
     try {
       await registrarCumplimiento(id, {
-        monto_recibido: Number(monto_recibido),
+        monto_recibido: valorNum,
         fecha_recibida
       });
 
       setModalCumplimiento({ abierto: false, acuerdo: null, monto_recibido: '', fecha_recibida: '' });
       cargarAcuerdos();
 
-      if (!teniaPagosPrevios && Number(monto_recibido) > 0) {
+      if (!teniaPagosPrevios && valorNum > 0) {
         mostrarExitoTemporal('Cumplimiento de aporte registrado con éxito');
       }
     } catch (error) {
-      alert('Error al registrar cumplimiento: ' + error.message);
+      setErrorModal(extraerMensajeError(error, 'Error al registrar cumplimiento.'));
     }
   };
 
   const abrirModalIncobrable = (acuerdo) => {
+    setErrorModal('');
     setModalIncobrable({
       abierto: true,
       acuerdo,
@@ -341,22 +478,29 @@ export default function Auspiciadores() {
 
   const confirmarIncobrable = async (e) => {
     e.preventDefault();
+    setErrorModal('');
     const { acuerdo, motivo } = modalIncobrable;
     const id = acuerdo.id_acuerdo || acuerdo.id;
 
+    if (!tieneMinimoLetras(motivo, 3)) {
+      setErrorModal('Debes describir el motivo de incobrabilidad con palabras (no se permiten solo números).');
+      return;
+    }
+
     try {
-      await declararIncobrable(id, motivo);
+      await declararIncobrable(id, motivo.trim());
       setModalIncobrable({ abierto: false, acuerdo: null, motivo: '' });
       cargarAcuerdos();
     } catch (error) {
-      alert('Error al declarar incobrable: ' + error.message);
+      setErrorModal(extraerMensajeError(error, 'Error al declarar incobrable.'));
     }
   };
 
   const abrirModalEditarAcuerdo = (acuerdo) => {
-    const fechaFormat = acuerdo.fecha_comprometida
-      ? new Date(acuerdo.fecha_comprometida).toISOString().split('T')[0]
-      : '';
+    setErrorModal('');
+    const fechaIso = acuerdo.fecha_comprometida
+      ? String(acuerdo.fecha_comprometida).slice(0, 10)
+      : fechaHoyLocal;
 
     setModalEditarAcuerdo({
       abierto: true,
@@ -365,22 +509,60 @@ export default function Auspiciadores() {
       tipo_aporte: acuerdo.tipo_aporte || 'DINERO',
       monto_comprometido: acuerdo.monto_comprometido || '',
       descripcion_canje: acuerdo.descripcion_canje || '',
-      cant_menciones: acuerdo.cant_menciones || '',
-      fecha_comprometida: fechaFormat
+      cant_menciones: acuerdo.cant_menciones ?? '',
+      fecha_comprometida: fechaIso < fechaHoyLocal ? fechaHoyLocal : fechaIso
     });
   };
 
   const confirmarEdicionAcuerdo = async (e) => {
     e.preventDefault();
+    setErrorModal('');
+
+    const monto = Number(modalEditarAcuerdo.monto_comprometido);
+    if (!Number.isInteger(monto) || monto <= 0 || monto > 500000000) {
+      setErrorModal('El monto comprometido debe ser un número entero entre $1 y $500.000.000.');
+      return;
+    }
+
+    if (
+      modalEditarAcuerdo.tipo_aporte === 'CANJE' &&
+      !tieneMinimoLetras(modalEditarAcuerdo.descripcion_canje, 3)
+    ) {
+      setErrorModal('La descripción del canje debe contener palabras válidas (no solo números).');
+      return;
+    }
+
+    if (
+      modalEditarAcuerdo.cant_menciones !== '' &&
+      (Number(modalEditarAcuerdo.cant_menciones) < 0 || Number(modalEditarAcuerdo.cant_menciones) > 500)
+    ) {
+      setErrorModal('La cantidad de menciones debe estar entre 0 y 500.');
+      return;
+    }
+
+    if (modalEditarAcuerdo.fecha_comprometida < fechaHoyLocal) {
+      setErrorModal('La fecha comprometida debe ser desde hoy en adelante.');
+      return;
+    }
+
+    if (!tieneMinimoLetras(modalEditarAcuerdo.glosa, 3)) {
+      setErrorModal('La glosa debe describir el compromiso con palabras (no se permiten solo números).');
+      return;
+    }
+
     try {
       await modificarAcuerdo(modalEditarAcuerdo.id_acuerdo, {
-        glosa: modalEditarAcuerdo.glosa,
+        glosa: modalEditarAcuerdo.glosa.trim(),
         tipo_aporte: modalEditarAcuerdo.tipo_aporte,
-        monto_comprometido: Number(modalEditarAcuerdo.monto_comprometido),
-        descripcion_canje: modalEditarAcuerdo.descripcion_canje,
-        cant_menciones: modalEditarAcuerdo.cant_menciones
-          ? Number(modalEditarAcuerdo.cant_menciones)
-          : null,
+        monto_comprometido: monto,
+        descripcion_canje:
+          modalEditarAcuerdo.tipo_aporte === 'CANJE'
+            ? modalEditarAcuerdo.descripcion_canje.trim()
+            : null,
+        cant_menciones:
+          modalEditarAcuerdo.cant_menciones !== ''
+            ? Number(modalEditarAcuerdo.cant_menciones)
+            : null,
         fecha_comprometida: modalEditarAcuerdo.fecha_comprometida
       });
 
@@ -392,11 +574,11 @@ export default function Auspiciadores() {
         monto_comprometido: '',
         descripcion_canje: '',
         cant_menciones: '',
-        fecha_comprometida: ''
+        fecha_comprometida: fechaHoyLocal
       });
       cargarAcuerdos();
     } catch (error) {
-      alert('Error al modificar acuerdo: ' + error.message);
+      setErrorModal(extraerMensajeError(error, 'Error al modificar acuerdo.'));
     }
   };
 
@@ -410,7 +592,7 @@ export default function Auspiciadores() {
       await eliminarAcuerdo(idAcuerdo);
       cargarAcuerdos();
     } catch (error) {
-      alert('Error al eliminar acuerdo: ' + error.message);
+      alert(extraerMensajeError(error, 'Error al eliminar acuerdo.'));
     }
   };
 
@@ -623,12 +805,11 @@ export default function Auspiciadores() {
                           item.monto_comprometido || item.monto
                             ? ` — $${Number(item.monto_comprometido || item.monto).toLocaleString('es-CL')}`
                             : '';
-                        const fechaPlazo =
-                          item.fecha_comprometida || item.fecha_limite
-                            ? new Date(
-                                item.fecha_comprometida || item.fecha_limite
-                              ).toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit' })
-                            : '--';
+
+                        const rawFecha = item.fecha_comprometida || item.fecha_limite;
+                        const fechaPlazo = rawFecha
+                          ? String(rawFecha).slice(5, 10).split('-').reverse().join('/')
+                          : '--';
 
                         const totalPagado = (item.cumplimientos || []).reduce(
                           (acc, c) => acc + Number(c.monto_recibido || 0),
@@ -1032,13 +1213,15 @@ export default function Auspiciadores() {
               Ingresa los datos correspondientes para el registro o actualización del auspiciador.
             </p>
 
+            {errorModal && <div className="ausp-error-modal">{errorModal}</div>}
+
             <form onSubmit={manejarEnvio} className="ausp-form">
               <div>
                 <label className="ausp-label">Nombre del Auspiciador:</label>
                 <input
                   type="text"
                   name="nombre"
-                  maxLength={80}
+                  maxLength={60}
                   value={formData.nombre}
                   onChange={manejarCambio}
                   required
@@ -1049,11 +1232,11 @@ export default function Auspiciadores() {
 
               <div className="ausp-form-fila">
                 <div>
-                  <label className="ausp-label">Rubro:</label>
+                  <label className="ausp-label">Rubro (solo letras):</label>
                   <input
                     type="text"
                     name="rubro"
-                    maxLength={80}
+                    maxLength={50}
                     value={formData.rubro}
                     onChange={manejarCambio}
                     required
@@ -1063,11 +1246,11 @@ export default function Auspiciadores() {
                 </div>
 
                 <div>
-                  <label className="ausp-label">Nombre del Contacto:</label>
+                  <label className="ausp-label">Nombre del Contacto (solo letras):</label>
                   <input
                     type="text"
                     name="contacto"
-                    maxLength={80}
+                    maxLength={60}
                     value={formData.contacto}
                     onChange={manejarCambio}
                     required
@@ -1117,6 +1300,8 @@ export default function Auspiciadores() {
               Establece los compromisos comerciales, aportes y plazos para eventos.
             </p>
 
+            {errorModal && <div className="ausp-error-modal">{errorModal}</div>}
+
             <form onSubmit={manejarEnvioNuevoAcuerdo} className="ausp-form">
               <div className="ausp-form-fila">
                 <div>
@@ -1152,18 +1337,31 @@ export default function Auspiciadores() {
                     <option value="">-- Selecciona un evento --</option>
                     {listaEventos.map((ev) => {
                       const idEv = ev.id_evento || ev.id;
-                      const fechaEv = ev.fecha
-                        ? new Date(ev.fecha).toLocaleDateString('es-CL')
-                        : '';
+                      const fechaEv = formatearFechaEvento(ev.fecha);
                       return (
                         <option key={idEv} value={idEv}>
-                          {ev.tipo || ev.nombre || `Evento #${idEv}`} {fechaEv ? `(${fechaEv})` : ''}
+                          {ev.tipo || ev.nombre || `Evento #${idEv}`}
+                          {fechaEv ? ` (${fechaEv})` : ''}
                         </option>
                       );
                     })}
                   </select>
                 </div>
               </div>
+
+              {auspiciadorElegidoAcuerdo?.clasificacion === 'NO_CONFIABLE' && (
+                <div className="ausp-aviso-no-confiable">
+                  <AlertTriangle size={16} className="ausp-alerta-icono" />
+                  <div>
+                    <strong>Advertencia:</strong> Este auspiciador está clasificado como{' '}
+                    <strong>No Confiable</strong>
+                    {auspiciadorElegidoAcuerdo.motivo_clasificacion
+                      ? ` (${auspiciadorElegidoAcuerdo.motivo_clasificacion})`
+                      : ''}
+                    .
+                  </div>
+                </div>
+              )}
 
               <div className="ausp-form-fila">
                 <div>
@@ -1186,8 +1384,10 @@ export default function Auspiciadores() {
                     name="monto_comprometido"
                     value={formAcuerdo.monto_comprometido}
                     onChange={manejarCambioNuevoAcuerdo}
+                    onKeyDown={bloquearNegativosTeclado}
                     required
                     min="1"
+                    max="500000000"
                     placeholder="Ej: 150000"
                     className="ausp-input"
                   />
@@ -1200,7 +1400,7 @@ export default function Auspiciadores() {
                   <input
                     type="text"
                     name="descripcion_canje"
-                    maxLength={120}
+                    maxLength={80}
                     value={formAcuerdo.descripcion_canje}
                     onChange={manejarCambioNuevoAcuerdo}
                     required
@@ -1218,7 +1418,9 @@ export default function Auspiciadores() {
                     name="cant_menciones"
                     value={formAcuerdo.cant_menciones}
                     onChange={manejarCambioNuevoAcuerdo}
+                    onKeyDown={bloquearNegativosTeclado}
                     min="0"
+                    max="500"
                     placeholder="Ej: 3"
                     className="ausp-input"
                   />
@@ -1230,6 +1432,7 @@ export default function Auspiciadores() {
                     type="date"
                     name="fecha_comprometida"
                     lang="es-CL"
+                    min={fechaHoyLocal}
                     value={formAcuerdo.fecha_comprometida}
                     onChange={manejarCambioNuevoAcuerdo}
                     required
@@ -1242,7 +1445,7 @@ export default function Auspiciadores() {
                 <label className="ausp-label">Glosa del Acuerdo Verbal:</label>
                 <textarea
                   name="glosa"
-                  maxLength={255}
+                  maxLength={80}
                   value={formAcuerdo.glosa}
                   onChange={manejarCambioNuevoAcuerdo}
                   required
@@ -1261,7 +1464,7 @@ export default function Auspiciadores() {
                   Cancelar
                 </button>
                 <button type="submit" className="ausp-btn-guardar">
-                  Guardar Acuerdo
+                  Registrar Acuerdo
                 </button>
               </div>
             </form>
@@ -1285,6 +1488,8 @@ export default function Auspiciadores() {
               ({modalCumplimiento.acuerdo?.tipo_aporte})
             </p>
 
+            {errorModal && <div className="ausp-error-modal">{errorModal}</div>}
+
             <form onSubmit={confirmarCumplimiento}>
               <div className="ausp-campo-grupo">
                 <label className="ausp-label">
@@ -1293,18 +1498,12 @@ export default function Auspiciadores() {
                     : 'Valorización del Canje Recibido ($):'}
                 </label>
                 <input
-                  type="number"
-                  value={modalCumplimiento.monto_recibido}
-                  onChange={(e) =>
-                    setModalCumplimiento({ ...modalCumplimiento, monto_recibido: e.target.value })
-                  }
-                  placeholder="Ej: 100000 (0 para restablecer)"
-                  required
+                  type="text"
+                  value={`$${Number(modalCumplimiento.monto_recibido || 0).toLocaleString('es-CL')}`}
+                  readOnly
+                  disabled
                   className="ausp-input"
                 />
-                <span className="ausp-ayuda-input">
-                  Ingresa 0 si deseas anular los registros de pago y restablecer el acuerdo.
-                </span>
               </div>
 
               <div className="ausp-campo-grupo-lg">
@@ -1312,10 +1511,12 @@ export default function Auspiciadores() {
                 <input
                   type="date"
                   lang="es-CL"
+                  min={fechaHoyLocal}
                   value={modalCumplimiento.fecha_recibida}
-                  onChange={(e) =>
-                    setModalCumplimiento({ ...modalCumplimiento, fecha_recibida: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setErrorModal('');
+                    setModalCumplimiento({ ...modalCumplimiento, fecha_recibida: e.target.value });
+                  }}
                   required
                   className="ausp-input"
                 />
@@ -1324,14 +1525,15 @@ export default function Auspiciadores() {
               <div className="ausp-modal-pie">
                 <button
                   type="button"
-                  onClick={() =>
+                  onClick={() => {
+                    setErrorModal('');
                     setModalCumplimiento({
                       abierto: false,
                       acuerdo: null,
                       monto_recibido: '',
-                      fecha_recibida: ''
-                    })
-                  }
+                      fecha_recibida: fechaHoyLocal
+                    });
+                  }}
                   className="ausp-btn-cancelar"
                 >
                   Cancelar
@@ -1358,14 +1560,18 @@ export default function Auspiciadores() {
               Auspiciador: <strong>{modalClasificacion.auspiciador?.nombre}</strong>
             </p>
 
+            {errorModal && <div className="ausp-error-modal">{errorModal}</div>}
+
             <form onSubmit={confirmarCambioClasificacion}>
               <div className="ausp-campo-grupo">
                 <label className="ausp-label">Motivo del cambio (requerido):</label>
                 <textarea
+                  maxLength={120}
                   value={modalClasificacion.motivo}
-                  onChange={(e) =>
-                    setModalClasificacion({ ...modalClasificacion, motivo: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setErrorModal('');
+                    setModalClasificacion({ ...modalClasificacion, motivo: e.target.value });
+                  }}
                   placeholder="Ej: Retraso reiterado de pagos o incumplimiento de aportes..."
                   required
                   rows={3}
@@ -1376,14 +1582,15 @@ export default function Auspiciadores() {
               <div className="ausp-modal-pie">
                 <button
                   type="button"
-                  onClick={() =>
+                  onClick={() => {
+                    setErrorModal('');
                     setModalClasificacion({
                       abierto: false,
                       auspiciador: null,
                       nuevoEstado: '',
                       motivo: ''
-                    })
-                  }
+                    });
+                  }}
                   className="ausp-btn-cancelar"
                 >
                   Cancelar
@@ -1419,16 +1626,20 @@ export default function Auspiciadores() {
               </strong>
             </p>
 
+            {errorModal && <div className="ausp-error-modal">{errorModal}</div>}
+
             <form onSubmit={confirmarIncobrable}>
               <div className="ausp-campo-grupo">
                 <label className="ausp-label">
                   Motivo por el cual se da por perdido el cobro (requerido):
                 </label>
                 <textarea
+                  maxLength={120}
                   value={modalIncobrable.motivo}
-                  onChange={(e) =>
-                    setModalIncobrable({ ...modalIncobrable, motivo: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setErrorModal('');
+                    setModalIncobrable({ ...modalIncobrable, motivo: e.target.value });
+                  }}
                   placeholder="Ej: Auspiciador no contesta correos ni llamadas..."
                   required
                   rows={3}
@@ -1439,9 +1650,10 @@ export default function Auspiciadores() {
               <div className="ausp-modal-pie">
                 <button
                   type="button"
-                  onClick={() =>
-                    setModalIncobrable({ abierto: false, acuerdo: null, motivo: '' })
-                  }
+                  onClick={() => {
+                    setErrorModal('');
+                    setModalIncobrable({ abierto: false, acuerdo: null, motivo: '' });
+                  }}
                   className="ausp-btn-cancelar"
                 >
                   Cancelar
@@ -1506,14 +1718,18 @@ export default function Auspiciadores() {
           <div className="ausp-modal-caja ausp-modal-caja-media">
             <h3 className="ausp-modal-titulo-espacio">Modificar Acuerdo de Auspicio</h3>
 
+            {errorModal && <div className="ausp-error-modal">{errorModal}</div>}
+
             <form onSubmit={confirmarEdicionAcuerdo} className="ausp-form">
               <div>
                 <label className="ausp-label">Glosa / Compromiso:</label>
                 <textarea
+                  maxLength={80}
                   value={modalEditarAcuerdo.glosa}
-                  onChange={(e) =>
-                    setModalEditarAcuerdo({ ...modalEditarAcuerdo, glosa: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setErrorModal('');
+                    setModalEditarAcuerdo({ ...modalEditarAcuerdo, glosa: e.target.value });
+                  }}
                   required
                   rows={2}
                   className="ausp-textarea"
@@ -1525,12 +1741,13 @@ export default function Auspiciadores() {
                   <label className="ausp-label">Tipo de Aporte:</label>
                   <select
                     value={modalEditarAcuerdo.tipo_aporte}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      setErrorModal('');
                       setModalEditarAcuerdo({
                         ...modalEditarAcuerdo,
                         tipo_aporte: e.target.value
-                      })
-                    }
+                      });
+                    }}
                     className="ausp-select"
                   >
                     <option value="DINERO">DINERO</option>
@@ -1542,13 +1759,17 @@ export default function Auspiciadores() {
                   <label className="ausp-label">Monto Comprometido ($):</label>
                   <input
                     type="number"
+                    min="1"
+                    max="500000000"
                     value={modalEditarAcuerdo.monto_comprometido}
-                    onChange={(e) =>
+                    onKeyDown={bloquearNegativosTeclado}
+                    onChange={(e) => {
+                      setErrorModal('');
                       setModalEditarAcuerdo({
                         ...modalEditarAcuerdo,
                         monto_comprometido: e.target.value
-                      })
-                    }
+                      });
+                    }}
                     required
                     className="ausp-input"
                   />
@@ -1560,13 +1781,16 @@ export default function Auspiciadores() {
                   <label className="ausp-label">Descripción del Canje:</label>
                   <input
                     type="text"
+                    maxLength={80}
                     value={modalEditarAcuerdo.descripcion_canje}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      setErrorModal('');
                       setModalEditarAcuerdo({
                         ...modalEditarAcuerdo,
                         descripcion_canje: e.target.value
-                      })
-                    }
+                      });
+                    }}
+                    required
                     placeholder="Ej: 50 poleras..."
                     className="ausp-input"
                   />
@@ -1578,13 +1802,17 @@ export default function Auspiciadores() {
                   <label className="ausp-label">Cant. Menciones:</label>
                   <input
                     type="number"
+                    min="0"
+                    max="500"
                     value={modalEditarAcuerdo.cant_menciones}
-                    onChange={(e) =>
+                    onKeyDown={bloquearNegativosTeclado}
+                    onChange={(e) => {
+                      setErrorModal('');
                       setModalEditarAcuerdo({
                         ...modalEditarAcuerdo,
                         cant_menciones: e.target.value
-                      })
-                    }
+                      });
+                    }}
                     placeholder="Opcional"
                     className="ausp-input"
                   />
@@ -1595,13 +1823,15 @@ export default function Auspiciadores() {
                   <input
                     type="date"
                     lang="es-CL"
+                    min={fechaHoyLocal}
                     value={modalEditarAcuerdo.fecha_comprometida}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      setErrorModal('');
                       setModalEditarAcuerdo({
                         ...modalEditarAcuerdo,
                         fecha_comprometida: e.target.value
-                      })
-                    }
+                      });
+                    }}
                     required
                     className="ausp-input"
                   />
@@ -1611,7 +1841,8 @@ export default function Auspiciadores() {
               <div className="ausp-modal-pie">
                 <button
                   type="button"
-                  onClick={() =>
+                  onClick={() => {
+                    setErrorModal('');
                     setModalEditarAcuerdo({
                       abierto: false,
                       id_acuerdo: null,
@@ -1620,9 +1851,9 @@ export default function Auspiciadores() {
                       monto_comprometido: '',
                       descripcion_canje: '',
                       cant_menciones: '',
-                      fecha_comprometida: ''
-                    })
-                  }
+                      fecha_comprometida: fechaHoyLocal
+                    });
+                  }}
                   className="ausp-btn-cancelar"
                 >
                   Cancelar

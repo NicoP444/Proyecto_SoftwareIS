@@ -1,6 +1,5 @@
 import { body } from 'express-validator';
 
-// Función auxiliar para obtener la fecha de hoy en formato YYYY-MM-DD (hora local)
 const obtenerFechaHoyStr = () => {
   const hoy = new Date();
   const anio = hoy.getFullYear();
@@ -15,6 +14,16 @@ const validarFechaDesdeHoy = (valor) => {
   const hoyStr = obtenerFechaHoyStr();
   if (fechaInput < hoyStr) {
     throw new Error('No se permiten fechas anteriores a hoy.');
+  }
+  return true;
+};
+
+// Verifica que una descripción tenga al menos 3 letras reales (permite "50 poleras", pero rechaza "22222222")
+const validarDescripcionConLetras = (nombreCampo) => (valor) => {
+  const texto = String(valor || '').trim();
+  const cantLetras = (texto.match(/[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]/g) || []).length;
+  if (cantLetras < 3) {
+    throw new Error(`${nombreCampo} debe ser una descripción válida con palabras (no se permiten solo números o símbolos).`);
   }
   return true;
 };
@@ -34,25 +43,29 @@ export const crearAcuerdoSchema = [
 
   body('monto_comprometido')
     .notEmpty().withMessage('El monto comprometido es obligatorio.')
-    .isFloat({ gt: 0 }).withMessage('El monto comprometido debe ser mayor a 0.'),
+    .isInt({ min: 1, max: 500000000 }).withMessage('El monto comprometido debe ser un número entero entre $1 y $500.000.000.'),
 
   body('descripcion_canje')
-    .optional({ checkFalsy: true })
+    .optional({ nullable: true, checkFalsy: true })
+    .trim()
     .isString().withMessage('La descripción del canje debe ser un texto válido.')
-    .isLength({ max: 120 }).withMessage('La descripción del canje no puede superar los 120 caracteres.'),
+    .isLength({ min: 3, max: 80 }).withMessage('La descripción del canje debe tener entre 3 y 80 caracteres.')
+    .custom(validarDescripcionConLetras('La descripción del canje')),
 
   body('cant_menciones')
     .optional({ nullable: true, checkFalsy: true })
-    .isInt({ min: 0, max: 1000 }).withMessage('La cantidad de menciones no puede ser negativa.'),
+    .isInt({ min: 0, max: 500 }).withMessage('La cantidad de menciones debe estar entre 0 y 500.'),
 
   body('fecha_comprometida')
     .notEmpty().withMessage('La fecha límite de pago es obligatoria.')
     .custom(validarFechaDesdeHoy),
 
   body('glosa')
+    .trim()
     .notEmpty().withMessage('La glosa del acuerdo es obligatoria.')
     .isString().withMessage('La glosa debe ser un texto válido.')
-    .isLength({ min: 3, max: 250 }).withMessage('La glosa debe tener entre 3 y 250 caracteres.')
+    .isLength({ min: 3, max: 80 }).withMessage('La glosa debe tener entre 3 y 80 caracteres.')
+    .custom(validarDescripcionConLetras('La glosa'))
 ];
 
 export const modificarAcuerdoSchema = [
@@ -62,31 +75,35 @@ export const modificarAcuerdoSchema = [
 
   body('monto_comprometido')
     .notEmpty().withMessage('El monto comprometido es obligatorio.')
-    .isFloat({ gt: 0 }).withMessage('El monto comprometido debe ser mayor a 0.'),
+    .isInt({ min: 1, max: 500000000 }).withMessage('El monto comprometido debe ser un número entero entre $1 y $500.000.000.'),
 
   body('descripcion_canje')
     .optional({ nullable: true, checkFalsy: true })
+    .trim()
     .isString().withMessage('La descripción del canje debe ser un texto válido.')
-    .isLength({ max: 120 }).withMessage('La descripción del canje no puede superar los 120 caracteres.'),
+    .isLength({ min: 3, max: 80 }).withMessage('La descripción del canje debe tener entre 3 y 80 caracteres.')
+    .custom(validarDescripcionConLetras('La descripción del canje')),
 
   body('cant_menciones')
     .optional({ nullable: true, checkFalsy: true })
-    .isInt({ min: 0, max: 1000 }).withMessage('La cantidad de menciones no puede ser negativa.'),
+    .isInt({ min: 0, max: 500 }).withMessage('La cantidad de menciones debe estar entre 0 y 500.'),
 
   body('fecha_comprometida')
     .notEmpty().withMessage('La fecha comprometida es obligatoria.')
     .custom(validarFechaDesdeHoy),
 
   body('glosa')
+    .trim()
     .notEmpty().withMessage('La glosa del acuerdo es obligatoria.')
     .isString().withMessage('La glosa debe ser un texto válido.')
-    .isLength({ min: 3, max: 250 }).withMessage('La glosa debe tener entre 3 y 250 caracteres.')
+    .isLength({ min: 3, max: 80 }).withMessage('La glosa debe tener entre 3 y 80 caracteres.')
+    .custom(validarDescripcionConLetras('La glosa'))
 ];
 
 export const cumplimientoAcuerdoSchema = [
   body('monto_recibido')
     .notEmpty().withMessage('El monto recibido es obligatorio.')
-    .isFloat({ min: 0 }).withMessage('El monto recibido no puede ser negativo (ingresa 0 para restablecer o un monto positivo).'),
+    .isFloat({ gt: 0 }).withMessage('El monto recibido debe ser mayor a 0.'),
 
   body('fecha_recibida')
     .notEmpty().withMessage('La fecha de recepción es obligatoria.')
@@ -95,7 +112,9 @@ export const cumplimientoAcuerdoSchema = [
 
 export const incobrableAcuerdoSchema = [
   body('motivo_incobrable')
+    .trim()
     .notEmpty().withMessage('Debes indicar el motivo por el cual se declara incobrable.')
     .isString().withMessage('El motivo debe ser un texto válido.')
-    .isLength({ min: 3, max: 250 }).withMessage('El motivo debe tener entre 3 y 250 caracteres.')
+    .isLength({ min: 5, max: 120 }).withMessage('El motivo debe tener entre 5 y 120 caracteres.')
+    .custom(validarDescripcionConLetras('El motivo de incobrabilidad'))
 ];

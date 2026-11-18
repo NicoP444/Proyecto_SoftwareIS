@@ -277,6 +277,9 @@
 .ausp-td-glosa {
   color: #64748b;
   max-width: 220px;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .ausp-td-plazo {
@@ -562,6 +565,8 @@
   font-size: 12px;
   color: #64748b;
   font-style: italic;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .ausp-tarjeta-acciones {
@@ -844,4 +849,36 @@
   font-weight: 600;
   cursor: pointer;
   font-size: 14px;
+}
+
+.ausp-aviso-no-confiable {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.ausp-input[readonly],
+.ausp-input:disabled {
+  background-color: #f8fafc;
+  color: #64748b;
+  cursor: not-allowed;
+  outline: none;
+}
+
+.ausp-error-modal {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 12px;
 }
