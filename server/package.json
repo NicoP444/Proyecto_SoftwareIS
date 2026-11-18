@@ -4,17 +4,8 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon src/server.js",
-    "seed:base": "node seeders/seed.js",
-    "seed:usuarios": "node seeders/seed-usuarios.js",
-    "seed:clientes": "node seeders/seed-clientes.js",
-    "seed:eventos": "node seeders/seed-eventos.js",
-    "seed:auspiciadores": "node seeders/seed-auspiciadores.js",
-    "seed:kits": "node seeders/seed-kits.js",
-    "seed:casos": "node seeders/seed-casos.js",
-    "seed:limpiar": "node seeders/limpiar.js",
-    "seed:todo": "npm run seed:base && npm run seed:usuarios && npm run seed:clientes && npm run seed:eventos && npm run seed:auspiciadores && npm run seed:kits && npm run seed:casos"
+    "seed:todo": "node seeders/todo.js",
+    "seed:limpiar": "node seeders/limpiar.js"
   },
   "keywords": [],
   "author": "",
