@@ -190,8 +190,8 @@ export const registrarRetornoService = async ({ id_salida, id_jefe, revisiones }
 
     return {
       mensaje: hayIncidente
-        ? 'Retorno registrado con incidentes. El kit quedó INCOMPLETO y se generó el incidente.'
-        : 'Retorno registrado con éxito. Todos los equipos operativos, kit DISPONIBLE.',
+        ? 'Retorno registrado con incidentes. El kit quedó Incompleto y se generó el incidente.'
+        : 'Retorno registrado con éxito. Todos los equipos operativos, kit Disponible.',
       estado_kit: nuevoEstadoKit,
     };
   });
