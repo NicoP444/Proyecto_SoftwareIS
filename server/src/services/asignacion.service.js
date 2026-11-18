@@ -2,7 +2,7 @@ import prisma from '../config/prisma.js';
 import { ValidationError, NotFoundError } from '../utils/errores.js';
 
 const FECHA = /^\d{4}-\d{2}-\d{2}$/; // AAAA-MM-DD
-const HORA = /^\d{2}:\d{2}$/; // HH:MM
+const HORA = /^([01]\d|2[0-3]):[0-5]\d$/; // HH:MM real, de 00:00 a 23:59
 
 // Las fechas y horas de Prisma vienen como Date: las pasamos a texto para compararlas fácil
 const aHora = (d) => d.toISOString().slice(11, 16); // "09:00"

@@ -632,7 +632,7 @@ export default function Calendario() {
                     <section className="cal-bloque">
                       <ViabilidadEvento
                         idEvento={e.id_evento}
-                        puedeEditar={puedeCrear}
+                        puedeEditar={puedeCrear && e.estado !== "CERRADO"}
                         version={versionFin}
                       />
                     </section>
@@ -641,7 +641,7 @@ export default function Calendario() {
                     <section className="cal-bloque">
                       <PagosEvento
                         idEvento={e.id_evento}
-                        puedeRegistrar={rol === "CONTADOR"}
+                        puedeRegistrar={rol === "CONTADOR" && e.estado !== "CERRADO"}
                         onCambio={refrescarDetalle}
                         version={versionFin}
                       />
@@ -691,7 +691,7 @@ export default function Calendario() {
                   <Pencil size={16} /> Modificar evento
                 </button>
               )}
-              {puedeEliminar && !pidiendoMotivo && (
+              {puedeEliminar && !pidiendoMotivo && !["REALIZADO", "CERRADO"].includes(e.estado) && (
                 <button
                   type="button"
                   className="boton boton-peligro"

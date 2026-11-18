@@ -5,7 +5,7 @@ import { ValidationError } from '../utils/errores.js';
 // Solo leen la base de datos: si algo no se puede, lanzan un Error; si algo solo hay que revisar, lo devuelven como advertencia.
 
 const FECHA = /^\d{4}-\d{2}-\d{2}$/; // AAAA-MM-DD
-const HORA = /^\d{2}:\d{2}$/; // HH:MM
+const HORA = /^([01]\d|2[0-3]):[0-5]\d$/; // HH:MM real, de 00:00 a 23:59
 
 // Prisma entrega fechas y horas como Date: las pasamos a texto para compararlas fácil
 export const aHora = (d) => d.toISOString().slice(11, 16); // "09:00"

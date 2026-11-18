@@ -116,6 +116,13 @@ export async function eliminarEvento(id, motivo, idDueno) {
   if (!evento) {
     throw new NotFoundError("El evento no existe");
   }
+  
+  // RF-P1-08: solo se elimina una cobertura que no se realizará
+  if (["REALIZADO", "CERRADO"].includes(evento.estado)) {
+    throw new ValidationError(
+      `No se puede eliminar un evento ${evento.estado === "CERRADO" ? "cerrado" : "realizado"}: la transmisión ya se hizo`,
+    );
+  }
 
   // Cuenta todo lo que impide eliminar el evento
   const [pagos, gastos, aportes, incidentes, salidas, remuneraciones] =

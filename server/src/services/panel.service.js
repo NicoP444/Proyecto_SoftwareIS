@@ -33,6 +33,13 @@ const proximosEventos = (limite, conKits = false, idDueno) =>
     take: limite,
   });
 
+
+// Cuántos eventos próximos hay en total (la lista muestra solo los primeros)
+const contarProximos = (idDueno) =>
+  prisma.evento.count({
+    where: { ...porDueno(idDueno), fecha: { gte: hoyUTC() }, estado: { in: ESTADOS_ACTIVOS } },
+  });
+
 // Acuerdo vencido = marcado VENCIDO, o sin cumplir y con la fecha comprometida ya pasada (RF-P4-05)
 const filtroAcuerdosVencidos = (idDueno) => ({
   ...porDueno(idDueno),
@@ -65,12 +72,16 @@ async function panelDueno(idDueno) {
     { clave: 'adelanto', texto: 'Eventos pendientes de adelanto', cantidad: pendientesAdelanto, ruta: '/calendario' },
     { clave: 'sin_marcar', texto: 'Eventos pasados por marcar como realizados', cantidad: sinMarcar, ruta: '/marcar-evento' },
     { clave: 'acuerdos', texto: 'Acuerdos de auspicio vencidos', cantidad: acuerdosVencidos, ruta: '/auspiciadores' },
-    { clave: 'kits', texto: 'Kits sin retorno hace más de 24 horas', cantidad: kitsSinRetorno.length, ruta: '/salida-kits' },
-    { clave: 'incidentes', texto: 'Incidentes de la última semana', cantidad: incidentes, ruta: '/salida-kits?tab=incidentes' },
+    // Rutas que el Dueño sí puede abrir (/salida-kits es solo del Jefe técnico)
+    { clave: 'kits', texto: 'Kits sin retorno hace más de 24 horas', cantidad: kitsSinRetorno.length, ruta: '/consulta-inventario' },
+    { clave: 'incidentes', texto: 'Incidentes de la última semana', cantidad: incidentes, ruta: '/incidentes' },
   ].filter((a) => a.cantidad > 0);
+
+    const totalProximos = await contarProximos(idDueno);
 
   return {
     rol: 'DUENO',
+    total_proximos: totalProximos,
     resultado_mes: {
       anio: resumen.anio,
       mes: resumen.mes,
@@ -173,8 +184,11 @@ async function panelJefe() {
     obtenerKitsSinRetornoService(),
   ]);
 
+  const totalProximos = await contarProximos();
+
   return {
     rol: 'JEFE_TECNICO',
+    total_proximos: totalProximos,
     proximos_eventos: proximos,
     kits_en_terreno: enTerreno,
     kits_sin_retorno: sinRetorno.length,

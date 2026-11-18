@@ -4,7 +4,6 @@ import Home from "./pages/Home";
 import Trabajadores from "./pages/Trabajadores"; //nico
 import Finanzas from "./pages/Finanzas"; //nico
 import Auspiciadores from "./pages/Auspiciadores";
-import Eventos from "./pages/Eventos";
 import Incidentes from "./pages/Incidentes";
 import RegistrarAcuerdoPage from "./pages/RegistrarAcuerdo";
 import SalidaKits from "./pages/SalidaKits";
@@ -55,9 +54,6 @@ export default function App() {
             <Route path="/kits" element={<Kits />} />
             <Route path="/salida-kits" element={<SalidaKits />} />
           </Route>
-        </Route>
-          <Route element={<RutaProtegida><RutaPorRol roles={["DUENO"]} /></RutaProtegida>}>
-          <Route path="/eventos" element={<Eventos />} />
         </Route>
         <Route
           path="/incidentes"
