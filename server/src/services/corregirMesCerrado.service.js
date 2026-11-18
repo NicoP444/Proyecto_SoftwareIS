@@ -212,14 +212,21 @@ export const corregirMontoMesCerradoService = async ({
   id_contador,
 }) => {
   const montoNum = Number(nuevo_monto);
-  if (!Number.isInteger(montoNum) || montoNum <= 0) {
-    const err = new Error('El nuevo monto debe ser un número entero mayor a 0.');
+  if (!Number.isInteger(montoNum) || montoNum < 0) {
+    const err = new Error('El nuevo monto debe ser un número entero mayor o igual a 0.');
     err.status = 400;
     throw err;
   }
 
   if (!motivo || !motivo.trim()) {
     const err = new Error('Debe ingresar un motivo obligatorio para corregir un mes cerrado.');
+    err.status = 400;
+    throw err;
+  }
+
+  const contadorId = Number(id_contador);
+  if (!Number.isInteger(contadorId) || contadorId <= 0) {
+    const err = new Error('No se encontró un perfil de Contador válido para auditar el cambio.');
     err.status = 400;
     throw err;
   }
@@ -234,21 +241,11 @@ export const corregirMontoMesCerradoService = async ({
     throw err;
   }
 
-  let contadorId = id_contador;
-  if (!contadorId) {
-    const contadorDefault = await prisma.contador.findFirst({ select: { id_contador: true } });
-    if (!contadorDefault) {
-      const err = new Error('No se encontró un perfil de Contador válido para auditar el cambio.');
-      err.status = 400;
-      throw err;
-    }
-    contadorId = contadorDefault.id_contador;
-  }
-
   const fechaInicio = new Date(Date.UTC(anio, mes - 1, 1));
   const fechaFin = new Date(Date.UTC(anio, mes, 1));
 
   return await prisma.$transaction(async (tx) => {
+    const enMes = (f) => f >= fechaInicio && f < fechaFin;
     let valorAnterior = 0;
     let idEventoAfectado = null;
     let etiquetaDato = '';
@@ -256,6 +253,7 @@ export const corregirMontoMesCerradoService = async ({
     if (tabla === 'pago_cliente') {
       const reg = await tx.pagoCliente.findUnique({ where: { id_pago: Number(id_registro) } });
       if (!reg) throw Object.assign(new Error('Pago de cliente no encontrado.'), { status: 404 });
+      if (!enMes(reg.fecha)) throw Object.assign(new Error('El registro no pertenece al mes seleccionado.'), { status: 400 });
       valorAnterior = reg.monto;
       idEventoAfectado = reg.id_evento;
       etiquetaDato = `Pago cliente #${reg.id_pago} (${reg.tipo_pago})`;
@@ -272,6 +270,7 @@ export const corregirMontoMesCerradoService = async ({
         include: { acuerdo: { select: { id_evento: true, glosa: true } } },
       });
       if (!reg) throw Object.assign(new Error('Cumplimiento de aporte no encontrado.'), { status: 404 });
+      if (!enMes(reg.fecha)) throw Object.assign(new Error('El registro no pertenece al mes seleccionado.'), { status: 400 });
       valorAnterior = reg.monto_recibido;
       idEventoAfectado = reg.acuerdo?.id_evento || null;
       etiquetaDato = `Aporte #${id_acuerdo}-${nro_cumplimiento} (${reg.acuerdo?.glosa || ''})`;
@@ -285,6 +284,7 @@ export const corregirMontoMesCerradoService = async ({
         include: { asignacion: { select: { id_evento: true } } },
       });
       if (!reg) throw Object.assign(new Error('Pago de remuneración no encontrado.'), { status: 404 });
+      if (!enMes(reg.fecha)) throw Object.assign(new Error('El registro no pertenece al mes seleccionado.'), { status: 400 });
       valorAnterior = reg.monto;
       idEventoAfectado = reg.asignacion?.id_evento || null;
       etiquetaDato = `Pago remuneración #${reg.id_pago_rem}`;
@@ -298,6 +298,7 @@ export const corregirMontoMesCerradoService = async ({
         include: { asignacion: { select: { id_evento: true } } },
       });
       if (!reg) throw Object.assign(new Error('Gasto de evento no encontrado.'), { status: 404 });
+      if (!enMes(reg.fecha)) throw Object.assign(new Error('El registro no pertenece al mes seleccionado.'), { status: 400 });
       valorAnterior = reg.monto;
       idEventoAfectado = reg.asignacion?.id_evento || null;
       etiquetaDato = `Gasto evento #${reg.id_gasto} (${reg.tipo_gasto})`;
@@ -310,6 +311,7 @@ export const corregirMontoMesCerradoService = async ({
         where: { id_gasto_fijo: Number(id_registro) },
       });
       if (!reg) throw Object.assign(new Error('Gasto fijo no encontrado.'), { status: 404 });
+      if (reg.id_mes !== mesContable.id_mes) throw Object.assign(new Error('El registro no pertenece al mes seleccionado.'), { status: 400 });
       valorAnterior = reg.monto;
       idEventoAfectado = null;
       etiquetaDato = `Gasto fijo #${reg.id_gasto_fijo} (${reg.descripcion})`;

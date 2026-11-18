@@ -15,7 +15,7 @@ export const obtenerDetalleCorreccionMes = async (req, res) => {
 
 export const corregirMontoMesCerrado = async (req, res) => {
   try {
-    const id_contador = req.usuario?.id_contador || req.body?.id_contador || null;
+    const id_contador = req.usuario?.id_contador;
     const { tabla, id_registro, nuevo_monto, motivo } = req.body;
     const resultado = await corregirMontoMesCerradoService({
       ...req.periodo,

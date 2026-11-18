@@ -6,7 +6,9 @@ import { manejarError } from '../utils/errores.js';
 
 export const ListarTrabajadores = async (req, res) => {
   try {
-    const lista = await TrabajadorServicio.ListarTrabajadores(req.query.id_dueno);
+    // El dueño ve sus trabajadores; los otros roles ven la lista completa
+    const idDueno = req.user.rol === 'DUENO' ? req.user.id_dueno : undefined;
+    const lista = await TrabajadorServicio.ListarTrabajadores(idDueno);
     res.json(lista);
   } catch (error) {
     manejarError(res, error);

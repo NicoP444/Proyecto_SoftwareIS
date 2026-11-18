@@ -17,3 +17,16 @@ export const login = async (correo, contrasena) => {
 
   return data;
 };
+
+export const logout = async () => {
+  const token = localStorage.getItem('token');
+  if (!token) return;
+  try {
+    await fetch(`${API_URL}/auth/logout`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch {
+    // Si falla la red, igual limpiamos la sesión en el navegador
+  }
+};

@@ -10,7 +10,7 @@
 .cal-pagina .encabezado p { margin-bottom: 10px; }
 
 /* Tarjetas de resumen en una sola línea */
-.cal-pagina .indicadores { gap: 10px; margin-bottom: 12px; }
+.cal-pagina .indicadores { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
 .cal-pagina .indicador { flex-direction: row; align-items: center; justify-content: space-between; padding: 8px 14px; }
 .cal-pagina .indicador-valor { font-size: 1.15rem; }
 
@@ -20,7 +20,6 @@
 
 /* ---------- Navegación ---------- */
 .cal-navegador { display: flex; align-items: center; gap: 4px; padding: 0 4px; height: 36px; background: var(--blanco); border: 1px solid var(--borde); border-radius: 8px; }
-.cal-navegador strong { min-width: 130px; text-align: center; font-size: 0.85rem; }
 .cal-navegador .boton-icono { padding: 4px; }
 
 .cal-selector { display: flex; height: 36px; padding: 3px; background: var(--blanco); border: 1px solid var(--borde); border-radius: 8px; }
@@ -50,7 +49,7 @@
 .cal-celda.hoy .cal-numero { background: var(--primario); color: var(--blanco); }
 
 /* ---------- Evento dentro de la celda ---------- */
-.cal-evento { --color: var(--primario); flex-shrink: 0; width: 100%; padding: 2px 6px; overflow: hidden; text-align: left; text-overflow: ellipsis; white-space: nowrap; font-size: 0.68rem; color: var(--texto); background: color-mix(in srgb, var(--color) 12%, white); border: 0; border-left: 3px solid var(--color); border-radius: 4px; cursor: pointer; }
+.cal-evento { --color: var(--primario); flex-shrink: 0; width: 100%; padding: 2px 6px; overflow: hidden; text-align: left; text-overflow: ellipsis; white-space: nowrap; font-size: 0.75rem; color: var(--texto); background: color-mix(in srgb, var(--color) 12%, white); border: 0; border-left: 3px solid var(--color); border-radius: 4px; cursor: pointer; }
 .cal-evento:hover { background: color-mix(in srgb, var(--color) 22%, white); }
 .cal-evento small { display: block; overflow: hidden; text-overflow: ellipsis; color: var(--texto-suave); }
 /* En la semana las celdas son altas: el texto baja de línea y se ve completo */
@@ -64,7 +63,7 @@ button.cal-mas { flex-shrink: 0; padding: 0; border: 0; background: none; text-a
 /* Un color por estado (RF-P1-12) */
 .confirmado { --color: var(--verde); }
 .pendiente { --color: var(--naranjo); }
-.realizado { --color: var(--primario); }
+.realizado { --color: var(--morado); }
 .cerrado { --color: #9ca3af; }
 
 /* ---------- Leyenda ---------- */
@@ -244,3 +243,126 @@ button.cal-mas { flex-shrink: 0; padding: 0; border: 0; background: none; text-a
 .cal-dia-lista .cal-evento,
 .cal-dia-lista .cal-evento small { white-space: normal; overflow-wrap: anywhere; }
 .cal-dia-lista .cal-evento { padding: 8px 10px; font-size: 0.8rem; }
+
+/* ---------- Clic en un día para agendar ---------- */
+.cal-celda.creable { cursor: pointer; }
+.cal-celda.creable:hover { background: var(--primario-suave); }
+
+/* ---------- Opción "Crear cliente" al final del buscador ---------- */
+.selector-cliente-lista li.selector-cliente-crear { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--borde); }
+.selector-cliente-lista li.selector-cliente-crear button { justify-content: flex-start; align-items: center; color: var(--primario); font-weight: 600; }
+
+/* ---------- Mejoras visuales del calendario ---------- */
+
+/* Tarjeta "Cerrados" en gris; en pantallas medianas las tarjetas bajan de línea */
+.cal-pagina .indicador.gris { --color: #9ca3af; }
+.cal-pagina .indicador.seleccionado,
+.cal-pagina .indicador.seleccionado:hover { box-shadow: inset 0 0 0 2px var(--color); } /* que se note la tarjeta elegida aunque tenga el mouse encima */
+@media (max-width: 1100px) {
+  .cal-pagina .indicadores { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+}
+
+/* Cabecera del panel: [Hoy] ‹ › Noviembre 2026 ............ [filtro] [Mes | Semana] */
+.cal-cabecera { gap: 12px; flex-wrap: wrap; }
+.cal-cabecera-izq,
+.cal-cabecera-der { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cal-cabecera-izq .boton { height: 36px; }
+.cal-cabecera-izq h2 { margin-left: 4px; font-size: 1.05rem; }
+
+/* Aviso del filtro activo (clic para quitarlo) */
+.cal-filtro-activo { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border: 0; border-radius: 999px; font-size: 0.75rem; font-weight: 600; color: var(--color); background: color-mix(in srgb, var(--color) 14%, white); cursor: pointer; }
+.cal-filtro-activo:hover { background: color-mix(in srgb, var(--color) 24%, white); }
+
+/* Menú "Herramientas" */
+.menu-herramientas { position: relative; }
+.menu-herramientas-lista { position: absolute; top: calc(100% + 6px); right: 0; z-index: 20; display: flex; flex-direction: column; min-width: 260px; padding: 6px; background: var(--blanco); border: 1px solid var(--borde); border-radius: 12px; box-shadow: 0 10px 25px rgba(17, 24, 39, 0.12); }
+.menu-herramientas-lista button { display: flex; align-items: flex-start; gap: 10px; width: 100%; padding: 10px; border: 0; border-radius: 8px; background: none; text-align: left; font-size: 0.85rem; font-weight: 600; color: var(--texto); cursor: pointer; }
+.menu-herramientas-lista button:hover { background: var(--fondo); }
+.menu-herramientas-lista button svg { flex-shrink: 0; margin-top: 2px; color: var(--primario); }
+.menu-herramientas-lista small { display: block; margin-top: 2px; font-size: 0.72rem; font-weight: 400; color: var(--texto-suave); }
+
+/* Hoy con fondo suave y días pasados atenuados */
+.cal-celda.hoy { background: color-mix(in srgb, var(--primario) 4%, white); }
+.cal-celda.pasado { background: #fafafb; }
+.cal-celda.pasado .cal-numero { color: var(--texto-tenue); }
+.cal-celda.pasado .cal-evento { opacity: 0.65; }
+.cal-celda.pasado .cal-evento:hover { opacity: 1; }
+.cal-numero { font-size: 0.75rem; }
+.cal-evento small { font-size: 0.7rem; }
+
+/* ---------- Formulario de evento ---------- */
+/* Campo con error: borde rojo */
+.campo.con-error input,
+.campo.con-error select,
+.campo.con-error textarea,
+.campo.con-error .selector-cliente-elegido { border-color: var(--rojo); }
+.campo.con-error input:focus,
+.campo.con-error select:focus { box-shadow: 0 0 0 3px rgba(229, 72, 77, 0.15); }
+
+/* Texto de ayuda bajo un campo (ej: la fecha escrita en español) */
+.campo-ayuda { font-size: 0.72rem; color: var(--texto-suave); }
+
+/* Observaciones: mismo estilo que los inputs */
+.formulario-evento textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--borde); border-radius: 8px; background: var(--blanco); color: var(--texto); font: inherit; font-size: 0.85rem; resize: vertical; }
+.formulario-evento textarea:focus { outline: none; border-color: var(--primario); box-shadow: 0 0 0 3px var(--primario-suave); }
+
+/* Precio con "$" fijo a la izquierda */
+.campo-con-prefijo { position: relative; }
+.campo-con-prefijo span { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 0.85rem; color: var(--texto-suave); pointer-events: none; }
+.campo-con-prefijo input { padding-left: 22px; }
+
+/* Chip con la duración y el estado en que quedará el evento */
+.ev-duracion { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; color: var(--texto); background: color-mix(in srgb, var(--color) 12%, white); border-left: 3px solid var(--color); }
+.ev-duracion svg { flex-shrink: 0; color: var(--color); }
+.ev-duracion strong { color: var(--color); }
+
+/* ---------- Ventana Clientes ---------- */
+/* Cabecera del formulario: "← Volver a la lista" + título */
+.cli-form-cabecera { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding-bottom: 10px; border-bottom: 1px solid var(--borde); }
+.cli-form-cabecera .boton-texto { margin-left: -8px; }
+.cli-form-cabecera h3 { margin: 0; font-size: 1rem; }
+
+/* Tabla */
+.cli-tabla-contenedor { overflow-x: auto; }
+.cli-tabla th { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--texto-suave); }
+.cli-tabla tbody tr:hover { background: var(--fondo); }
+.cli-tabla a { color: var(--texto); text-decoration: none; }
+.cli-tabla a:hover { color: var(--primario); text-decoration: underline; }
+.cli-rut { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--texto-suave); }
+.cli-centro { text-align: center !important; }
+.cli-telefono { display: flex; align-items: center; gap: 2px; white-space: nowrap; }
+.cli-telefono .boton-icono { padding: 4px; color: #25a244; }
+.cli-telefono .boton-icono:hover { color: #25a244; text-decoration: none; }
+.cli-eventos { display: inline-grid; place-items: center; min-width: 26px; height: 22px; padding: 0 6px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; color: var(--primario); background: var(--primario-suave); }
+.cli-eventos.cero { color: var(--texto-tenue); background: var(--fondo); }
+
+/* Eliminar: deshabilitado si tiene eventos; confirmación dentro de la fila */
+.cli-eliminar:hover:not(:disabled) { color: var(--rojo); background: rgba(229, 72, 77, 0.08); }
+.cli-eliminar:disabled { opacity: 0.35; cursor: not-allowed; }
+.cli-fila-peligro,
+.cli-tabla tbody tr.cli-fila-peligro:hover { background: rgba(229, 72, 77, 0.06); }
+.cli-confirmar { display: flex; align-items: center; justify-content: flex-end; gap: 6px; white-space: nowrap; font-size: 0.8rem; font-weight: 600; color: var(--rojo); }
+.cli-confirmar .boton { height: 30px; padding: 0 10px; font-size: 0.78rem; }
+
+/* ---------- Detalle del evento con pestañas ---------- */
+.cal-tarjeta-titulo { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.cal-pestanas { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--borde); }
+.cal-pestanas button { flex-shrink: 0; padding: 8px 14px; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; background: none; font-size: 0.85rem; font-weight: 600; color: var(--texto-suave); cursor: pointer; }
+.cal-pestanas button:hover { color: var(--texto); }
+.cal-pestanas button.activa { color: var(--primario); border-bottom-color: var(--primario); }
+
+/* Eliminar: botón discreto (borde rojo) a la izquierda */
+.cal-acciones-peligro { justify-content: flex-start; }
+.cal-acciones-peligro .boton { flex: 0 0 auto; min-width: 0; }
+.boton-peligro-suave { background: var(--blanco); border-color: rgba(229, 72, 77, 0.4); color: var(--rojo); }
+.boton-peligro-suave:hover:not(:disabled) { background: rgba(229, 72, 77, 0.08); }
+
+/* ---------- Personal disponible en grilla ---------- */
+.personal-consulta .personal-franja { border-style: solid; background: var(--fondo); }
+.personal-consulta .personal-lista-alta { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); align-content: start; max-height: 420px; }
+.personal-consulta .personal-fila { align-items: flex-start; height: 100%; }
+.personal-datos a { color: inherit; text-decoration: none; }
+.personal-datos a:hover { color: var(--primario); text-decoration: underline; }
+
+/* Margen de traslado: aviso "Sin cambios por guardar" junto al botón */
+.margen-acciones { align-items: center; gap: 10px; }

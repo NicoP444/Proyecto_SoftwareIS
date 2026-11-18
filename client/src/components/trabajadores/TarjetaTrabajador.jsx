@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { CalendarRange, Clock } from 'lucide-react';
+import { CalendarRange } from 'lucide-react';
 import { listarDisponibilidad } from '../../services/personalServicio.js';
-import { iniciales, nombreCompleto, rolesDe, textoEstado, textoHorario, textoPeriodo } from './ayudas.js';
+import { iniciales, nombreCompleto, rolesDe, textoEstado, textoPeriodo } from './ayudas.js';
 
 /**
  * Tarjeta de un trabajador en la lista. Al hacer clic abre su ficha.
@@ -14,8 +14,8 @@ export default function TarjetaTrabajador({ trabajador, version, onAbrir }) {
 
   useEffect(() => {
     listarDisponibilidad(trabajador.id_trabajador) // llamamos a la funcion listarDisponibilidad, que nos devuelve una promesa con la disponibilidad del trabajador
-      .then(setDisponibilidad)//catch(() => setDisponibilidad([])); // si hay un error, establecemos la disponibilidad como un array vacío
-      .catch(() => setDisponibilidad([]));
+      .then(setDisponibilidad)
+      .catch(() => setDisponibilidad([])); // si hay un error, establecemos la disponibilidad como un array vacío
   }, [trabajador.id_trabajador, version]);
 
   return (
@@ -51,10 +51,6 @@ export default function TarjetaTrabajador({ trabajador, version, onAbrir }) {
         <span className="chip-periodo">
           <CalendarRange size={13} />
           {textoPeriodo(disponibilidad)}
-        </span>
-        <span className="texto-pequeno">
-          <Clock size={14} />
-          {textoHorario(disponibilidad)}
         </span>
       </div>
     </button>

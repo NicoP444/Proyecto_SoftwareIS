@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { CalendarDays, CalendarRange, Clock, Mail, Phone, Tags, UserRound } from 'lucide-react';
+import { CalendarDays, CalendarRange, Mail, Phone, Tags, UserRound } from 'lucide-react';
 import { actualizarTrabajador, listarDisponibilidad } from '../../services/personalServicio.js';
 import EditorDisponibilidad from './EditorDisponibilidad';
 import RolesTrabajador from './RolesTrabajador';
 import FormularioTrabajador from './FormularioTrabajador';
-import { bloqueVigente, iniciales, nombreCompleto, rolesDe, textoEstado, textoFechasBloque, textoHorarioBloque } from './ayudas.js';
+import { bloqueVigente, iniciales, nombreCompleto, rolesDe, textoEstado, textoFechasBloque } from './ayudas.js';
 
 /* este es ficha trabajador, para ver todo*/
 
@@ -87,12 +87,7 @@ export default function FichaTrabajador({ trabajador, roles, onCambio, onCrearRo
         <div className="ficha-semana">
           <span className="etiqueta">Disponibilidad vigente</span>
           {vigente ? (
-            <>
-              <strong>{textoFechasBloque(vigente)}</strong>
-              <span className="texto-pequeno">
-                <Clock size={14} /> {textoHorarioBloque(vigente)}
-              </span>
-            </>
+            <strong>{textoFechasBloque(vigente)}</strong>
           ) : (
             <span className="texto-tenue">Sin disponibilidad</span>
           )}
@@ -104,13 +99,12 @@ export default function FichaTrabajador({ trabajador, roles, onCambio, onCrearRo
         <Indicador icono={Tags} color="azul" titulo="Roles asignados" valor={rolesAsignados.length}
           detalle={comisionMaxima ? `Comisión hasta ${comisionMaxima}%` : 'Sin comisión'} />
         <Indicador icono={CalendarDays} color="verde" titulo="Bloques" valor={disponibilidad.length} detalle="Períodos registrados" />
-        <Indicador icono={Clock} color="naranjo" titulo="Horario" valor={vigente ? textoHorarioBloque(vigente) : '—'} detalle="Del bloque vigente" />
         <Indicador icono={CalendarRange} color="morado" titulo="Período" valor={vigente ? textoFechasBloque(vigente) : 'Sin período'} detalle="Bloque vigente o próximo" />
       </div>
 
       {/* Edición: disponibilidad a la izquierda, roles y datos a la derecha */}
       <div className="ficha-columnas">
-        <Seccion icono={CalendarDays} titulo="Disponibilidad" descripcion="Bloques de fechas y horario en que puede trabajar">
+        <Seccion icono={CalendarDays} titulo="Disponibilidad" descripcion="Bloques de fechas en que puede trabajar">
           <EditorDisponibilidad
             idTrabajador={trabajador.id_trabajador}
             disponibilidad={disponibilidad}
@@ -144,4 +138,4 @@ export default function FichaTrabajador({ trabajador, roles, onCambio, onCrearRo
       </div>
     </div>
   );
-}   
+}

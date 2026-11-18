@@ -98,3 +98,39 @@
 @media (prefers-reduced-motion:reduce){
   .landing .comet{animation:none; opacity:1; transform:rotate(var(--rest));}
 }
+
+/* ---------- Secciones informativas (los links del menú bajan hasta aquí) ---------- */
+html:has(.landing){scroll-behavior:smooth;}
+.landing .info{padding:96px 0; scroll-margin-top:24px;}
+.landing .info-alterna{background:#fff; border-top:1px solid var(--border); border-bottom:1px solid var(--border);}
+.landing .info h2{font-size:clamp(26px,3vw,36px); font-weight:500; letter-spacing:-0.02em; margin:0 0 10px; text-align:center;}
+.landing .info-sub{color:var(--muted); font-size:16px; margin:0 auto 48px; text-align:center; max-width:56ch;}
+.landing .info-grid{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px;}
+@media (max-width:900px){.landing .info-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media (max-width:600px){.landing .info-grid{grid-template-columns:1fr;}}
+.landing .info-card{padding:24px; background:#fff; border:1px solid var(--border); border-radius:14px;}
+.landing .info-alterna .info-card{background:var(--bg);}
+.landing .info-card h3{font-size:16px; font-weight:600; margin:14px 0 6px;}
+.landing .info-card p{font-size:14px; line-height:1.6; color:var(--muted); margin:0;}
+.landing .info-icono{display:inline-grid; place-items:center; width:40px; height:40px; border-radius:10px; color:#333c87; background:rgba(51,60,135,.08);}
+
+/* Cómo funciona: 4 pasos numerados */
+.landing .info-pasos{list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:24px;}
+@media (max-width:900px){.landing .info-pasos{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media (max-width:600px){.landing .info-pasos{grid-template-columns:1fr;}}
+.landing .info-pasos h3{font-size:16px; font-weight:600; margin:14px 0 6px;}
+.landing .info-pasos p{font-size:14px; line-height:1.6; color:var(--muted); margin:0;}
+.landing .info-numero{display:inline-grid; place-items:center; width:32px; height:32px; border-radius:50%; font-size:14px; font-weight:600; color:#fff; background:#333c87;}
+
+/* Preguntas frecuentes: se abren y cierran solas (etiqueta <details>, sin JavaScript) */
+.landing .info-angosto{max-width:760px;}
+.landing .info-faq{display:flex; flex-direction:column; gap:10px; margin-top:32px;}
+.landing .info-faq details{padding:0 20px; background:var(--bg); border:1px solid var(--border); border-radius:12px; scroll-margin-top:120px;}
+.landing .info-faq summary{display:flex; justify-content:space-between; align-items:center; gap:12px; padding:18px 0; font-size:15px; font-weight:600; cursor:pointer; list-style:none;}
+.landing .info-faq summary::-webkit-details-marker{display:none;}
+.landing .info-faq summary::after{content:"+"; font-size:20px; font-weight:400; color:var(--muted);}
+.landing .info-faq details[open] summary::after{content:"–";}
+.landing .info-faq details p{margin:0 0 18px; font-size:14px; line-height:1.7; color:var(--muted);}
+.landing .info-faq details[open]{border-color:#333c87;}
+
+.landing .info-pie{padding:28px 24px; text-align:center; font-size:13px; color:var(--muted);}

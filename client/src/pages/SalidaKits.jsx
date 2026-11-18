@@ -42,11 +42,34 @@ export default function SalidaKits() {
     cargarEventos();
   }, []);
 
+  const eventoYaTermino = (ev, ahora = new Date()) => {
+    if (!ev?.fecha || !ev?.hora_termino) return false;
+    const fechaBase = new Date(ev.fecha);
+    const horaTermino = new Date(ev.hora_termino);
+
+    const esMedianoche =
+      horaTermino.getUTCHours() === 0 &&
+      horaTermino.getUTCMinutes() === 0 &&
+      horaTermino.getUTCSeconds() === 0;
+
+    const finEvento = new Date(
+      fechaBase.getUTCFullYear(),
+      fechaBase.getUTCMonth(),
+      fechaBase.getUTCDate() + (esMedianoche ? 1 : 0),
+      horaTermino.getUTCHours(),
+      horaTermino.getUTCMinutes(),
+      horaTermino.getUTCSeconds()
+    );
+
+    return ahora >= finEvento;
+  };
+
   const cargarEventos = async () => {
     try {
       setCargando(true);
       const res = await obtenerEventos();
       const todosLosEventos = res.data || res || [];
+      const ahora = new Date();
 
       const eventosConKits = await Promise.all(
         todosLosEventos.map(async (ev) => {
@@ -54,10 +77,11 @@ export default function SalidaKits() {
             const detalle = await obtenerKitsPorEvento(ev.id_evento);
             const dataDetalle = detalle.data || detalle;
             const reservasEv = dataDetalle.reservas || [];
+            const termino = eventoYaTermino(ev, ahora);
 
             const estaActivo = reservasEv.some((r) => {
               const estaEnTerreno = r.kit?.estado === 'EN_TERRENO';
-              const pendienteSalida = !r.salida && r.kit?.estado === 'DISPONIBLE';
+              const pendienteSalida = !r.salida && r.kit?.estado === 'DISPONIBLE' && !termino;
               return estaEnTerreno || pendienteSalida;
             });
 
@@ -260,7 +284,7 @@ export default function SalidaKits() {
                     <option value="">-- Selecciona un evento para despacho --</option>
                     {eventosFiltrados.map((ev) => (
                       <option key={ev.id_evento} value={ev.id_evento}>
-                        {`Evento #${ev.id_evento} - ${ev.tipo || 'Transmisión'} (${new Date(ev.fecha).toLocaleDateString()})`}
+                        {`Evento #${ev.id_evento} - ${ev.tipo || 'Transmisión'} (${new Date(ev.fecha).toLocaleDateString('es-CL', { timeZone: 'UTC' })})`}
                       </option>
                     ))}
                   </select>
@@ -343,7 +367,7 @@ export default function SalidaKits() {
                                     </option>
                                     {personal.map((asig) => (
                                       <option key={asig.id_asignacion} value={asig.id_asignacion}>
-                                        {asig.trabajador?.nombre} ({asig.rol?.nombre_rol || 'Personal'})
+                                        {asig.trabajador?.nombre} ({asig.rol?.nombre_rol || asig.rol?.nombre || 'Personal'})
                                       </option>
                                     ))}
                                   </select>
@@ -389,7 +413,7 @@ export default function SalidaKits() {
                             <strong>Evento #{ev.id_evento}</strong> — {ev.tipo || 'Transmisión'}
                           </span>
                           <span className="sal-historial-fecha">
-                            {new Date(ev.fecha).toLocaleDateString()}
+                            {new Date(ev.fecha).toLocaleDateString('es-CL', { timeZone: 'UTC' })}
                           </span>
                         </div>
                       ))}

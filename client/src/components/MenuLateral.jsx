@@ -1,7 +1,8 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutGrid, Calendar, Package, Wrench, AlertTriangle, User, Star, DollarSign, LogOut } from 'lucide-react';
+import { LayoutGrid, Calendar, Package, Wrench, TrendingDown, AlertTriangle, User, Star, DollarSign, LogOut } from 'lucide-react';
 import { obtenerUsuario } from '../services/http.js';
 import '../styles/MenuLateral.css';
+import { logout } from '../services/auth.service.js';
 
 // Roles que guarda el login
 const DUENO = 'DUENO';
@@ -19,6 +20,7 @@ const OPCIONES = [
   { ruta: '/trabajadores', texto: 'Personal', icono: User, roles: [DUENO] },
   { ruta: '/auspiciadores', texto: 'Auspiciadores', icono: Star, roles: [DUENO, CONTADOR] },
   { ruta: '/finanzas', texto: 'Finanzas', icono: DollarSign, roles: [DUENO, CONTADOR] },
+  { ruta: '/perdidas-inventario', texto: 'Pérdidas', icono: TrendingDown, roles: [JEFE] },
 ];
 
 /**
@@ -32,7 +34,8 @@ export default function MenuLateral({ abierto = false, onNavegar }) {
   const rol = String(obtenerUsuario()?.rol ?? '').toUpperCase();
   const visibles = OPCIONES.filter((o) => !o.roles || o.roles.includes(rol));
 
-  function cerrarSesion() {
+  async function cerrarSesion() {
+    await logout();
     localStorage.removeItem('token');
     localStorage.removeItem('usuario');
     navigate('/', { replace: true });
