@@ -475,12 +475,20 @@ export default function Equipos() {
         ...equiposAdicionalesEditar
       ].filter(Boolean);
 
-      const payload = {
-        nombre: nombreLimpio,
-        nivel: nivelEditKit,
-        recargo_pct: recargoNum,
-        equipos: equiposArray
-      };
+      // RF-P5-05: Si el kit está EN_TERRENO, solo enviamos nombre/nivel/recargo sin tocar sus equipos
+      const payload =
+        kitEditando.estado === 'EN_TERRENO'
+          ? {
+              nombre: nombreLimpio,
+              nivel: nivelEditKit,
+              recargo_pct: recargoNum
+            }
+          : {
+              nombre: nombreLimpio,
+              nivel: nivelEditKit,
+              recargo_pct: recargoNum,
+              equipos: equiposArray
+            };
 
       await kitClientService.actualizarKit(kitEditando.id_kit, payload);
       setKitEditando(null);
@@ -505,7 +513,7 @@ export default function Equipos() {
     }
   };
 
-  // Equipos libres y operativos para CREAR un kit
+  // RF-P5-07: Equipos libres y operativos (Repuestos reales)
   const equiposDisponiblesParaKit = listaEquipos.filter(
     (eq) => eq.estado?.toUpperCase() === 'OPERATIVO' && !eq.id_kit && !eq.kit
   );
@@ -708,6 +716,7 @@ export default function Equipos() {
                     {equiposFiltrados.map((eq) => {
                       const fecha = formatearFechaTabla(eq.fecha_compra);
                       const esBaja = eq.estado === 'DADO_DE_BAJA';
+                      const esRepuesto = eq.estado === 'OPERATIVO' && !eq.kit && !eq.id_kit;
                       return (
                         <tr
                           key={eq.codigo}
@@ -729,7 +738,9 @@ export default function Equipos() {
                               eq.kit ? 'eqp-td-kit-asignado' : 'eqp-td-kit-libre'
                             }
                           >
-                            {eq.kit?.nombre || eq.kit || 'Repuesto (Sin kit)'}
+                            {eq.kit?.nombre ||
+                              eq.kit ||
+                              (esRepuesto ? 'Repuesto (Sin kit)' : 'Sin kit (No operativo)')}
                           </td>
                           <td className="eqp-td-centro">
                             <div className="eqp-acciones-fila">
@@ -1316,7 +1327,7 @@ export default function Equipos() {
 
             {kitEditando.estado === 'EN_TERRENO' && (
               <div className="eqp-alerta-terreno">
-                Este kit está en terreno, por lo que no se permite cambiar su composición de equipos.
+                Este kit está en terreno: solo puedes modificar su nombre, nivel o recargo (la composición de equipos se mantiene bloqueada).
               </div>
             )}
 
@@ -1533,7 +1544,7 @@ export default function Equipos() {
                 </button>
                 <button
                   type="submit"
-                  disabled={loadingEditKit || kitEditando.estado === 'EN_TERRENO'}
+                  disabled={loadingEditKit}
                   className="eqp-btn-guardar"
                 >
                   {loadingEditKit ? 'Guardando...' : 'Guardar Cambios'}
