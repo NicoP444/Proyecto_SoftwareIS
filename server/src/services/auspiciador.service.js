@@ -49,3 +49,14 @@ export const auspiciadorService = {
     });
   }
 };
+
+// CLASIFICAR AUSPICIADOR ("CONFIABLE" o "NO_CONFIABLE", según el enum Clasificacion)
+export const clasificarAuspiciador = async (id, clasificacion, motivo) => {
+  return await prisma.auspiciador.update({
+    where: { id_auspiciador: Number(id) },
+    data: {
+      clasificacion,
+      motivo_clasificacion: motivo,
+    },
+  });
+};

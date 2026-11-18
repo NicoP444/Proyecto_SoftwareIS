@@ -2,15 +2,13 @@ import prisma from '../config/prisma.js';
 import { ValidationError, NotFoundError } from '../utils/errores.js';
 import { hoyTexto } from './validacionesEvento.service.js';
 
-// TODO: reemplazar por el id del dueño autenticado (JWT), igual que en los otros servicios
-const ID_DUENO_DEMO = 1;
-
 const TIPOS_PAGO = ['ADELANTO', 'SALDO', 'PAGO_TOTAL'];
 const NOMBRE_TIPO = { SALDO: 'saldo', PAGO_TOTAL: 'pago total' };
 
-async function obtenerEvento(id_evento, db = prisma) {
+// Dueño: solo sus eventos. Contador: no tiene id_dueno en el token, ve los eventos de la empresa
+async function obtenerEvento(id_evento, db = prisma, idDueno) {
   const evento = await db.evento.findFirst({
-    where: { id_evento, id_dueno: ID_DUENO_DEMO },
+    where: { id_evento, ...(idDueno ? { id_dueno: idDueno } : {}) },
   });
   if (!evento) throw new NotFoundError('El evento no existe');
   return evento;
@@ -25,8 +23,8 @@ const resumen = (evento, totalPagado) => ({
 });
 
 // ---------- Pagos del evento y saldo pendiente ----------
-export async function listarPagos(id_evento) {
-  const evento = await obtenerEvento(id_evento);
+export async function listarPagos(id_evento, idDueno) {
+  const evento = await obtenerEvento(id_evento, prisma, idDueno);
 
   const pagos = await prisma.pagoCliente.findMany({
     where: { id_evento },
@@ -65,6 +63,9 @@ export async function registrarPago(
   }
   if (!Number.isInteger(montoNum) || montoNum <= 0) {
     throw new ValidationError('El monto debe ser un número entero mayor a cero', 'monto');
+  }
+  if (montoNum > 2000000000) {
+    throw new ValidationError('El monto no puede superar $2.000.000.000', 'monto');
   }
   const fechaValida =
     /^\d{4}-\d{2}-\d{2}$/.test(fechaTexto) &&

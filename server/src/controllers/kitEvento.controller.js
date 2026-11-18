@@ -9,7 +9,7 @@ import {
 // GET /api/eventos/:id/kits
 export const getKitsEvento = async (req, res) => {
   try {
-    return res.json(await listarKitsEvento(Number(req.params.id)));
+    return res.json(await listarKitsEvento(Number(req.params.id), req.user.id_dueno));
   } catch (error) {
     return manejarError(res, error);
   }
@@ -18,7 +18,7 @@ export const getKitsEvento = async (req, res) => {
 // RF-P1-05: GET /api/eventos/:id/kits-disponibles?id_dueno=1
 export const getKitsDisponibles = async (req, res) => {
   try {
-    return res.json(await listarKitsDisponibles(Number(req.params.id)));
+    return res.json(await listarKitsDisponibles(Number(req.params.id), req.user.id_dueno));
   } catch (error) {
     return manejarError(res, error);
   }
@@ -29,7 +29,7 @@ export const postKitEvento = async (req, res) => {
   try {
     const resultado = await reservarKit(Number(req.params.id), {
       id_kit: req.body.id_kit,
-      id_dueno: Number(req.body.id_dueno),
+      id_dueno: req.user.id_dueno,
     });
     return res.status(201).json({ mensaje: 'Kit asignado correctamente', ...resultado });
   } catch (error) {
@@ -40,7 +40,7 @@ export const postKitEvento = async (req, res) => {
 // DELETE /api/eventos/:id/kits/:id_reserva
 export const deleteKitEvento = async (req, res) => {
   try {
-    await quitarKit(Number(req.params.id), Number(req.params.id_reserva));
+    await quitarKit(Number(req.params.id), Number(req.params.id_reserva), req.user.id_dueno);
     return res.json({ mensaje: 'Kit quitado del evento' });
   } catch (error) {
     return manejarError(res, error);

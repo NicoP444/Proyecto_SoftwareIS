@@ -3,12 +3,12 @@ import { calcularViabilidad, guardarGastosEstimados } from '../services/viabilid
 
 export const ver = async (req, res) => {
   try {
-    res.json(await calcularViabilidad(Number(req.params.id)));
+    res.json(await calcularViabilidad(Number(req.params.id), req.user.id_dueno));
   } catch (error) { manejarError(res, error); }
 };
 
 export const guardarGastos = async (req, res) => {
   try {
-    res.json(await guardarGastosEstimados(Number(req.params.id), req.body));
+    res.json(await guardarGastosEstimados(Number(req.params.id), req.body, req.user.id_dueno));
   } catch (error) { manejarError(res, error); }
 };
