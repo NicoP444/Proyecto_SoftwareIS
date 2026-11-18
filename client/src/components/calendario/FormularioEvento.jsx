@@ -8,6 +8,13 @@ const minutos = (hora) => {
   return h * 60 + m;
 };
 
+
+// Hoy como "AAAA-MM-DD" (sin toISOString, para que no se corra el día por zona horaria)
+const hoyLocal = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
 /**
  * Formulario para agendar un evento (RF-P1-04) o modificarlo (RF-P1-07).
  * Repite aquí las reglas del back para avisar antes de enviar.
@@ -49,6 +56,7 @@ export default function FormularioEvento({ evento = null, fechaInicial = "", dir
     if (!cliente) return setError("Selecciona un cliente");
     if (!datos.direccion.trim()) return setError("Indica la dirección del evento");
     if (!datos.fecha) return setError("Indica la fecha");
+    if (!editando && datos.fecha < hoyLocal()) return setError("La fecha del evento no puede ser anterior a hoy");
     if (!datos.hora_inicio || !datos.hora_termino) return setError("Indica la hora de inicio y de término");
     if (!horasValidas) return setError("La hora de término debe ser posterior a la de inicio (los eventos terminan el mismo día)");
     if (!Number.isInteger(Number(datos.precio_acordado)) || Number(datos.precio_acordado) <= 0)
@@ -110,7 +118,7 @@ export default function FormularioEvento({ evento = null, fechaInicial = "", dir
       </div>
       <div className="campo">
         <label htmlFor="ev-fecha">Fecha</label>
-        <input id="ev-fecha" type="date" value={datos.fecha} onChange={cambiar("fecha")} />
+        <input id="ev-fecha" type="date" min={editando ? undefined : hoyLocal()} value={datos.fecha} onChange={cambiar("fecha")} />
       </div>
 
       <div className="fila-doble">
