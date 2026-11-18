@@ -7,7 +7,7 @@ import 'dotenv/config';
 import prisma from '../src/config/prisma.js';
 
 // ---- Lo que crea cada seeder ----
-const MARCA = '[SEED'; // seed-eventos marca sus eventos con [SEED-EV] (los seeders viejos usaban [SEED] y [SEED-KIT])
+const MARCA = '[SEED'; // seed-eventos marca sus eventos con [SEED-EV], seed-casos con [SEED-CASO] (los seeders viejos usaban [SEED] y [SEED-KIT])
 
 // Nombres de eventos de versiones anteriores de los seeders (quedan en bases viejas)
 const TIPOS_EVENTO = [
@@ -19,21 +19,33 @@ const TIPOS_EVENTO = [
 const RUT_CLIENTES = [
   '111111111', '123456785', '152345674', '178901230', '187654327', // seed-clientes.js
   '112223339', '201112222', '154321985',                           // clientes de versiones anteriores
+  '765432103', '654321094', '778899000', '812345672', '651112222', // seed-casos.js
 ];
 
-const NOMBRES_KITS = ['Kit Móvil 01 - Cancha Principal', 'Kit Multicámara 02 - Gimnasio', 'Kit Compacto 03 - Entrevistas'];
+const NOMBRES_KITS = [
+  'Kit Móvil 01 - Cancha Principal', 'Kit Multicámara 02 - Gimnasio', 'Kit Compacto 03 - Entrevistas',
+  'Kit Casos 01 - Estudio Móvil', 'Kit Casos 02 - Terreno', 'Kit Casos 03 - Incompleto', // seed-casos.js
+];
 const CODIGOS_EQUIPOS = [
   'CAM-001', 'TRI-001', 'MIC-001', 'SWI-001',
   'CAM-002', 'TRI-002', 'MIC-002', 'SWI-002',
   'CAM-003', 'TRI-003', 'MIC-003', 'SWI-003',
+  // seed-casos.js
+  'CS-CAM-01', 'CS-TRI-01', 'CS-MIC-01', 'CS-SWI-01',
+  'CS-CAM-02', 'CS-TRI-02', 'CS-MIC-02', 'CS-SWI-02',
+  'CS-CAM-03', 'CS-TRI-03', 'CS-MIC-03', 'CS-SWI-03', 'CS-REP-CAM',
 ];
 
 const NOMBRES_AUSPICIADORES = [
   'Coca-Cola', 'Pepsi', 'Gatorade', 'Powerade', 'Red Bull', 'Monster Energy',
   'Adidas', 'Nike', 'Netflix', 'Spotify', 'Entel', 'BancoEstado',
   'Panadería La Espiga', 'Ferretería El Tornillo', 'Gimnasio Fuerza Sur',
-  'Energética Rayo Azul', 'Cripto Fácil Chile', 'Zapatillas Veloz', 'Súper Jugos Tío Pepe', 'Apuestas Gol Seguro',
-]; // seed-auspiciadores.js
+  'Energética Rayo Azul', 'Cripto Fácil Chile', 'Zapatillas Veloz', 'Súper Jugos Tío Pepe', 'Apuestas Gol Seguro', // seed-auspiciadores.js
+  'Café Puerto Sur', 'Radio Bío Sonora', 'Inversiones Rápidas Ltda.', // seed-casos.js
+];
+
+// Gastos fijos que crea seed-casos.js (solo se borran si su mes sigue abierto)
+const GASTOS_FIJOS = ['Arriendo de bodega de equipos', 'Internet y plataforma de streaming'];
 
 // Si algo no se puede borrar porque hay datos reales que dependen de él (error de llave foránea), se salta y se avisa
 async function intentar(descripcion, fn) {
@@ -137,6 +149,13 @@ async function limpiarKitsYEquipos() {
   return { kits: idsKit.length };
 }
 
+async function limpiarGastosFijos() {
+  const { count } = await prisma.gastoFijo.deleteMany({
+    where: { descripcion: { in: GASTOS_FIJOS }, mes: { estado: 'ABIERTO' } },
+  });
+  return count;
+}
+
 // Borra TODOS los trabajadores y roles, sin importar el nombre
 async function limpiarPersonal() {
   const trabajadores = await prisma.trabajador.findMany({ select: { id_trabajador: true } });
@@ -166,10 +185,11 @@ export async function limpiarTodo() {
   const clientes = await limpiarClientes();
   const { kits } = await limpiarKitsYEquipos();
   const { trabajadores, roles } = await limpiarPersonal();
+  const gastosFijos = await limpiarGastosFijos();
 
   console.log('Limpieza lista (los usuarios no se tocan):');
   console.log(`  eventos: ${eventos} | auspiciadores: ${auspiciadores} | clientes: ${clientes} | kits: ${kits} | equipos: hasta ${CODIGOS_EQUIPOS.length}`);
-  console.log(`  trabajadores: ${trabajadores} | roles: ${roles}`);
+  console.log(`  trabajadores: ${trabajadores} | roles: ${roles} | gastos fijos: ${gastosFijos}`);
 }
 
 limpiarTodo()

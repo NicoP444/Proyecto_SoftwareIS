@@ -12,8 +12,9 @@
     "seed:eventos": "node seeders/seed-eventos.js",
     "seed:auspiciadores": "node seeders/seed-auspiciadores.js",
     "seed:kits": "node seeders/seed-kits.js",
+    "seed:casos": "node seeders/seed-casos.js",
     "seed:limpiar": "node seeders/limpiar.js",
-    "seed:todo": "npm run seed:base && npm run seed:usuarios && npm run seed:clientes && npm run seed:eventos && npm run seed:auspiciadores && npm run seed:kits"
+    "seed:todo": "npm run seed:base && npm run seed:usuarios && npm run seed:clientes && npm run seed:eventos && npm run seed:auspiciadores && npm run seed:kits && npm run seed:casos"
   },
   "keywords": [],
   "author": "",
