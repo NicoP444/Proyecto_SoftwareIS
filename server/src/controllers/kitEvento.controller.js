@@ -40,7 +40,11 @@ export const postKitEvento = async (req, res) => {
 // DELETE /api/eventos/:id/kits/:id_reserva
 export const deleteKitEvento = async (req, res) => {
   try {
-    await quitarKit(Number(req.params.id), Number(req.params.id_reserva), req.user.id_dueno);
+    const id_reserva = Number(req.params.id_reserva);
+    if (!Number.isInteger(id_reserva) || id_reserva <= 0) {
+      return res.status(400).json({ mensaje: 'El id de la reserva no es válido', campo: 'id_reserva' });
+    }
+    await quitarKit(Number(req.params.id), id_reserva, req.user.id_dueno);
     return res.json({ mensaje: 'Kit quitado del evento' });
   } catch (error) {
     return manejarError(res, error);

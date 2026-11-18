@@ -4,10 +4,11 @@ import { limpiarRut, rutEsValido } from '../utils/rut.js';
 
 // Valida los datos del cliente y los deja listos para guardar
 function prepararDatos(datos) {
+  // String(...) evita un error 500 si por la API llega un número u otro tipo de dato
   const rut = limpiarRut(datos.rut);
-  const nombre = datos.nombre?.trim();
-  const telefono = datos.telefono?.trim();
-  const correo = datos.correo?.trim();
+  const nombre = String(datos.nombre ?? '').trim();
+  const telefono = String(datos.telefono ?? '').trim();
+  const correo = String(datos.correo ?? '').trim();
 
   if (!rut) throw new ValidationError('El RUT es obligatorio', 'rut');
   if (!rutEsValido(rut)) throw new ValidationError('El RUT no es válido', 'rut');
