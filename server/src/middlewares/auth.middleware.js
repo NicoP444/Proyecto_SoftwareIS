@@ -50,3 +50,15 @@ export const permitirRoles = (...roles) => (req, res, next) => {
   }
   next();
 };
+
+// Pone en el body el id del usuario que viene en el token (no el que manda el cliente).
+// Así validarDueno, validarContador y los schemas leen el id real de la sesión.
+// Va DESPUÉS de autenticar y, en gastos, DESPUÉS de subirEvidencia (multer reemplaza req.body).
+export const idDesdeSesion = (req, res, next) => {
+  req.body = req.body ?? {};
+  delete req.body.id_dueno;
+  delete req.body.id_contador;
+  if (req.user?.rol === 'DUENO') req.body.id_dueno = req.user.id_dueno;
+  if (req.user?.rol === 'CONTADOR') req.body.id_contador = req.user.id_contador;
+  next();
+};
