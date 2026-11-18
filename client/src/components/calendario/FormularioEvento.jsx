@@ -1,5 +1,6 @@
 import { useState } from "react";
 import SelectorCliente from "./SelectorCliente";
+import SelectorHora from "./SelectorHora";
 
 // "09:30" -> 570 (minutos desde medianoche)
 const minutos = (hora) => {
@@ -21,7 +22,6 @@ export default function FormularioEvento({ evento = null, fechaInicial = "", dir
     fecha: evento ? String(evento.fecha).slice(0, 10) : fechaInicial,
     hora_inicio: evento ? String(evento.hora_inicio).slice(11, 16) : "",
     hora_termino: evento ? String(evento.hora_termino).slice(11, 16) : "",
-    cantidad_camaras: evento?.cantidad_camaras ?? 1,
     precio_acordado: evento?.precio_acordado ?? "",
     observaciones: evento?.observaciones ?? "",
     motivo: "", // solo al modificar: por qué cambió (queda en el historial)
@@ -51,8 +51,6 @@ export default function FormularioEvento({ evento = null, fechaInicial = "", dir
     if (!datos.fecha) return setError("Indica la fecha");
     if (!datos.hora_inicio || !datos.hora_termino) return setError("Indica la hora de inicio y de término");
     if (!horasValidas) return setError("La hora de término debe ser posterior a la de inicio (los eventos terminan el mismo día)");
-    if (!Number.isInteger(Number(datos.cantidad_camaras)) || Number(datos.cantidad_camaras) < 1)
-      return setError("Debe indicar al menos 1 cámara");
     if (!Number.isInteger(Number(datos.precio_acordado)) || Number(datos.precio_acordado) <= 0)
       return setError("El precio debe ser mayor a cero");
 
@@ -63,7 +61,6 @@ export default function FormularioEvento({ evento = null, fechaInicial = "", dir
         tipo: datos.tipo.trim(),
         direccion: datos.direccion.trim(),
         id_cliente: cliente.id_cliente,
-        cantidad_camaras: Number(datos.cantidad_camaras),
         precio_acordado: Number(datos.precio_acordado),
       });
     } catch (err) {
@@ -111,29 +108,29 @@ export default function FormularioEvento({ evento = null, fechaInicial = "", dir
           ))}
         </datalist>
       </div>
-
-      <div className="fila-doble">
-        <div className="campo">
-          <label htmlFor="ev-fecha">Fecha</label>
-          <input id="ev-fecha" type="date" value={datos.fecha} onChange={cambiar("fecha")} />
-        </div>
-        <div className="campo">
-          <label htmlFor="ev-camaras">Cantidad de cámaras</label>
-          <input id="ev-camaras" type="number" min="1" max="99" value={datos.cantidad_camaras} onChange={cambiar("cantidad_camaras")} />
-        </div>
+      <div className="campo">
+        <label htmlFor="ev-fecha">Fecha</label>
+        <input id="ev-fecha" type="date" value={datos.fecha} onChange={cambiar("fecha")} />
       </div>
 
       <div className="fila-doble">
         <div className="campo">
-          <label htmlFor="ev-inicio">Hora de inicio</label>
-          <input id="ev-inicio" type="time" value={datos.hora_inicio} onChange={cambiar("hora_inicio")} />
+          <label htmlFor="ev-inicio">Hora de inicio (24 h)</label>
+          <SelectorHora
+            id="ev-inicio"
+            valor={datos.hora_inicio}
+            onCambiar={(v) => setDatos({ ...datos, hora_inicio: v })}
+          />
         </div>
         <div className="campo">
-          <label htmlFor="ev-termino">Hora de término</label>
-          <input id="ev-termino" type="time" value={datos.hora_termino} onChange={cambiar("hora_termino")} />
+          <label htmlFor="ev-termino">Hora de término (24 h)</label>
+          <SelectorHora
+            id="ev-termino"
+            valor={datos.hora_termino}
+            onCambiar={(v) => setDatos({ ...datos, hora_termino: v })}
+          />
         </div>
       </div>
-
       <div className="campo">
         <label htmlFor="ev-precio">Precio acordado (CLP)</label>
         <input id="ev-precio" type="number" min="1" max="2000000000" value={datos.precio_acordado} onChange={cambiar("precio_acordado")} placeholder="Ej: 250000" />
