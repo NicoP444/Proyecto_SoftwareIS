@@ -348,7 +348,7 @@ export default function ResumenFinancieroMensual() {
           <div className="cm-validaciones-lista">
             {eventosAbiertos.length > 0 && (
               <div className="cm-bloqueo-caja">
-                <strong>Bloqueo de cierre:</strong> Hay {eventosAbiertos.length} evento(s) en este mes que aún no están cerrados (Realizado o Cerrado):
+                <strong>Bloqueo de cierre:</strong> Hay {eventosAbiertos.length} evento(s) en este mes que aún no están en estado Cerrado:
                 <ul className="cm-lista-items">
                   {eventosAbiertos.map((ev) => (
                     <li key={ev.id_evento}>
