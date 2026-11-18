@@ -33,6 +33,7 @@ import PagosEvento from "../components/calendario/PagosEvento";
 import DetalleFinancieroEvento from "../components/calendario/DetalleFinancieroEvento";
 import ConsultaPersonal from "../components/calendario/ConsultaPersonal";
 import MargenTraslado from "../components/calendario/MargenTraslado";
+import ResumenIncidentesEvento from "../components/incidentes/ResumenIncidentesEvento";
 import { obtenerUsuario } from "../services/http.js";
 import "../styles/Calendario.css";
 
@@ -608,11 +609,13 @@ export default function Calendario() {
                     </div>
                   </section>
                 )}
-
                 {e.incidentes && (
                   <section className="cal-bloque">
                     <span className="etiqueta">Incidentes</span>
-                    {e.incidentes.length === 0 ? (
+                    {/* RF-P6-06: Dueño y Contador ven equipo y valor; el Jefe técnico, la lista sin montos (RF-P1-12) */}
+                    {verFinanzas ? (
+                      <ResumenIncidentesEvento idEvento={e.id_evento} />
+                    ) : e.incidentes.length === 0 ? (
                       <p className="texto-tenue">Sin incidentes</p>
                     ) : (
                       e.incidentes.map((i) => (
