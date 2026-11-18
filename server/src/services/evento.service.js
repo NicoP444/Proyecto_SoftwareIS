@@ -3,15 +3,15 @@ import { recalcularRemuneraciones } from './remuneracion.service.js';
 import { validarFormatoAgenda, validarAgendaEvento, aFecha, aHora, hoyTexto } from './validacionesEvento.service.js';
 import { ValidationError, NotFoundError } from '../utils/errores.js';
 
-const ID_DUENO_DEMO = 1;
 const HORAS_LIMITE_ADELANTO = 5;
 
 // Campos que el Jefe de área técnica no puede ver (RF-P1-11 y RF-T-05)
 const CAMPOS_FINANCIEROS = ['precio_acordado', 'gastos_estimados'];
 
-export async function listarEventos(rol) {
+export async function listarEventos(usuario) {
   const eventos = await prisma.evento.findMany({
-    where: { id_dueno: ID_DUENO_DEMO },
+    // Dueño: solo sus eventos. Contador y Jefe no tienen id_dueno: ven los de la empresa
+    where: usuario.rol === 'DUENO' ? { id_dueno: usuario.id_dueno } : {},
     include: {
       cliente: true,
       asignaciones: {
@@ -35,7 +35,7 @@ export async function listarEventos(rol) {
   });
 
   // Dueño y Contador ven todo; el Jefe técnico recibe los eventos sin datos financieros
-  if (rol !== 'JEFE_TECNICO') return eventos;
+  if (usuario.rol !== 'JEFE_TECNICO') return eventos;
   return eventos.map((evento) => {
     const publico = { ...evento };
     CAMPOS_FINANCIEROS.forEach((campo) => delete publico[campo]);
@@ -43,7 +43,7 @@ export async function listarEventos(rol) {
   });
 }
 
-export async function crearEvento(datos) {
+export async function crearEvento(datos, idDueno) {
   const tipo = String(datos.tipo ?? "").trim();
   const direccion = String(datos.direccion ?? "").trim();
   const observaciones = String(datos.observaciones ?? "").trim() || null;
@@ -73,7 +73,7 @@ export async function crearEvento(datos) {
 
   // 2. El cliente debe existir y ser del dueño
   const cliente = await prisma.cliente.findFirst({
-    where: { id_cliente: idCliente, id_dueno: ID_DUENO_DEMO },
+    where: { id_cliente: idCliente, id_dueno: idDueno },
   });
   if (!cliente) throw new NotFoundError("El cliente no existe");
 
@@ -99,13 +99,13 @@ export async function crearEvento(datos) {
       observaciones,
       estado,
       id_cliente: idCliente,
-      id_dueno: ID_DUENO_DEMO,
+      id_dueno: idDueno,
     },
     include: { cliente: true },
   });
 }
 
-export async function eliminarEvento(id, motivo) {
+export async function eliminarEvento(id, motivo, idDueno) {
   const motivoLimpio = String(motivo ?? "").trim();
   if (!motivoLimpio) {
     throw new ValidationError("Debes indicar el motivo de la eliminación");
@@ -114,7 +114,7 @@ export async function eliminarEvento(id, motivo) {
     throw new ValidationError("El motivo no puede superar los 255 caracteres");
   }
 
-  const evento = await prisma.evento.findUnique({ where: { id_evento: id } });
+  const evento = await prisma.evento.findFirst({ where: { id_evento: id, id_dueno: idDueno } });
   if (!evento) {
     throw new NotFoundError("El evento no existe");
   }
@@ -166,14 +166,14 @@ export async function eliminarEvento(id, motivo) {
         dato: `evento #${id}: eliminado`,
         valor_anterior: `${evento.tipo} - ${evento.fecha.toISOString().slice(0, 10)}`,
         motivo: motivoLimpio,
-        id_dueno: ID_DUENO_DEMO,
+        id_dueno: idDueno,
       },
     });
     return tx.evento.delete({ where: { id_evento: id } });
   });
 }
 
-export const actualizarEvento = async (id, datos) => {
+export const actualizarEvento = async (id, datos, idDueno) => {
   const id_evento = Number(id);
   const tipo = String(datos.tipo ?? "").trim();
   const direccion = String(datos.direccion ?? "").trim();
@@ -206,7 +206,7 @@ export const actualizarEvento = async (id, datos) => {
 
   // 2. El evento debe existir y no estar cerrado
   const existente = await prisma.evento.findFirst({
-    where: { id_evento, id_dueno: ID_DUENO_DEMO },
+    where: { id_evento, id_dueno: idDueno },
   });
   if (!existente) {
     throw new NotFoundError("El evento no existe");
@@ -220,7 +220,7 @@ export const actualizarEvento = async (id, datos) => {
   }
 
   const cliente = await prisma.cliente.findFirst({
-    where: { id_cliente: idCliente, id_dueno: ID_DUENO_DEMO },
+    where: { id_cliente: idCliente, id_dueno: idDueno },
   });
   if (!cliente) throw new NotFoundError("El cliente no existe");
 
@@ -228,7 +228,7 @@ export const actualizarEvento = async (id, datos) => {
   const advertencias = await validarAgendaEvento(
     existente,
     { fecha: datos.fecha, hora_inicio: datos.hora_inicio, hora_termino: datos.hora_termino, direccion },
-    ID_DUENO_DEMO,
+    idDueno,
   );
 
   // 4. Estado: solo se recalcula si el evento no tiene pagos
@@ -286,14 +286,14 @@ export const actualizarEvento = async (id, datos) => {
           valor_anterior: texto(antes),
           valor_nuevo: texto(despues),
           motivo,
-          id_dueno: ID_DUENO_DEMO,
+          id_dueno: idDueno,
           id_evento,
         })),
       });
     }
 
     if (precio !== existente.precio_acordado) {
-      await recalcularRemuneraciones(id_evento, ID_DUENO_DEMO, tx);
+      await recalcularRemuneraciones(id_evento, idDueno, tx);
     }
 
     return evento;

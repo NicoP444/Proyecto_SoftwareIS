@@ -15,7 +15,7 @@ export const getPersonalDisponible = async (req, res) => {
     // todos=true: lista a todo el personal con su estado (ventana "Personal disponible")
     if (todos === 'true') {
       const personal = await listarPersonalConEstado({
-        id_dueno: Number(req.query.id_dueno),
+        id_dueno: req.user.id_dueno,
         fecha,
         hora_inicio,
         hora_termino,
@@ -24,7 +24,7 @@ export const getPersonalDisponible = async (req, res) => {
     }
 
     const disponibles = await listarPersonalDisponible({
-      id_dueno: Number(req.query.id_dueno),
+      id_dueno: req.user.id_dueno,
       fecha,
       hora_inicio,
       hora_termino,
@@ -40,7 +40,7 @@ export const getPersonalDisponible = async (req, res) => {
 // GET /api/eventos/:id/asignaciones
 export const getAsignaciones = async (req, res) => {
   try {
-    return res.json(await listarAsignaciones(Number(req.params.id)));
+    return res.json(await listarAsignaciones(Number(req.params.id), req.user.id_dueno));
   } catch (error) {
     return manejarError(res, error);
   }
@@ -52,7 +52,7 @@ export const postAsignacion = async (req, res) => {
     const resultado = await asignarTrabajador(Number(req.params.id), {
       id_trabajador: req.body.id_trabajador,
       id_rol: req.body.id_rol,
-      id_dueno: Number(req.body.id_dueno),
+      id_dueno: req.user.id_dueno,
     });
     return res.status(201).json({ mensaje: 'Trabajador asignado correctamente', ...resultado });
   } catch (error) {
@@ -67,7 +67,7 @@ export const deleteAsignacion = async (req, res) => {
     if (!Number.isInteger(id_asignacion) || id_asignacion <= 0) {
       return res.status(400).json({ mensaje: 'El id de la asignación no es válido', campo: 'id_asignacion' });
     }
-    await quitarAsignacion(Number(req.params.id), id_asignacion);
+    await quitarAsignacion(Number(req.params.id), id_asignacion, req.user.id_dueno);
     return res.json({ mensaje: 'Trabajador quitado del evento' });
   } catch (error) {
     return manejarError(res, error);
