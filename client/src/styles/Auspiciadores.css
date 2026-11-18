@@ -1,0 +1,847 @@
+/* Estilos exclusivos de Auspiciadores (RF-P4) */
+
+.ausp-pagina {
+  --ausp-azul: var(--primario, #0b1a8c);
+  --ausp-azul-hover: #08146e;
+  padding: 10px 0;
+  width: 100%;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* ---------- Cabecera principal ---------- */
+.ausp-encabezado {
+  margin-bottom: 20px;
+}
+
+.ausp-encabezado h1 {
+  margin: 0 0 4px 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.ausp-encabezado p {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+/* ---------- Contenedor principal y pestañas ---------- */
+.ausp-panel {
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.ausp-tabs-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 12px;
+}
+
+.ausp-tabs-grupo {
+  display: flex;
+  gap: 24px;
+}
+
+.ausp-tab {
+  padding: 8px 4px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+  transition: all 0.2s;
+}
+
+.ausp-tab.activa {
+  color: var(--ausp-azul);
+  border-bottom-color: var(--ausp-azul);
+}
+
+/* ---------- Alerta de acuerdos vencidos ---------- */
+.ausp-alerta-vencidos {
+  background-color: #ffffff;
+  border: 1px solid #ef4444;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.ausp-alerta-icono {
+  color: #ef4444;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.ausp-alerta-titulo {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #991b1b;
+}
+
+.ausp-alerta-texto {
+  margin: 0;
+  font-size: 13px;
+  color: #7f1d1d;
+}
+
+/* ---------- Cabeceras de sección ---------- */
+.ausp-seccion-cab {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.ausp-seccion-cab-reporte {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.ausp-seccion-titulo {
+  margin: 0;
+  font-size: 20px;
+  color: #1e293b;
+}
+
+.ausp-seccion-sub {
+  margin: 4px 0 0 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+/* ---------- Botones generales (Con el azul de Nuevo evento) ---------- */
+.ausp-btn-nuevo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--ausp-azul);
+  color: #ffffff;
+  padding: 9px 18px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: background-color 0.15s ease;
+}
+
+.ausp-btn-nuevo:hover {
+  background-color: var(--ausp-azul-hover);
+}
+
+.ausp-btn-gestionar {
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background-color 0.15s ease;
+}
+
+.ausp-btn-gestionar-activo {
+  background-color: var(--ausp-azul);
+  color: #ffffff;
+  border: none;
+}
+
+.ausp-btn-gestionar-activo:hover {
+  background-color: var(--ausp-azul-hover);
+}
+
+.ausp-btn-gestionar-cumplido {
+  background-color: #f8fafc;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.ausp-btn-gestionar-incobrable {
+  background-color: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+}
+
+/* ---------- Estados de carga y vacío ---------- */
+.ausp-cargando {
+  color: #64748b;
+  text-align: center;
+  padding: 20px 0;
+}
+
+.ausp-vacio {
+  text-align: center;
+  padding: 30px 15px;
+  color: #64748b;
+}
+
+.ausp-vacio p,
+.ausp-vacio-caja p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.ausp-vacio-caja {
+  text-align: center;
+  padding: 36px 15px;
+  color: #64748b;
+  background-color: #f8fafc;
+  border-radius: 8px;
+}
+
+/* ---------- Tablas ---------- */
+.ausp-tabla-scroll {
+  overflow-x: auto;
+}
+
+.ausp-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 14px;
+}
+
+.ausp-tabla thead tr {
+  border-bottom: 2px solid #e2e8f0;
+  color: #64748b;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ausp-tabla th {
+  padding: 12px 14px;
+}
+
+.ausp-tabla td {
+  padding: 14px;
+}
+
+.ausp-tr {
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.ausp-tr-vencido {
+  background-color: #fffdfd;
+}
+
+.ausp-th-centro,
+.ausp-td-centro {
+  text-align: center;
+}
+
+.ausp-th-der,
+.ausp-td-der {
+  text-align: right;
+}
+
+.ausp-td-nombre {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.ausp-td-texto {
+  color: #334155;
+}
+
+.ausp-td-recibido {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.ausp-td-glosa {
+  color: #64748b;
+  max-width: 220px;
+}
+
+.ausp-td-plazo {
+  color: #334155;
+  white-space: nowrap;
+}
+
+.ausp-td-plazo-vencido {
+  color: #b91c1c;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ausp-td-acciones {
+  text-align: center;
+  position: relative;
+}
+
+.ausp-td-monto-bold {
+  text-align: right;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.ausp-td-monto-verde {
+  text-align: right;
+  color: #15803d;
+  font-weight: 600;
+}
+
+.ausp-td-monto-rojo {
+  text-align: right;
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.ausp-td-monto-gris {
+  text-align: right;
+  color: #64748b;
+}
+
+.ausp-td-monto-incobrable {
+  text-align: right;
+  color: #475569;
+  font-weight: 600;
+}
+
+.ausp-td-monto-tenue {
+  text-align: right;
+  color: #94a3b8;
+}
+
+.ausp-td-contador {
+  text-align: center;
+  color: #64748b;
+}
+
+/* ---------- Badges de estado ---------- */
+.ausp-badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.ausp-badge-cumplido { background-color: #dcfce7; color: #15803d; }
+.ausp-badge-parcial { background-color: #fef3c7; color: #b45309; }
+.ausp-badge-vencido { background-color: #fee2e2; color: #b91c1c; }
+.ausp-badge-incobrable { background-color: #f1f5f9; color: #64748b; }
+.ausp-badge-pendiente { background-color: #e2e8f0; color: #475569; }
+
+.ausp-badge-conf {
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.ausp-badge-conf-si { background-color: #dcfce7; color: #166534; }
+.ausp-badge-conf-no { background-color: #fee2e2; color: #991b1b; }
+
+/* ---------- Menú desplegable de acciones ---------- */
+.ausp-menu-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.ausp-menu-dropdown {
+  position: absolute;
+  right: 0;
+  top: 110%;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+  z-index: 50;
+  min-width: 190px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.ausp-menu-item {
+  padding: 10px 14px;
+  text-align: left;
+  background: none;
+  border: none;
+  font-size: 13px;
+  color: #1e293b;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.ausp-menu-item:hover {
+  background-color: #f8fafc;
+}
+
+.ausp-menu-item-suave {
+  color: #475569;
+}
+
+.ausp-menu-item-peligro {
+  color: #dc2626;
+  font-weight: 500;
+}
+
+.ausp-menu-item-peligro:hover {
+  background-color: #fef2f2;
+}
+
+.ausp-menu-item-eliminar {
+  color: #ef4444;
+  font-weight: 500;
+  border-bottom: none;
+}
+
+.ausp-menu-item-eliminar:hover {
+  background-color: #fef2f2;
+}
+
+/* ---------- Filtros y KPIs del Reporte ---------- */
+.ausp-filtros-reporte {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.ausp-filtro-label {
+  font-size: 12px;
+  color: #64748b;
+  display: block;
+  margin-bottom: 3px;
+  font-weight: 600;
+}
+
+.ausp-filtro-select {
+  padding: 7px 12px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  font-size: 13px;
+  background-color: #ffffff;
+  font-weight: 500;
+  color: #0f172a;
+}
+
+.ausp-kpis-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.ausp-kpi-card {
+  padding: 16px;
+  border-radius: 12px;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-top: 4px solid #333c87;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.ausp-kpi-verde {
+  background-color: #f0fdf4;
+  border-color: #bbf7d0;
+  border-top: 4px solid #16a34a;
+}
+
+.ausp-kpi-rojo {
+  background-color: #fef2f2;
+  border-color: #fecaca;
+  border-top: 4px solid #dc2626;
+}
+
+.ausp-kpi-gris {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+  border-top: 4px solid #64748b;
+}
+
+.ausp-kpi-label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.ausp-kpi-verde .ausp-kpi-label,
+.ausp-kpi-verde .ausp-kpi-sub { color: #166534; }
+
+.ausp-kpi-rojo .ausp-kpi-label,
+.ausp-kpi-rojo .ausp-kpi-sub { color: #991b1b; }
+
+.ausp-kpi-gris .ausp-kpi-label,
+.ausp-kpi-gris .ausp-kpi-sub { color: #475569; }
+
+.ausp-kpi-valor {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-top: 4px;
+}
+
+.ausp-kpi-verde .ausp-kpi-valor { color: #15803d; }
+.ausp-kpi-rojo .ausp-kpi-valor { color: #b91c1c; }
+.ausp-kpi-gris .ausp-kpi-valor { color: #334155; }
+
+.ausp-kpi-sub {
+  font-size: 11px;
+  color: #64748b;
+}
+
+/* ---------- Tarjetas de Auspiciadores ---------- */
+.ausp-tarjetas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.ausp-tarjeta {
+  border: 1px solid #e2e8f0;
+  border-top: 4px solid #333c87;
+  border-radius: 12px;
+  padding: 16px;
+  background-color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.ausp-tarjeta-cab {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.ausp-tarjeta-titulo {
+  margin: 0;
+  font-size: 16px;
+  color: #0f172a;
+}
+
+.ausp-btn-estado-conf {
+  border: none;
+  padding: 4px 10px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ausp-btn-confiable { background-color: #dcfce7; color: #166534; }
+.ausp-btn-no-confiable { background-color: #fee2e2; color: #991b1b; }
+
+.ausp-tarjeta-dato {
+  margin: 4px 0;
+  font-size: 13px;
+  color: #475569;
+}
+
+.ausp-tarjeta-motivo {
+  margin: 6px 0 0 0;
+  font-size: 12px;
+  color: #64748b;
+  font-style: italic;
+}
+
+.ausp-tarjeta-acciones {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.ausp-btn-modificar-card {
+  background-color: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #1e293b;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ausp-btn-modificar-card:hover {
+  background-color: #e2e8f0;
+}
+
+.ausp-btn-eliminar-card {
+  background-color: #fee2e2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ausp-btn-eliminar-card:hover {
+  background-color: #fecaca;
+}
+
+/* ---------- Modales ---------- */
+.ausp-modal-fondo {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+}
+
+.ausp-modal-caja {
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  width: 100%;
+  max-width: 460px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  max-height: 90vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.ausp-modal-caja-ancha { max-width: 640px; border-radius: 20px; }
+.ausp-modal-caja-media { max-width: 520px; }
+.ausp-modal-caja-chica { max-width: 420px; }
+
+.ausp-modal-exito {
+  background-color: #ffffff;
+  border-radius: 20px;
+  padding: 32px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.ausp-modal-exito-contenido {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.ausp-icono-exito {
+  font-size: 56px;
+  color: #166534;
+}
+
+.ausp-modal-exito-titulo {
+  margin: 0;
+  font-size: 20px;
+  color: #1e293b;
+}
+
+.ausp-modal-exito-texto {
+  margin: 0;
+  font-size: 15px;
+  color: #166534;
+  font-weight: 600;
+}
+
+.ausp-modal-titulo {
+  margin-top: 0;
+  margin-bottom: 6px;
+  font-size: 18px;
+  color: #0f172a;
+}
+
+.ausp-modal-titulo-espacio {
+  margin-top: 0;
+  margin-bottom: 16px;
+  font-size: 18px;
+  color: #0f172a;
+}
+
+.ausp-modal-titulo-rojo {
+  margin-top: 0;
+  margin-bottom: 8px;
+  font-size: 18px;
+  color: #b91c1c;
+}
+
+.ausp-modal-sub {
+  margin: 0 0 16px 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.ausp-modal-cab-cerrar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.ausp-btn-x {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+}
+
+.ausp-cita-motivo {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  font-size: 14px;
+  color: #334155;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+/* ---------- Formularios dentro de modales ---------- */
+.ausp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ausp-form-fila {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 600px) {
+  .ausp-form-fila {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ausp-campo-grupo {
+  margin-bottom: 14px;
+}
+
+.ausp-campo-grupo-lg {
+  margin-bottom: 20px;
+}
+
+.ausp-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #334155;
+}
+
+.ausp-input,
+.ausp-select,
+.ausp-textarea {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  font-size: 14px;
+  box-sizing: border-box;
+  background-color: #ffffff;
+  color: #0f172a;
+  font-family: inherit;
+}
+
+.ausp-textarea {
+  resize: vertical;
+}
+
+.ausp-ayuda-input {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 4px;
+  display: block;
+}
+
+.ausp-modal-pie {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.ausp-modal-pie-borde {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 14px;
+}
+
+.ausp-btn-cancelar {
+  padding: 8px 16px;
+  background-color: #e2e8f0;
+  color: #334155;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.ausp-btn-guardar {
+  padding: 8px 20px;
+  background-color: var(--ausp-azul);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.15s ease;
+}
+
+.ausp-btn-guardar:hover {
+  background-color: var(--ausp-azul-hover);
+}
+
+.ausp-btn-guardar-peligro {
+  padding: 8px 20px;
+  background-color: #dc2626;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.ausp-btn-guardar-exito {
+  padding: 8px 20px;
+  background-color: #166534;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+}
