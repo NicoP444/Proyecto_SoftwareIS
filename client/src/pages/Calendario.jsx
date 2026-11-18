@@ -658,6 +658,7 @@ export default function Calendario() {
                   {puedeCrear && (
                     <section className="cal-bloque">
                       <ConvocatoriaEvento
+                        key={`${e.id_evento}-${e.fecha}-${e.hora_inicio}-${e.hora_termino}-${e.direccion}`}
                         evento={{
                           id_evento: e.id_evento,
                           tipo: e.tipo,

@@ -48,10 +48,10 @@ function armarTexto(evento, asignaciones) {
   );
 
   return [
-    ` Convocatoria: ${evento.tipo}`,
-    ` ${fechaLarga(evento.fecha)}`,
-    ` ${evento.hora_inicio} – ${evento.hora_termino}`,
-    ` ${evento.direccion}`,
+    `*Convocatoria: ${evento.tipo}*`, // entre asteriscos se ve en negrita en WhatsApp
+    `Fecha: ${fechaLarga(evento.fecha)}`,
+    `Horario: ${evento.hora_inicio} – ${evento.hora_termino}`,
+    `Dirección: ${evento.direccion}`,
     "",
     "Equipo convocado:",
     ...lineasEquipo,
