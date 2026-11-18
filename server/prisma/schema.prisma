@@ -250,7 +250,6 @@ model Evento {
   hora_termino       DateTime     @db.Time(6)
   direccion          String       @db.VarChar(120)
   precio_acordado    Int
-  cantidad_camaras   Int          @default(1) @db.SmallInt
   cantidad_repuestos Int          @default(0) @db.SmallInt
   gastos_estimados   Int          @default(0)
   observaciones      String?      @db.VarChar(255)

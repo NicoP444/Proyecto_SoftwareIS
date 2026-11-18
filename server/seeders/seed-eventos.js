@@ -64,7 +64,6 @@ async function main() {
         hora_inicio: inicio,
         hora_termino: termino,
         direccion: e.dir,
-        cantidad_camaras: e.cam,
         precio_acordado: e.precio,
         observaciones: `${MARCA} dato de prueba`,
         estado: horas >= 5 ? 'PENDIENTE_ADELANTO' : 'CONFIRMADO', // misma regla del sistema
