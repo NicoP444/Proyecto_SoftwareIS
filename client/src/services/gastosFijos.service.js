@@ -19,3 +19,24 @@ export async function registrarGastoFijo(formData) {
   }
   return data;
 }
+
+export async function actualizarGastoFijo(idGastoFijo, formData) {
+  const token = localStorage.getItem('token');
+  const res = await fetch(`${API_URL}/gastos-fijos/${idGastoFijo}`, {
+    method: 'PUT',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.mensaje || data.error || 'Error al actualizar gasto fijo');
+  }
+  return data;
+}
+
+export function eliminarGastoFijo(idGastoFijo) {
+  return pedir(`/gastos-fijos/${idGastoFijo}`, {
+    method: 'DELETE',
+  });
+}

@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import {
   registrarIncidente,
   obtenerIncidentes,
-  obtenerEquipos,
   obtenerEventos,
 } from '../services/incidente.service.js';
+import { consultarInventario } from '../services/consultarInventario.service.js';
 import { obtenerKitsPorEvento } from '../services/salidaKit.service.js';
 import '../styles/Incidentes.css';
 
@@ -19,6 +19,10 @@ export default function Incidentes() {
   // Estados para buscar y filtrar Eventos
   const [busquedaEvento, setBusquedaEvento] = useState('');
   const [mostrarListaEventos, setMostrarListaEventos] = useState(false);
+
+  // Estados para buscar y filtrar Equipos en tiempo real
+  const [busquedaEquipo, setBusquedaEquipo] = useState('');
+  const [mostrarListaEquipos, setMostrarListaEquipos] = useState(false);
 
   const [formData, setFormData] = useState({
     codigo: '',
@@ -45,19 +49,28 @@ export default function Incidentes() {
       setIncidentes(Array.isArray(listaInc) ? listaInc : []);
 
       try {
-        const resEquipos = await obtenerEquipos();
-        const listaEq = resEquipos?.data || resEquipos || [];
-        setEquipos(Array.isArray(listaEq) ? listaEq : []);
+        const resInv = await consultarInventario();
+        const payloadInv = resInv?.data || resInv || {};
+        const todos = payloadInv.todosLosEquipos || [];
+        // Filtrar equipos activos (excluir los ya perdidos, robados o dados de baja)
+        const activos = todos.filter(
+          (eq) => !['PERDIDO', 'ROBADO', 'DADO_DE_BAJA'].includes(eq.estado)
+        );
+        setEquipos(activos);
       } catch (e) {
-        console.warn('Endpoint /equipos pendiente');
+        console.warn('No se pudo cargar inventario de equipos:', e.message);
       }
 
       try {
         const resEventos = await obtenerEventos();
         const listaEv = resEventos?.data || resEventos || [];
-        setEventos(Array.isArray(listaEv) ? listaEv : []);
+        // Solo eventos CONFIRMADOS o REALIZADOS
+        const eventosValidos = (Array.isArray(listaEv) ? listaEv : []).filter((ev) =>
+          ['CONFIRMADO', 'REALIZADO'].includes(ev.estado)
+        );
+        setEventos(eventosValidos);
       } catch (e) {
-        console.warn('Endpoint /eventos pendiente');
+        console.warn('No se pudo cargar lista de eventos:', e.message);
       }
     } catch (err) {
       console.error(err);
@@ -68,6 +81,8 @@ export default function Incidentes() {
     setFormData((prev) => ({ ...prev, id_evento: idEvento, codigo: '', id_trabajador: '' }));
     setBusquedaEvento(etiquetaEvento);
     setMostrarListaEventos(false);
+    setBusquedaEquipo('');
+    setMostrarListaEquipos(false);
     setEquipoSeleccionado(null);
     setNombreResponsable('');
 
@@ -86,11 +101,13 @@ export default function Incidentes() {
         const respTrabajador = r.salida?.responsable?.trabajador || null;
         const nombreKit = r.kit?.nombre || 'Kit';
         (r.kit?.equipos || []).forEach((eq) => {
-          listaFiltrada.push({
-            ...eq,
-            nombreKit,
-            trabajadorResponsable: respTrabajador,
-          });
+          if (!['PERDIDO', 'ROBADO', 'DADO_DE_BAJA'].includes(eq.estado)) {
+            listaFiltrada.push({
+              ...eq,
+              nombreKit,
+              trabajadorResponsable: respTrabajador,
+            });
+          }
         });
       });
 
@@ -101,22 +118,32 @@ export default function Incidentes() {
     }
   };
 
-  const handleEquipoChange = (codigo) => {
-    const listaActual = formData.id_evento ? equiposDelEvento : equipos;
-    const eq = listaActual.find((e) => e.codigo === codigo);
-    setEquipoSeleccionado(eq || null);
+  const handleSeleccionarEquipo = (eq) => {
+    if (!eq) {
+      setFormData((prev) => ({ ...prev, codigo: '', id_trabajador: '' }));
+      setBusquedaEquipo('');
+      setEquipoSeleccionado(null);
+      setNombreResponsable('');
+      setMostrarListaEquipos(false);
+      return;
+    }
 
-    if (formData.id_evento && eq?.trabajadorResponsable) {
+    const etiqueta = `${eq.codigo} - ${eq.nombre}${eq.nombreKit ? ` (${eq.nombreKit})` : ''}`;
+    setBusquedaEquipo(etiqueta);
+    setMostrarListaEquipos(false);
+    setEquipoSeleccionado(eq);
+
+    if (formData.id_evento && eq.trabajadorResponsable) {
       setFormData((prev) => ({
         ...prev,
-        codigo,
+        codigo: eq.codigo,
         id_trabajador: String(eq.trabajadorResponsable.id_trabajador),
       }));
       setNombreResponsable(eq.trabajadorResponsable.nombre || '');
     } else {
       setFormData((prev) => ({
         ...prev,
-        codigo,
+        codigo: eq.codigo,
         id_trabajador: '',
       }));
       setNombreResponsable('');
@@ -131,6 +158,14 @@ export default function Incidentes() {
       setMensaje({
         tipo: 'error',
         texto: 'El evento ingresado no es válido. Selecciónalo de la lista o déjalo vacío para Bodega.',
+      });
+      return;
+    }
+
+    if (!formData.codigo) {
+      setMensaje({
+        tipo: 'error',
+        texto: 'Debes seleccionar un equipo válido de la lista desplegable.',
       });
       return;
     }
@@ -164,6 +199,8 @@ export default function Incidentes() {
       });
       setBusquedaEvento('');
       setMostrarListaEventos(false);
+      setBusquedaEquipo('');
+      setMostrarListaEquipos(false);
       setEquipoSeleccionado(null);
       setEquiposDelEvento([]);
       setNombreResponsable('');
@@ -211,8 +248,15 @@ export default function Incidentes() {
     );
   };
 
-  const listaEquiposMostrados = formData.id_evento ? equiposDelEvento : equipos;
+  const listaEquiposBase = formData.id_evento ? equiposDelEvento : equipos;
   const hayEvento = Boolean(formData.id_evento);
+
+  const equiposFiltrados = listaEquiposBase.filter((eq) => {
+    const q = busquedaEquipo.trim().toLowerCase();
+    if (!q) return true;
+    const texto = `${eq.codigo} - ${eq.nombre} ${eq.nombreKit || ''} ${eq.kit?.nombre || ''}`.toLowerCase();
+    return texto.includes(q);
+  });
 
   const textoResponsable = !hayEvento
     ? 'No aplica (Incidente en Bodega)'
@@ -281,6 +325,7 @@ export default function Incidentes() {
                       codigo: '',
                       id_trabajador: '',
                     }));
+                    setBusquedaEquipo('');
                     setEquipoSeleccionado(null);
                     setEquiposDelEvento([]);
                     setNombreResponsable('');
@@ -344,38 +389,73 @@ export default function Incidentes() {
           </div>
         </div>
 
-        {/* Fila 2: Equipo y Responsable */}
+        {/* Fila 2: Equipo (Buscador filtrable) y Responsable */}
         <div className="inc-fila-grid">
-          <div>
+          <div className="inc-evento-wrap">
             <label className="inc-label">Equipo Afectado</label>
-            {equipos.length > 0 || formData.id_evento ? (
-              <select
-                value={formData.codigo}
-                onChange={(e) => handleEquipoChange(e.target.value)}
-                required
-                className="inc-select"
-              >
-                <option value="">
-                  {formData.id_evento && listaEquiposMostrados.length === 0
-                    ? '-- Este evento no tiene equipos en kits reservados --'
-                    : '-- Selecciona un equipo --'}
-                </option>
-                {listaEquiposMostrados.map((eq) => (
-                  <option key={eq.codigo} value={eq.codigo}>
-                    {eq.codigo} - {eq.nombre}
-                    {eq.nombreKit ? ` (${eq.nombreKit})` : ''}
-                  </option>
-                ))}
-              </select>
-            ) : (
+            <div className="inc-evento-input-box">
               <input
                 type="text"
-                placeholder="Ej: CAM-001..."
-                value={formData.codigo}
-                onChange={(e) => setFormData({ ...formData, codigo: e.target.value })}
-                required
-                className="inc-input inc-input-suave"
+                value={busquedaEquipo}
+                onFocus={() => setMostrarListaEquipos(true)}
+                onBlur={() => setTimeout(() => setMostrarListaEquipos(false), 150)}
+                onChange={(e) => {
+                  setBusquedaEquipo(e.target.value);
+                  if (formData.codigo) {
+                    setFormData((prev) => ({ ...prev, codigo: '', id_trabajador: '' }));
+                    setEquipoSeleccionado(null);
+                    setNombreResponsable('');
+                  }
+                  setMostrarListaEquipos(true);
+                }}
+                placeholder={
+                  hayEvento
+                    ? 'Buscar equipo del evento por código o nombre...'
+                    : 'Buscar equipo en inventario (Ej: CAM-001)...'
+                }
+                className={`inc-evento-input ${
+                  busquedaEquipo.trim() && !formData.codigo ? 'aviso' : ''
+                }`}
               />
+              {busquedaEquipo && (
+                <button
+                  type="button"
+                  onClick={() => handleSeleccionarEquipo(null)}
+                  title="Limpiar equipo"
+                  className="inc-evento-limpiar"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {mostrarListaEquipos && (
+              <div className="inc-evento-dropdown">
+                {equiposFiltrados.length === 0 ? (
+                  <div className="inc-evento-vacio">
+                    {hayEvento && listaEquiposBase.length === 0
+                      ? 'Este evento no tiene equipos disponibles en kits reservados'
+                      : `No se encontraron equipos con "${busquedaEquipo}"`}
+                  </div>
+                ) : (
+                  equiposFiltrados.map((eq) => {
+                    const seleccionado = formData.codigo === eq.codigo;
+                    const subtitulo = eq.nombreKit || eq.kit?.nombre || 'Repuesto / Bodega';
+                    return (
+                      <div
+                        key={eq.codigo}
+                        onMouseDown={() => handleSeleccionarEquipo(eq)}
+                        className={`inc-evento-opcion ${seleccionado ? 'seleccionado' : ''}`}
+                      >
+                        <span>
+                          <strong>{eq.codigo}</strong> - {eq.nombre}
+                        </span>
+                        <span className="inc-evento-opcion-fecha">{subtitulo}</span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             )}
           </div>
 

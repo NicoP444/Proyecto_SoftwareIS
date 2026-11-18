@@ -16,6 +16,7 @@ import ConsultarInventario from './pages/ConsultarInventario.jsx';
 import Kits from "./pages/Kits";
 import PerdidasInventarioJefe from './pages/PerdidasInventarioJefe.jsx';
 
+
 // Componente para proteger rutas privadas
 function RutaProtegida({ children }) {
   const token = localStorage.getItem("token") || localStorage.getItem("usuario");
@@ -58,9 +59,7 @@ export default function App() {
           </Route>
         </Route>
         
-          <Route element={<RutaProtegida><RutaPorRol roles={["DUENO"]} /></RutaProtegida>}>
-          <Route path="/eventos" element={<Eventos />} />
-        </Route>
+          
         <Route
           path="/incidentes"
           element={
