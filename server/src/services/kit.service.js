@@ -1,6 +1,15 @@
 import prisma from '../config/prisma.js';
 import { ValidationError } from '../utils/errores.js';
 
+// Función auxiliar para calcular el estado automático de un kit según sus equipos operativos
+const calcularEstadoKit = (equipos) => {
+  if (!Array.isArray(equipos) || equipos.length === 0) return 'INCOMPLETO';
+  const categoriasPresentes = new Set(equipos.map((e) => e.categoria?.toUpperCase()));
+  const requeridas = ['CAMARA', 'TRIPODE', 'MICROFONO', 'SWITCH_VIDEO'];
+  const cumpleMinimo = requeridas.every((cat) => categoriasPresentes.has(cat));
+  return cumpleMinimo ? 'DISPONIBLE' : 'INCOMPLETO';
+};
+
 export const kitService = {
   async listar() {
     return await prisma.kit.findMany({
@@ -77,13 +86,15 @@ export const kitService = {
       jefeId = jefeExistente.id_jefe;
     }
 
+    const estadoCalculado = calcularEstadoKit(equiposEncontrados);
+
     const nuevoKit = await prisma.$transaction(async (tx) => {
       const kitCreado = await tx.kit.create({
         data: {
           nombre,
           nivel,
           recargo_pct,
-          estado: 'DISPONIBLE',
+          estado: estadoCalculado,
           id_jefe: jefeId,
         },
       });
@@ -139,11 +150,12 @@ export const kitService = {
     }
 
     let nuevosEquiposCodigos = kitActual.equipos.map((eq) => eq.codigo);
+    let equiposEncontrados = kitActual.equipos;
 
     if (intentandoCambiarEquipos) {
       nuevosEquiposCodigos = equipos;
 
-      const equiposEncontrados = await prisma.equipo.findMany({
+      equiposEncontrados = await prisma.equipo.findMany({
         where: { codigo: { in: nuevosEquiposCodigos } },
       });
 
@@ -162,18 +174,10 @@ export const kitService = {
         const nombres = deOtroKit.map((e) => e.nombre).join(', ');
         throw new ValidationError(`Los siguientes equipos ya pertenecen a otro kit: ${nombres}`, 'equipos');
       }
-
-      const categoriasPresentes = equiposEncontrados.map((eq) => eq.categoria);
-      const categoriasRequeridas = ['CAMARA', 'TRIPODE', 'MICROFONO', 'SWITCH_VIDEO'];
-      const faltantes = categoriasRequeridas.filter((cat) => !categoriasPresentes.includes(cat));
-
-      if (faltantes.length > 0) {
-        throw new ValidationError(
-          `El kit requiere al menos un equipo de cada categoría obligatoria. Faltan: ${faltantes.join(', ')}`,
-          'equipos'
-        );
-      }
     }
+
+    // Calcula el estado automático basado en los equipos definitivos
+    const estadoCalculado = calcularEstadoKit(equiposEncontrados);
 
     const kitActualizado = await prisma.$transaction(async (tx) => {
       await tx.kit.update({
@@ -183,6 +187,7 @@ export const kitService = {
           ...(nivel && { nivel }),
           ...(recargo_pct !== undefined && { recargo_pct }),
           ...(id_jefe && { id_jefe }),
+          estado: estadoCalculado,
         },
       });
 
