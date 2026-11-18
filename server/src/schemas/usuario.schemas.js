@@ -42,17 +42,13 @@ export const ValidarRol = (rol) => {
     return limpio;
 };
 
-export const VerificarCorreoUnicoGlobal = async (correo) => {
-    const correoLimpio = String(correo).trim().toLowerCase();
+export const VerificarCorreo = (correo) => {
+  if (correo === undefined) return undefined; // no viene: no se toca
+  if (correo === null || correo === '') return null; // viene vacío: se borra
 
-    const [dueno, contador, jefe] = await Promise.all([
-        prisma.dueno.findUnique({ where: { correo: correoLimpio } }),
-        prisma.contador.findUnique({ where: { correo: correoLimpio } }),
-        prisma.jefeAreaTecnica.findUnique({ where: { correo: correoLimpio } })
-    ]);
-
-    if (dueno || contador || jefe) {
-        throw new ValidationError('Este correo electrónico ya está registrado en el sistema', 'correo');
-    }
-    return true;
+  const limpio = String(correo).trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(limpio)) {
+    throw new ValidationError('El correo debe tener el formato texto@texto.texto', 'correo');
+  }
+  return limpio;
 };
