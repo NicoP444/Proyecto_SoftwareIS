@@ -247,6 +247,15 @@ export default function Calendario() {
     [eventos],
   );
 
+    // Tipos de evento ya usados, para sugerirlos al crear o modificar
+  const tipos = useMemo(
+    () =>
+      [...new Set(eventos.map((c) => c.tipo).filter(Boolean))].sort((a, b) =>
+        a.localeCompare(b),
+      ),
+    [eventos],
+  );
+
   const delPeriodo = useMemo(
     () =>
       eventos.filter((c) =>
@@ -747,6 +756,7 @@ export default function Calendario() {
           <FormularioEvento
             evento={e}
             direcciones={direcciones}
+            tipos={tipos}
             onGuardar={guardarEdicion}
             onCancelar={() => setEditando(false)}
           />
@@ -763,6 +773,7 @@ export default function Calendario() {
         <FormularioEvento
           fechaInicial={fechaNueva}
           direcciones={direcciones}
+          tipos={tipos}
           onGuardar={guardarEvento}
           onCancelar={() => setCreando(false)}
         />
