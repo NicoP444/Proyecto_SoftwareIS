@@ -107,6 +107,8 @@ export default function MargenTraslado({ onGuardado }) {
       )}
 
       <div className="margen-acciones">
+        {/* Sin esto parece que el botón no funciona: está desactivado porque no hay nada nuevo que guardar */}
+        {valido && !hayCambio && !ok && <span className="texto-tenue">Sin cambios por guardar</span>}
         <button type="submit" className="boton boton-principal" disabled={!hayCambio || guardando}>
           <Save /> {guardando ? "Guardando…" : "Guardar"}
         </button>

@@ -16,6 +16,19 @@ const ESTADOS_CUENTA = {
   INACTIVO: { texto: "Inactivo", color: "var(--texto-tenue)", orden: 4 },
 };
 
+// Hoy como "AAAA-MM-DD" (sin toISOString, para que no se corra el día por zona horaria)
+const hoyLocal = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
+// "09:30" -> "11:30" (dos horas después, sin pasar de 23:55)
+const sumarDosHoras = (hora) => {
+  const [h, m] = hora.split(":").map(Number);
+  const total = Math.min(h * 60 + m + 120, 23 * 60 + 55);
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+};
+
 // Para buscar sin importar tildes ni mayúsculas
 const normalizar = (texto) =>
   texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -30,14 +43,20 @@ export default function ConsultaPersonal() {
   const [buscar, setBuscar] = useState("");
   const [idRol, setIdRol] = useState("");
   const [estado, setEstado] = useState("");
-  const [fecha, setFecha] = useState("");
+  const [fecha, setFecha] = useState(hoyLocal()); // parte con la fecha de hoy: solo falta elegir el horario
   const [horaInicio, setHoraInicio] = useState("");
   const [horaTermino, setHoraTermino] = useState("");
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
 
   const franjaValida = Boolean(fecha && horaInicio && horaTermino && horaTermino > horaInicio);
-  const hayFiltros = Boolean(buscar || idRol || estado || fecha || horaInicio || horaTermino);
+  const hayFiltros = Boolean(buscar || idRol || estado || fecha !== hoyLocal() || horaInicio || horaTermino);
+
+  // Al elegir "Desde", si "Hasta" está vacío o quedó antes, se sugiere 2 h después
+  function cambiarInicio(valor) {
+    setHoraInicio(valor);
+    if (valor && (!horaTermino || horaTermino <= valor)) setHoraTermino(sumarDosHoras(valor));
+  }
 
   // Roles para el filtro (solo los activos)
   useEffect(() => {
@@ -90,7 +109,7 @@ export default function ConsultaPersonal() {
     setBuscar("");
     setIdRol("");
     setEstado("");
-    setFecha("");
+    setFecha(hoyLocal());
     setHoraInicio("");
     setHoraTermino("");
   }
@@ -99,6 +118,28 @@ export default function ConsultaPersonal() {
 
   return (
     <div className="personal-consulta">
+      {/* Primero: ¿en qué fecha y horario? (es lo que más se consulta) */}
+      <div className="personal-franja">
+        <span className="etiqueta">¿Quién está libre? Elige fecha y horario</span>
+        <div className="personal-filtros">
+          <div className="campo">
+            <label htmlFor="pc-fecha">Fecha</label>
+            <input id="pc-fecha" type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+          </div>
+          <div className="campo">
+            <label htmlFor="pc-inicio">Desde</label>
+            <SelectorHora id="pc-inicio" valor={horaInicio} onCambiar={cambiarInicio} />
+          </div>
+          <div className="campo">
+            <label htmlFor="pc-termino">Hasta</label>
+            <SelectorHora id="pc-termino" valor={horaTermino} onCambiar={setHoraTermino} />
+          </div>
+        </div>
+        {(horaInicio || horaTermino) && !franjaValida && (
+          <p className="texto-tenue">Completa la fecha y un horario válido (la hora final debe ser posterior a la inicial).</p>
+        )}
+      </div>
+
       {/* Barra de filtros */}
       <div className="personal-barra">
         <div className="campo campo-busqueda">
@@ -136,28 +177,6 @@ export default function ConsultaPersonal() {
         )}
       </div>
 
-      {/* Fecha y horario (opcional) */}
-      <div className="personal-franja">
-        <span className="etiqueta">Ver disponibilidad en una fecha y horario (opcional)</span>
-        <div className="personal-filtros">
-          <div className="campo">
-            <label htmlFor="pc-fecha">Fecha</label>
-            <input id="pc-fecha" type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
-          </div>
-          <div className="campo">
-            <label htmlFor="pc-inicio">Desde</label>
-            <SelectorHora id="pc-inicio" valor={horaInicio} onCambiar={setHoraInicio} />
-          </div>
-          <div className="campo">
-            <label htmlFor="pc-termino">Hasta</label>
-            <SelectorHora id="pc-termino" valor={horaTermino} onCambiar={setHoraTermino} />
-          </div>
-        </div>
-        {(fecha || horaInicio || horaTermino) && !franjaValida && (
-          <p className="texto-tenue">Completa la fecha y un horario válido (la hora final debe ser posterior a la inicial).</p>
-        )}
-      </div>
-
       {error && <div className="mensaje mensaje-error">{error}</div>}
 
       {/* Resumen y limpiar filtros */}
@@ -192,7 +211,7 @@ export default function ConsultaPersonal() {
                 <div className="personal-datos">
                   <strong>{t.nombre}</strong>
                   <span className="texto-pequeno">
-                    <Phone /> {t.telefono_whatsapp}
+                    <Phone /> <a href={`tel:${t.telefono_whatsapp}`}>{t.telefono_whatsapp}</a>
                   </span>
                   <div className="lista-roles">
                     {t.roles.length === 0 ? (

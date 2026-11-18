@@ -60,36 +60,53 @@ export default function FormularioCliente({ cliente = null, nombreInicial = "", 
     <form className="formulario" onSubmit={guardar} noValidate>
       {error && <div className="mensaje mensaje-error">{error}</div>}
 
-      <div className="campo">
-        <label htmlFor="cli-rut">RUT</label>
-        <input
-          id="cli-rut"
-          value={datos.rut}
-          onChange={cambiar("rut")}
-          onBlur={() => setDatos({ ...datos, rut: formatearRut(datos.rut) })}
-          placeholder="12.345.678-5"
-          maxLength={12}
-          autoFocus
-        />
-      </div>
-      <div className="campo">
-        <label htmlFor="cli-nombre">Nombre</label>
-        <input id="cli-nombre" value={datos.nombre} onChange={cambiar("nombre")} maxLength={80} />
-      </div>
+      {/* Fila 1: RUT y teléfono (campos cortos) · Fila 2: nombre y correo */}
       <div className="fila-doble">
+        <div className="campo">
+          <label htmlFor="cli-rut">RUT</label>
+          <input
+            id="cli-rut"
+            value={datos.rut}
+            onChange={cambiar("rut")}
+            onBlur={() => setDatos({ ...datos, rut: formatearRut(datos.rut) })}
+            placeholder="12.345.678-5"
+            maxLength={12}
+            autoFocus
+          />
+        </div>
         <div className="campo">
           <label htmlFor="cli-telefono">Teléfono</label>
           <input
             id="cli-telefono"
+            type="tel"
             value={datos.telefono}
             onChange={cambiar("telefono")}
             placeholder="+56 9 1234 5678"
             maxLength={20}
           />
         </div>
+      </div>
+      <div className="fila-doble">
+        <div className="campo">
+          <label htmlFor="cli-nombre">Nombre</label>
+          <input
+            id="cli-nombre"
+            value={datos.nombre}
+            onChange={cambiar("nombre")}
+            placeholder="Persona, colegio, club, municipalidad…"
+            maxLength={80}
+          />
+        </div>
         <div className="campo">
           <label htmlFor="cli-correo">Correo (opcional)</label>
-          <input id="cli-correo" type="email" value={datos.correo} onChange={cambiar("correo")} maxLength={120} />
+          <input
+            id="cli-correo"
+            type="email"
+            value={datos.correo}
+            onChange={cambiar("correo")}
+            placeholder="contacto@ejemplo.cl"
+            maxLength={120}
+          />
         </div>
       </div>
 
