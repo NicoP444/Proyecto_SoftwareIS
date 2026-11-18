@@ -6,7 +6,7 @@ import { ValidationError, NotFoundError } from '../utils/errores.js';
 const HORAS_LIMITE_ADELANTO = 5;
 
 // Campos que el Jefe de área técnica no puede ver (RF-P1-11 y RF-T-05)
-const CAMPOS_FINANCIEROS = ['precio_acordado', 'gastos_estimados'];
+const CAMPOS_FINANCIEROS = ['precio_acordado', 'gastos_estimados', 'rentabilidad_final'];
 
 export async function listarEventos(usuario) {
   const eventos = await prisma.evento.findMany({
