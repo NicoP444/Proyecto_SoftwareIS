@@ -1,4 +1,5 @@
 import prisma from '../config/prisma.js';
+import { ValidationError, NotFoundError } from '../utils/errores.js';
 
 export const auspiciadorService = {
 
