@@ -5,7 +5,12 @@ import {
 
 export const registrarGastoFijo = async (req, res, next) => {
   try {
-    const id_contador = req.user?.id_contador || req.body.id_contador || 1;
+    const id_contador = req.usuario?.id_contador || req.user?.id_contador;
+
+    if (!id_contador) {
+      return res.status(401).json({ mensaje: 'No se pudo identificar al Contador desde la sesión.' });
+    }
+
     const gasto = await registrarGastoFijoService({ ...req.body, id_contador });
     return res.status(201).json({
       message: 'Gasto fijo registrado exitosamente.',

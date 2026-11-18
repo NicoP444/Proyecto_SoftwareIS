@@ -18,7 +18,7 @@ export const validarRegistrarSalidaKit = (body) => {
   const idReservaValido = enteroPositivo(id_reserva, 'id_reserva');
   const idAsignacionValido = enteroPositivo(id_asignacion, 'id_asignacion');
 
-  let idJefeValido = 1;
+  let idJefeValido = undefined;
   if (id_jefe !== undefined && id_jefe !== null && id_jefe !== '') {
     idJefeValido = enteroPositivo(id_jefe, 'id_jefe');
   }

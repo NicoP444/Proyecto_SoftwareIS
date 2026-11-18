@@ -21,11 +21,11 @@ export const validarPreCierreMesService = async ({ anio, mes }) => {
     };
   }
 
-  // 1. Bloqueante: todos los eventos del mes deben estar cerrados (REALIZADO o CERRADO)
+  // 1. Bloqueante: todos los eventos del mes deben estar cerrados (CERRADO)
   const eventosAbiertos = await prisma.evento.findMany({
     where: {
       fecha: { gte: fechaInicio, lt: fechaFin },
-      estado: { notIn: ['REALIZADO', 'CERRADO'] },
+      estado: { not: 'CERRADO' },
     },
     select: {
       id_evento: true,
@@ -36,28 +36,30 @@ export const validarPreCierreMesService = async ({ anio, mes }) => {
     orderBy: { fecha: 'asc' },
   });
 
-  // 2. Advertencia no bloqueante: acuerdos vencidos o incumplidos
-  let acuerdosVencidos = [];
-  try {
-    const hoy = new Date();
-    const acuerdos = await prisma.acuerdoAuspicio.findMany({
-      where: {
-        estado: { in: ['VIGENTE', 'INCUMPLIDO'] },
-        fecha_fin: { lt: hoy },
-      },
-      include: {
-        auspiciador: { select: { nombre: true } },
-      },
-    });
-    acuerdosVencidos = acuerdos.map((a) => ({
-      id_acuerdo: a.id_acuerdo,
-      auspiciador: a.auspiciador?.nombre || 'Auspiciador',
-      fecha_fin: a.fecha_fin,
-      monto_comprometido: Number(a.monto_comprometido || 0),
-    }));
-  } catch (e) {
-    console.warn('Advertencia al consultar acuerdos vencidos:', e.message);
-  }
+ // 2. Advertencia no bloqueante: acuerdos vencidos o incumplidos
+let acuerdosVencidos = [];
+try {
+  const hoy = new Date();
+  const acuerdos = await prisma.acuerdoAuspicio.findMany({
+    where: {
+      OR: [
+        { estado: 'VENCIDO' },
+        { estado: { in: ['PENDIENTE', 'PARCIAL'] }, fecha_comprometida: { lt: hoy } },
+      ],
+    },
+    include: {
+      auspiciador: { select: { nombre: true } },
+    },
+  });
+  acuerdosVencidos = acuerdos.map((a) => ({
+    id_acuerdo: a.id_acuerdo,
+    auspiciador: a.auspiciador?.nombre || 'Auspiciador',
+    fecha_fin: a.fecha_comprometida,
+    monto_comprometido: Number(a.monto_comprometido || 0),
+  }));
+} catch (e) {
+  console.warn('Advertencia al consultar acuerdos vencidos:', e.message);
+}
 
   // 3. Advertencia no bloqueante: asignaciones sin pago de remuneración
   let remuneracionesPendientes = [];
@@ -67,6 +69,7 @@ export const validarPreCierreMesService = async ({ anio, mes }) => {
         evento: {
           fecha: { gte: fechaInicio, lt: fechaFin },
         },
+        remuneracion: { gt: 0 },
         pagos_remuneracion: {
           none: {},
         },
@@ -116,15 +119,11 @@ export const cerrarMesContableService = async ({ anio, mes, id_contador }) => {
 
   const resumen = await obtenerResumenFinancieroMensualService({ anio, mes });
 
-  let contadorId = id_contador;
-  if (!contadorId) {
-    const contadorPorDefecto = await prisma.contador.findFirst({ select: { id_contador: true } });
-    if (!contadorPorDefecto) {
-      const err = new Error('No se encontró un perfil de Contador válido para firmar el cierre.');
-      err.status = 400;
-      throw err;
-    }
-    contadorId = contadorPorDefecto.id_contador;
+ const contadorId = Number(id_contador);
+  if (!Number.isInteger(contadorId) || contadorId <= 0) {
+    const err = new Error('No se pudo identificar al Contador que firma el cierre.');
+    err.status = 400;
+    throw err;
   }
 
   const cierre = await prisma.mesContable.upsert({

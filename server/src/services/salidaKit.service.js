@@ -1,4 +1,5 @@
 import prisma from '../config/prisma.js';
+import { ValidationError } from '../utils/errores.js';
 
 /**
  * RF-P6-01: Registrar salida de un kit asignado a un evento
@@ -14,15 +15,32 @@ export const registrarSalidaKitService = async ({ id_reserva, id_asignacion, id_
   });
 
   if (!reserva) {
-    throw new Error('La reserva del kit no existe');
+    throw new ValidationError('La reserva del kit no existe');
   }
 
   if (reserva.salida) {
-    throw new Error('Este kit ya tiene registrada una salida para este evento');
+    throw new ValidationError('Este kit ya tiene registrada una salida para este evento');
   }
 
   if (reserva.kit.estado === 'EN_TERRENO') {
-    throw new Error('El kit ya figura actualmente con estado "EN_TERRENO"');
+    throw new ValidationError('El kit ya figura actualmente con estado "EN_TERRENO"');
+  }
+
+  if (reserva.kit.estado !== 'DISPONIBLE') {
+    throw new ValidationError(`El kit está "${reserva.kit.estado}" y no puede salir de bodega`);
+  }
+
+  const evento = await prisma.evento.findUnique({
+    where: { id_evento: reserva.id_evento },
+    select: { estado: true },
+  });
+
+  if (!evento || evento.estado !== 'CONFIRMADO') {
+    throw new ValidationError('Solo se puede registrar la salida de kits de eventos CONFIRMADOS');
+  }
+
+  if (fecha_hora_salida && new Date(fecha_hora_salida) > new Date()) {
+    throw new ValidationError('La fecha y hora de salida no puede ser futura');
   }
 
   // Validar que la asignación exista y pertenezca al mismo evento de la reserva
@@ -31,7 +49,7 @@ export const registrarSalidaKitService = async ({ id_reserva, id_asignacion, id_
   });
 
   if (!asignacion || asignacion.id_evento !== reserva.id_evento) {
-    throw new Error('El trabajador seleccionado no está asignado a este evento');
+    throw new ValidationError('El trabajador seleccionado no está asignado a este evento');
   }
 
   // 2. Transacción atómica: se registra la salida y se pasa el kit a EN_TERRENO
@@ -55,8 +73,6 @@ export const registrarSalidaKitService = async ({ id_reserva, id_asignacion, id_
 
   return resultado;
 };
-
-
 
 /**
  * Consulta auxiliar para el frontend:

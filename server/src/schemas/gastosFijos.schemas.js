@@ -49,10 +49,10 @@ export const validarCrearGastoFijo = (body) => {
     throw new ValidationError('La descripción no puede superar los 255 caracteres', 'descripcion');
   }
 
-  // 3. Monto (> 0 y máximo $1.000.000.000 para evitar desbordamiento Int32 en PostgreSQL)
+  // 3. Monto (entero > 0 y máximo $1.000.000.000 para evitar desbordamiento Int32 en PostgreSQL)
   const montoNum = Number(monto);
-  if (monto === undefined || monto === null || monto === '' || !Number.isFinite(montoNum) || montoNum <= 0) {
-    throw new ValidationError('El monto del gasto fijo debe ser un número mayor a 0', 'monto');
+  if (monto === undefined || monto === null || monto === '' || !Number.isInteger(montoNum) || montoNum <= 0) {
+    throw new ValidationError('El monto del gasto fijo debe ser un número entero mayor a 0', 'monto');
   }
   if (montoNum > 1000000000) {
     throw new ValidationError('El monto del gasto fijo no puede superar $1.000.000.000', 'monto');
@@ -67,8 +67,8 @@ export const validarCrearGastoFijo = (body) => {
     }
   }
 
-  // 5. Contador opcional (default 1 si aún no hay sesión JWT)
-  let contadorNum = 1;
+  // 5. Contador opcional en body (lo inyecta la sesión en el controlador; sin default = 1)
+  let contadorNum = undefined;
   if (id_contador !== undefined && id_contador !== null && id_contador !== '') {
     contadorNum = Number(id_contador);
     if (!Number.isInteger(contadorNum) || contadorNum <= 0) {
@@ -80,7 +80,7 @@ export const validarCrearGastoFijo = (body) => {
     anio: anioNum,
     mes: mesNum,
     descripcion: descLimpia,
-    monto: Math.round(montoNum),
+    monto: montoNum,
     evidencia: evidenciaLimpia,
     id_contador: contadorNum,
   };
