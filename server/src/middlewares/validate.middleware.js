@@ -79,7 +79,14 @@ export const validarContador = async (req, res, next) => {
 export const validarCampos = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({ errores: errors.array() });
+    const lista = errors.array();
+    const primerMensaje = lista[0]?.msg || 'Datos inválidos en el formulario.';
+    return res.status(400).json({
+      error: primerMensaje,
+      mensaje: primerMensaje,
+      message: primerMensaje,
+      errores: lista
+    });
   }
   next();
 };
