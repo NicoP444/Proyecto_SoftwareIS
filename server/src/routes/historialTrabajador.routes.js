@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { validarId } from '../middlewares/validate.middleware.js';
+import { autenticar, permitirRoles } from '../middlewares/auth.middleware.js';
 import * as controller from '../controllers/historialTrabajador.controller.js';
 
 const router = Router();
 
-// Eventos en que participó un trabajador (el :id es el id_trabajador)
-router.get('/:id', validarId, controller.ver);
+// RF-P7-11: Dueño y Contador
+router.get('/:id', autenticar, permitirRoles('DUENO', 'CONTADOR'), validarId, controller.ver);
 
 export default router;

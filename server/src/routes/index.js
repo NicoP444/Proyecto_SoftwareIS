@@ -8,7 +8,6 @@ import acuerdoRoutes from './acuerdo.routes.js';
 import disponibilidadRoutes from './disponibilidad.routes.js';//nico
 import salidaKitRoutes from './salidaKit.routes.js';
 import retornoKitRoutes from './retornoKit.routes.js';
-import historialCambioRoutes from './historialCambio.routes.js'; // nico
 import historialEquipoRoutes from './historialEquipo.routes.js';
 import alertaKitsRoutes from './alertaKits.routes.js';
 import equipoRoutes from './equipo.routes.js';
@@ -43,8 +42,7 @@ router.use('/trabajadores',trabajadorRoutes);//nico
 router.use('/gastosEvento', gastosEventosRoutes); // nico
 router.use('/acuerdos', acuerdoRoutes);
 router.use('/salidas-kits', salidaKitRoutes);
-router.use('/retornos-kits', retornoKitRoutes);
-router.use('/historial-cambios', historialCambioRoutes)//nico
+router.use('/retornos-kits', retornoKitRoutes); 
 router.use('/equipos-historial', historialEquipoRoutes);
 router.use('/alertas', alertaKitsRoutes);
 router.use('/rentabilidad', rentabilidadRoutes);//nico
