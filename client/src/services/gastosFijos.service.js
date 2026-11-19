@@ -35,8 +35,9 @@ export async function actualizarGastoFijo(idGastoFijo, formData) {
   return data;
 }
 
-export function eliminarGastoFijo(idGastoFijo) {
+export function eliminarGastoFijo(idGastoFijo, motivo) {
   return pedir(`/gastos-fijos/${idGastoFijo}`, {
     method: 'DELETE',
+    body: { motivo },
   });
 }

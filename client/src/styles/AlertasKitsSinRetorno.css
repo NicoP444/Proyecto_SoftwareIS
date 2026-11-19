@@ -1,5 +1,9 @@
 /* Estilos exclusivos de AlertasKitsSinRetorno (RF-P6-05) */
 
+.akr-panel {
+  margin-top: 1.5rem;
+}
+
 .akr-cabecera {
   display: flex;
   justify-content: space-between;
@@ -28,6 +32,12 @@
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.akr-btn-incidente:hover {
+  background-color: #eef2ff;
+  border-color: var(--primario, #1E3A8A);
 }
 
 .akr-btn-retornos {
@@ -40,6 +50,11 @@
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
+  transition: background-color 0.15s ease;
+}
+
+.akr-btn-retornos:hover {
+  background-color: var(--primario-hover, #172554);
 }
 
 .akr-cargando {

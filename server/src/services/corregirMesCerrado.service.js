@@ -1,6 +1,8 @@
 import prisma from '../config/prisma.js';
+import { ValidationError, NotFoundError } from '../utils/errores.js';
+import { calcularRentabilidad } from './rentabilidad.service.js';
 
-// Recalcula rentabilidad_final de un evento si ya estaba calculada o cerrado
+// Recalcula rentabilidad_final usando la función oficial RF-P7-09 (rentabilidad.service.js)
 const recalcularRentabilidadEvento = async (tx, id_evento) => {
   if (!id_evento) return null;
 
@@ -10,37 +12,7 @@ const recalcularRentabilidadEvento = async (tx, id_evento) => {
   });
   if (!evento) return null;
 
-  const [pagos, aportes, gastos, remun, incidentes] = await Promise.all([
-    tx.pagoCliente.aggregate({
-      where: { id_evento },
-      _sum: { monto: true },
-    }),
-    tx.cumplimientoAporte.aggregate({
-      where: { acuerdo: { id_evento } },
-      _sum: { monto_recibido: true },
-    }),
-    tx.gastoEvento.aggregate({
-      where: { asignacion: { id_evento } },
-      _sum: { monto: true },
-    }),
-    tx.pagoRemuneracion.aggregate({
-      where: { asignacion: { id_evento } },
-      _sum: { monto: true },
-    }),
-    tx.incidente.aggregate({
-      where: { id_evento },
-      _sum: { valor: true },
-    }),
-  ]);
-
-  const ingresosTotales =
-    Number(pagos._sum.monto || 0) + Number(aportes._sum.monto_recibido || 0);
-  const egresosTotales =
-    Number(gastos._sum.monto || 0) +
-    Number(remun._sum.monto || 0) +
-    Number(incidentes._sum.valor || 0);
-
-  const nuevaRentabilidad = ingresosTotales - egresosTotales;
+  const { resultado: nuevaRentabilidad } = await calcularRentabilidad(id_evento, tx);
 
   if (evento.rentabilidad_final !== null || evento.estado === 'CERRADO') {
     await tx.evento.update({
@@ -213,22 +185,16 @@ export const corregirMontoMesCerradoService = async ({
 }) => {
   const montoNum = Number(nuevo_monto);
   if (!Number.isInteger(montoNum) || montoNum < 0) {
-    const err = new Error('El nuevo monto debe ser un número entero mayor o igual a 0.');
-    err.status = 400;
-    throw err;
+    throw new ValidationError('El nuevo monto debe ser un número entero mayor o igual a 0.', 'nuevo_monto');
   }
 
   if (!motivo || !motivo.trim()) {
-    const err = new Error('Debe ingresar un motivo obligatorio para corregir un mes cerrado.');
-    err.status = 400;
-    throw err;
+    throw new ValidationError('Debe ingresar un motivo obligatorio para corregir un mes cerrado.', 'motivo');
   }
 
   const contadorId = Number(id_contador);
   if (!Number.isInteger(contadorId) || contadorId <= 0) {
-    const err = new Error('No se encontró un perfil de Contador válido para auditar el cambio.');
-    err.status = 400;
-    throw err;
+    throw new ValidationError('No se encontró un perfil de Contador válido para auditar el cambio.');
   }
 
   const mesContable = await prisma.mesContable.findUnique({
@@ -236,9 +202,7 @@ export const corregirMontoMesCerradoService = async ({
   });
 
   if (!mesContable || mesContable.estado !== 'CERRADO') {
-    const err = new Error('Solo se pueden aplicar correcciones auditadas sobre un mes cerrado.');
-    err.status = 400;
-    throw err;
+    throw new ValidationError('Solo se pueden aplicar correcciones auditadas sobre un mes cerrado.');
   }
 
   const fechaInicio = new Date(Date.UTC(anio, mes - 1, 1));
@@ -252,8 +216,8 @@ export const corregirMontoMesCerradoService = async ({
 
     if (tabla === 'pago_cliente') {
       const reg = await tx.pagoCliente.findUnique({ where: { id_pago: Number(id_registro) } });
-      if (!reg) throw Object.assign(new Error('Pago de cliente no encontrado.'), { status: 404 });
-      if (!enMes(reg.fecha)) throw Object.assign(new Error('El registro no pertenece al mes seleccionado.'), { status: 400 });
+      if (!reg) throw new NotFoundError('Pago de cliente no encontrado.');
+      if (!enMes(reg.fecha)) throw new ValidationError('El registro no pertenece al mes seleccionado.');
       valorAnterior = reg.monto;
       idEventoAfectado = reg.id_evento;
       etiquetaDato = `Pago cliente #${reg.id_pago} (${reg.tipo_pago})`;
@@ -269,8 +233,8 @@ export const corregirMontoMesCerradoService = async ({
         where: { id_acuerdo_nro_cumplimiento: { id_acuerdo, nro_cumplimiento } },
         include: { acuerdo: { select: { id_evento: true, glosa: true } } },
       });
-      if (!reg) throw Object.assign(new Error('Cumplimiento de aporte no encontrado.'), { status: 404 });
-      if (!enMes(reg.fecha)) throw Object.assign(new Error('El registro no pertenece al mes seleccionado.'), { status: 400 });
+      if (!reg) throw new NotFoundError('Cumplimiento de aporte no encontrado.');
+      if (!enMes(reg.fecha)) throw new ValidationError('El registro no pertenece al mes seleccionado.');
       valorAnterior = reg.monto_recibido;
       idEventoAfectado = reg.acuerdo?.id_evento || null;
       etiquetaDato = `Aporte #${id_acuerdo}-${nro_cumplimiento} (${reg.acuerdo?.glosa || ''})`;
@@ -283,8 +247,8 @@ export const corregirMontoMesCerradoService = async ({
         where: { id_pago_rem: Number(id_registro) },
         include: { asignacion: { select: { id_evento: true } } },
       });
-      if (!reg) throw Object.assign(new Error('Pago de remuneración no encontrado.'), { status: 404 });
-      if (!enMes(reg.fecha)) throw Object.assign(new Error('El registro no pertenece al mes seleccionado.'), { status: 400 });
+      if (!reg) throw new NotFoundError('Pago de remuneración no encontrado.');
+      if (!enMes(reg.fecha)) throw new ValidationError('El registro no pertenece al mes seleccionado.');
       valorAnterior = reg.monto;
       idEventoAfectado = reg.asignacion?.id_evento || null;
       etiquetaDato = `Pago remuneración #${reg.id_pago_rem}`;
@@ -297,8 +261,8 @@ export const corregirMontoMesCerradoService = async ({
         where: { id_gasto: Number(id_registro) },
         include: { asignacion: { select: { id_evento: true } } },
       });
-      if (!reg) throw Object.assign(new Error('Gasto de evento no encontrado.'), { status: 404 });
-      if (!enMes(reg.fecha)) throw Object.assign(new Error('El registro no pertenece al mes seleccionado.'), { status: 400 });
+      if (!reg) throw new NotFoundError('Gasto de evento no encontrado.');
+      if (!enMes(reg.fecha)) throw new ValidationError('El registro no pertenece al mes seleccionado.');
       valorAnterior = reg.monto;
       idEventoAfectado = reg.asignacion?.id_evento || null;
       etiquetaDato = `Gasto evento #${reg.id_gasto} (${reg.tipo_gasto})`;
@@ -310,8 +274,8 @@ export const corregirMontoMesCerradoService = async ({
       const reg = await tx.gastoFijo.findUnique({
         where: { id_gasto_fijo: Number(id_registro) },
       });
-      if (!reg) throw Object.assign(new Error('Gasto fijo no encontrado.'), { status: 404 });
-      if (reg.id_mes !== mesContable.id_mes) throw Object.assign(new Error('El registro no pertenece al mes seleccionado.'), { status: 400 });
+      if (!reg) throw new NotFoundError('Gasto fijo no encontrado.');
+      if (reg.id_mes !== mesContable.id_mes) throw new ValidationError('El registro no pertenece al mes seleccionado.');
       valorAnterior = reg.monto;
       idEventoAfectado = null;
       etiquetaDato = `Gasto fijo #${reg.id_gasto_fijo} (${reg.descripcion})`;
@@ -320,7 +284,7 @@ export const corregirMontoMesCerradoService = async ({
         data: { monto: montoNum },
       });
     } else {
-      throw Object.assign(new Error('Tipo de registro no válido para corrección.'), { status: 400 });
+      throw new ValidationError('Tipo de registro no válido para corrección.', 'tabla');
     }
 
     // 1. Registrar trazabilidad en historial_cambio
@@ -336,7 +300,7 @@ export const corregirMontoMesCerradoService = async ({
       },
     });
 
-    // 2. Recalcular evento afectado si corresponde
+    // 2. Recalcular evento afectado usando la fórmula oficial RF-P7-09
     await recalcularRentabilidadEvento(tx, idEventoAfectado);
 
     // 3. Recalcular todos los totales del mes cerrado en mes_contable
