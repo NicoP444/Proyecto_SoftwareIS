@@ -70,13 +70,14 @@ export default function CampoSugerencias({ id, valor, onCambiar, sugerencias = [
           setAbierto(true);
           setMarcada(-1);
         }}
-        onFocus={() => setAbierto(true)}
+        onClick={() => setAbierto(true)} // abre al hacer clic, no con el autoFocus del formulario
+        onBlur={() => setAbierto(false)} // se cierra al salir del campo (clic fuera o Tab)
         onKeyDown={alPresionar}
         autoComplete="off"
         {...resto}
       />
       {mostrar && (
-        <ul className="selector-cliente-lista campo-sugerencias" role="listbox">
+        <ul className="selector-cliente-lista campo-sugerencias" role="listbox" onMouseDown={(e) => e.preventDefault()}>
           {opciones.map((s, i) => (
             <li key={s}>
               <button

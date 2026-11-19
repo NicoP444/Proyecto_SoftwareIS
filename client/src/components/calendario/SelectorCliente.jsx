@@ -120,12 +120,13 @@ export default function SelectorCliente({ valor, onCambiar, puedeCrear = true })
           setAbierto(true);
         }}
         onFocus={() => setAbierto(true)}
+        onBlur={() => setAbierto(false)} // se cierra al salir del campo (clic fuera o Tab)
         onKeyDown={alPresionar}
         placeholder="Buscar por nombre o RUT"
         autoComplete="off"
       />
       {abierto && (
-        <ul className="selector-cliente-lista campo-sugerencias">
+        <ul className="selector-cliente-lista campo-sugerencias" onMouseDown={(e) => e.preventDefault()}>
           {error && <li className="selector-cliente-vacio">{error}</li>}
           {!error && buscando && resultados.length === 0 && (
             <li className="selector-cliente-vacio">Buscando…</li>
@@ -135,7 +136,11 @@ export default function SelectorCliente({ valor, onCambiar, puedeCrear = true })
           )}
           {resultados.map((c) => (
             <li key={c.id_cliente}>
-              <button type="button" onClick={() => elegir(c)}>
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()} // no quita el foco del campo antes del clic
+                onClick={() => elegir(c)}
+              >
                 <span>{c.nombre}</span>
                 <small>{formatearRut(c.rut)}</small>
               </button>
@@ -143,7 +148,11 @@ export default function SelectorCliente({ valor, onCambiar, puedeCrear = true })
           ))}
           {puedeCrear && (
             <li className="selector-cliente-crear">
-              <button type="button" onClick={abrirCrear}>
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()} // no quita el foco del campo antes del clic
+                onClick={abrirCrear}
+              >
                 <Plus size={16} />
                 {texto.trim() && !pareceRut ? `Crear cliente «${texto.trim()}»` : "Crear cliente nuevo"}
               </button>
