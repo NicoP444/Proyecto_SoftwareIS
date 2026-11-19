@@ -395,3 +395,14 @@ button.cal-mas { flex-shrink: 0; padding: 0; border: 0; background: none; text-a
 /* ===== Quitar personal o kit: confirmación en el mismo chip (sin ventana del navegador) ===== */
 .chip-confirmar { display: inline-flex; align-items: center; gap: 6px; padding: 3px 4px 3px 10px; border: 1px solid color-mix(in srgb, var(--rojo) 40%, white); border-radius: 999px; background: color-mix(in srgb, var(--rojo) 8%, white); font-size: 0.75rem; font-weight: 600; color: #b91c1c; }
 .chip-confirmar .boton { height: 26px; padding: 0 10px; border-radius: 999px; font-size: 0.72rem; }
+
+/* ===== Listas nativas del navegador en claro (desplegables y calendario de fechas) ===== */
+.cal-pagina,
+.landing,
+.modal-fondo {
+  color-scheme: light;
+}
+
+/* ===== Sugerencias de tipo y dirección (reemplazan al datalist del navegador) ===== */
+.campo-sugerencias li button { font-size: 0.85rem; color: var(--texto); }
+.campo-sugerencias li button.marcada { background: var(--primario-suave); }

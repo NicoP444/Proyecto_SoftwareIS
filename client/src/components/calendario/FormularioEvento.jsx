@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Clock } from "lucide-react";
 import SelectorCliente from "./SelectorCliente";
 import SelectorHora from "./SelectorHora";
+import CampoSugerencias from "./CampoSugerencias";
 
 // "09:30" -> 570 (minutos desde medianoche)
 const minutos = (hora) => {
@@ -162,22 +163,16 @@ export default function FormularioEvento({
 
       <div className={conError("tipo")}>
         <label htmlFor="ev-tipo">Tipo de evento</label>
-        <input
+        {/* Tipos ya usados: así no quedan "Partido de fútbol" y "partido futbol" como tipos distintos */}
+        <CampoSugerencias
           id="ev-tipo"
-          value={datos.tipo}
-          onChange={cambiar("tipo")}
+          valor={datos.tipo}
+          onCambiar={(v) => poner("tipo", v)}
+          sugerencias={tipos}
           placeholder="Partido de fútbol, licenciatura, matrimonio…"
           maxLength={40}
-          list="ev-tipos"
-          autoComplete="off"
           autoFocus
         />
-        {/* Tipos ya usados: así no quedan "Partido de fútbol" y "partido futbol" como tipos distintos */}
-        <datalist id="ev-tipos">
-          {tipos.map((t) => (
-            <option key={t} value={t} />
-          ))}
-        </datalist>
         {errores.tipo && <span className="campo-error">{errores.tipo}</span>}
       </div>
 
@@ -195,21 +190,15 @@ export default function FormularioEvento({
 
       <div className={conError("direccion")}>
         <label htmlFor="ev-direccion">Dirección del evento</label>
-        <input
+        {/* Direcciones ya usadas en otros eventos: así el mismo lugar se escribe siempre igual */}
+        <CampoSugerencias
           id="ev-direccion"
-          value={datos.direccion}
-          onChange={cambiar("direccion")}
+          valor={datos.direccion}
+          onCambiar={(v) => poner("direccion", v)}
+          sugerencias={direcciones}
           placeholder="Calle, número, comuna"
           maxLength={120}
-          list="ev-direcciones"
-          autoComplete="off"
         />
-        {/* Direcciones ya usadas en otros eventos: así el mismo lugar se escribe siempre igual */}
-        <datalist id="ev-direcciones">
-          {direcciones.map((d) => (
-            <option key={d} value={d} />
-          ))}
-        </datalist>
         {errores.direccion && <span className="campo-error">{errores.direccion}</span>}
       </div>
 
