@@ -27,7 +27,9 @@ export const acuerdoService = {
         fecha_comprometida: {
           lt: hoy,
         },
-        estado: 'PENDIENTE',
+        estado: {
+          in: ['PENDIENTE', 'PARCIAL'],
+        },
       },
       data: {
         estado: 'VENCIDO',
@@ -216,8 +218,8 @@ export const acuerdoService = {
       throw new Error('El acuerdo no existe.');
     }
 
-    if (acuerdo.estado !== 'VENCIDO' && acuerdo.estado !== 'PARCIAL') {
-      throw new Error('Solo los acuerdos VENCIDOS o PARCIALES pueden declararse como incobrables.');
+    if (acuerdo.estado !== 'VENCIDO') {
+      throw new Error('Solo los acuerdos con estado VENCIDO pueden declararse como incobrables.');
     }
 
     if (!motivo_incobrable || !motivo_incobrable.trim()) {
@@ -278,15 +280,19 @@ export const acuerdoService = {
     if (acuerdoExistente.estado !== 'INCOBRABLE') {
       if (acumuladoPagado >= nuevoMonto && nuevoMonto > 0) {
         nuevoEstado = 'CUMPLIDO';
-      } else if (acumuladoPagado > 0) {
-        nuevoEstado = 'PARCIAL';
       } else {
         const hoy = new Date();
         hoy.setHours(0, 0, 0, 0);
         const fechaLimite = new Date(nuevaFecha);
         fechaLimite.setHours(0, 0, 0, 0);
 
-        nuevoEstado = hoy > fechaLimite ? 'VENCIDO' : 'PENDIENTE';
+        if (hoy > fechaLimite) {
+          nuevoEstado = 'VENCIDO';
+        } else if (acumuladoPagado > 0) {
+          nuevoEstado = 'PARCIAL';
+        } else {
+          nuevoEstado = 'PENDIENTE';
+        }
       }
     }
 

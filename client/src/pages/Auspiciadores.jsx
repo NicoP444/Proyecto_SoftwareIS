@@ -792,6 +792,11 @@ export default function Auspiciadores() {
 
       const monto = Number(acuerdo.monto_comprometido || 0);
       const recibido = calcularTotalRecibido(acuerdo);
+      const saldoPendiente = Math.max(0, monto - recibido);
+      const fechaIso = acuerdo.fecha_comprometida
+        ? String(acuerdo.fecha_comprometida).slice(0, 10)
+        : '';
+      const estaVencidoPorFecha = Boolean(fechaIso && fechaIso < fechaHoyLocal);
 
       mapaAuspiciadores[idAusp].comprometido += monto;
       totalComprometido += monto;
@@ -803,14 +808,24 @@ export default function Auspiciadores() {
       } else if (acuerdo.estado === 'PARCIAL') {
         mapaAuspiciadores[idAusp].cumplido += recibido;
         totalCumplido += recibido;
+        if (estaVencidoPorFecha) {
+          mapaAuspiciadores[idAusp].vencido += saldoPendiente;
+          totalVencido += saldoPendiente;
+        }
       } else if (acuerdo.estado === 'VENCIDO') {
-        const saldoVencido = Math.max(0, monto - recibido);
-        mapaAuspiciadores[idAusp].vencido += saldoVencido;
-        totalVencido += saldoVencido;
+        if (recibido > 0) {
+          mapaAuspiciadores[idAusp].cumplido += recibido;
+          totalCumplido += recibido;
+        }
+        mapaAuspiciadores[idAusp].vencido += saldoPendiente;
+        totalVencido += saldoPendiente;
       } else if (acuerdo.estado === 'INCOBRABLE') {
-        const saldoIncobrable = Math.max(0, monto - recibido);
-        mapaAuspiciadores[idAusp].incobrable += saldoIncobrable;
-        totalIncobrable += saldoIncobrable;
+        if (recibido > 0) {
+          mapaAuspiciadores[idAusp].cumplido += recibido;
+          totalCumplido += recibido;
+        }
+        mapaAuspiciadores[idAusp].incobrable += saldoPendiente;
+        totalIncobrable += saldoPendiente;
       }
     });
 
@@ -824,7 +839,7 @@ export default function Auspiciadores() {
       },
       filas: Object.values(mapaAuspiciadores)
     };
-  }, [listaAcuerdos, filtroMes, filtroAnio]);
+  }, [listaAcuerdos, filtroMes, filtroAnio, fechaHoyLocal]);
 
   const montoComprometidoModal = Number(modalCumplimiento.acuerdo?.monto_comprometido || 0);
   const recibidoPrevioModal = calcularTotalRecibido(modalCumplimiento.acuerdo);
@@ -1065,7 +1080,7 @@ export default function Auspiciadores() {
                                           Modificar Acuerdo
                                         </button>
 
-                                        {(esVencido || esParcial) && (
+                                        {esVencido && (
                                           <button
                                             type="button"
                                             onClick={() => {
