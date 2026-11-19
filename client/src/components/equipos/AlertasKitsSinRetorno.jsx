@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAlertasKitsSinRetorno } from '../../services/alertaKits.service.js';
+import { obtenerUsuario } from '../../services/http.js';
 import '../../styles/AlertasKitsSinRetorno.css';
 
 export default function AlertasKitsSinRetorno() {
   const navigate = useNavigate();
   const [alertasKits, setAlertasKits] = useState([]);
   const [cargandoAlertas, setCargandoAlertas] = useState(true);
+  const esJefe = String(obtenerUsuario()?.rol ?? '').toUpperCase() === 'JEFE_TECNICO';
 
   useEffect(() => {
     getAlertasKitsSinRetorno()
@@ -19,22 +21,24 @@ export default function AlertasKitsSinRetorno() {
     <section className="panel">
       <div className="panel-head akr-cabecera">
         <h3>Alertas de kits sin retorno (&gt; 24h)</h3>
-        <div className="akr-acciones">
-          <button
-            type="button"
-            onClick={() => navigate('/salida-kits?tab=incidentes')}
-            className="akr-btn-incidente"
-          >
-            + Registrar Incidente
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate('/salida-kits?tab=revision')}
-            className="akr-btn-retornos"
-          >
-            Registrar Retornos →
-          </button>
-        </div>
+        {esJefe && (
+          <div className="akr-acciones">
+            <button
+              type="button"
+              className="akr-btn-incidente"
+              onClick={() => navigate('/salida-kits?tab=incidentes')}
+            >
+              + Registrar Incidente
+            </button>
+            <button
+              type="button"
+              className="akr-btn-retornos"
+              onClick={() => navigate('/salida-kits?tab=revision')}
+            >
+              Registrar Retornos →
+            </button>
+          </div>
+        )}
       </div>
 
       {cargandoAlertas ? (

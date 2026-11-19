@@ -10,6 +10,14 @@ import '../styles/Incidentes.css';
 
 const TIENE_LETRAS_REGEX = /[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]/;
 
+const obtenerFechaLocalHoy = () => {
+  const hoy = new Date();
+  const anio = hoy.getFullYear();
+  const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+  const dia = String(hoy.getDate()).padStart(2, '0');
+  return `${anio}-${mes}-${dia}`;
+};
+
 export default function Incidentes() {
   const [incidentes, setIncidentes] = useState([]);
   const [equipos, setEquipos] = useState([]);
@@ -29,7 +37,7 @@ export default function Incidentes() {
   const [formData, setFormData] = useState({
     codigo: '',
     tipo: 'DANO',
-    fecha: new Date().toISOString().split('T')[0],
+    fecha: obtenerFechaLocalHoy(),
     descripcion: '',
     id_evento: '',
     id_trabajador: '',
@@ -200,7 +208,7 @@ export default function Incidentes() {
       setFormData({
         codigo: '',
         tipo: 'DANO',
-        fecha: new Date().toISOString().split('T')[0],
+        fecha: obtenerFechaLocalHoy(),
         descripcion: '',
         id_evento: '',
         id_trabajador: '',

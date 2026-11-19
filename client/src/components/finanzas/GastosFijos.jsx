@@ -138,7 +138,7 @@ export default function GastosFijos() {
       setError('');
       setExito('');
       setErrorModalEliminar('');
-      await eliminarGastoFijo(gastoAEliminar.id_gasto_fijo);
+      await eliminarGastoFijo(gastoAEliminar.id_gasto_fijo, motivoLimpio);
       if (editandoId === gastoAEliminar.id_gasto_fijo) {
         limpiarFormulario();
       }

@@ -5,6 +5,7 @@ import {
   obtenerRegistrosMesCerrado,
   corregirMontoMesCerrado,
 } from '../../services/corregirMesCerrado.service.js';
+import { obtenerUsuario } from '../../services/http.js';
 import '../../styles/CierreMensual.css';
 
 const MESES = [
@@ -23,6 +24,9 @@ const MESES = [
 ];
 
 export default function ResumenFinancieroMensual() {
+  const rolActual = String(obtenerUsuario()?.rol ?? '').toUpperCase();
+  const esContador = rolActual === 'CONTADOR';
+
   const hoy = new Date();
   const anioActual = hoy.getFullYear();
   const mesActual = hoy.getMonth() + 1;
@@ -44,15 +48,19 @@ export default function ResumenFinancieroMensual() {
   const [error, setError] = useState('');
   const [exito, setExito] = useState('');
 
+  const [modalCierreAbierto, setModalCierreAbierto] = useState(false);
+
   const cargarTodo = async () => {
     try {
       setCargando(true);
       setError('');
+
       const [resResumen, resValidacion, resCorreccion] = await Promise.all([
         obtenerResumenMensual(anio, mes),
-        validarPreCierreMes(anio, mes),
-        obtenerRegistrosMesCerrado(anio, mes),
+        esContador ? validarPreCierreMes(anio, mes) : Promise.resolve(null),
+        esContador ? obtenerRegistrosMesCerrado(anio, mes) : Promise.resolve(null),
       ]);
+
       const dataResumen = resResumen?.data || resResumen || null;
       const dataCorr = resCorreccion?.data || resCorreccion || { registros: [], historial: [] };
 
@@ -76,31 +84,28 @@ export default function ResumenFinancieroMensual() {
 
   const nombreMes = MESES.find((m) => m.valor === Number(mes))?.nombre || '';
 
-  const handleCerrarMes = async () => {
-    if (!validacion?.puede_cerrar || cerrando) return;
+  const abrirModalCierre = () => {
+  if (!esContador || !validacion?.puede_cerrar || cerrando) return;
+  setModalCierreAbierto(true);
+};
 
-    const hayAdvertencias =
-      (validacion?.advertencias?.acuerdos_vencidos?.length || 0) > 0 ||
-      (validacion?.advertencias?.remuneraciones_pendientes?.length || 0) > 0;
+const confirmarCierreMes = async () => {
+  if (!esContador || !validacion?.puede_cerrar || cerrando) return;
 
-    const mensajeConfirm = hayAdvertencias
-      ? `Existen advertencias pendientes en ${nombreMes} ${anio}. ¿Confirmas que deseas cerrar el mes y fijar sus montos de forma definitiva?`
-      : `¿Confirmas el cierre contable de ${nombreMes} ${anio}? Una vez cerrado no se podrán registrar nuevos gastos fijos.`;
-
-    if (!window.confirm(mensajeConfirm)) return;
-
-    try {
-      setCerrando(true);
-      setError('');
-      await cerrarMesContable(anio, mes);
-      setExito(`El período ${nombreMes} ${anio} fue cerrado y fijado correctamente.`);
-      await cargarTodo();
-    } catch (err) {
-      setError(err.message || 'No se pudo cerrar el mes contable.');
-    } finally {
-      setCerrando(false);
-    }
-  };
+  try {
+    setCerrando(true);
+    setError('');
+    await cerrarMesContable(anio, mes);
+    setModalCierreAbierto(false);
+    setExito(`El período ${nombreMes} ${anio} fue cerrado y fijado correctamente.`);
+    await cargarTodo();
+  } catch (err) {
+    setModalCierreAbierto(false);
+    setError(err.message || 'No se pudo cerrar el mes contable.');
+  } finally {
+    setCerrando(false);
+  }
+};
 
   const handleSeleccionarRegistro = (clave) => {
     setClaveSeleccionada(clave);
@@ -110,7 +115,7 @@ export default function ResumenFinancieroMensual() {
 
   const handleCorregirMonto = async (e) => {
     e.preventDefault();
-    if (!claveSeleccionada || !nuevoMonto || !motivo.trim() || corrigiendo) return;
+    if (!esContador || !claveSeleccionada || !nuevoMonto || !motivo.trim() || corrigiendo) return;
 
     const [tabla, id_registro] = claveSeleccionada.split(':');
 
@@ -302,94 +307,96 @@ export default function ResumenFinancieroMensual() {
         )}
       </div>
 
-      {/* Bloque de Cierre Contable del Mes (RF-P8-05) */}
-      <div className="cm-card">
-        <div className="cm-cierre-cab">
-          <div>
-            <h3 className="cm-card-titulo-sin-margen">
-              Cierre Contable del Mes — {nombreMes} {anio}
-            </h3>
-            {mesCerrado ? (
-              <p className="cm-cierre-info-cerrado">
-                Cerrado el{' '}
-                <strong>
-                  {datos?.fecha_cierre
-                    ? new Date(datos.fecha_cierre).toLocaleString('es-CL')
-                    : '—'}
-                </strong>
-                {datos?.cerrado_por && (
-                  <>
-                    {' '}por <strong>{datos.cerrado_por}</strong>
-                  </>
-                )}
-                . Resumen fijado.
-              </p>
-            ) : (
-              <p className="cm-cierre-info-abierto">
-                Fija los resultados del período una vez finalizados todos los eventos del mes.
-              </p>
+      {/* Bloque de Cierre Contable del Mes (RF-P8-05) - Solo Contador */}
+      {esContador && (
+        <div className="cm-card">
+          <div className="cm-cierre-cab">
+            <div>
+              <h3 className="cm-card-titulo-sin-margen">
+                Cierre Contable del Mes — {nombreMes} {anio}
+              </h3>
+              {mesCerrado ? (
+                <p className="cm-cierre-info-cerrado">
+                  Cerrado el{' '}
+                  <strong>
+                    {datos?.fecha_cierre
+                      ? new Date(datos.fecha_cierre).toLocaleString('es-CL')
+                      : '—'}
+                  </strong>
+                  {datos?.cerrado_por && (
+                    <>
+                      {' '}por <strong>{datos.cerrado_por}</strong>
+                    </>
+                  )}
+                  . Resumen fijado.
+                </p>
+              ) : (
+                <p className="cm-cierre-info-abierto">
+                  Fija los resultados del período una vez finalizados todos los eventos del mes.
+                </p>
+              )}
+            </div>
+
+            {!mesCerrado && (
+              <button
+                type="button"
+                onClick={abrirModalCierre}
+                disabled={!validacion?.puede_cerrar || cerrando}
+                className="cm-btn-cierre"
+              >
+                {cerrando ? 'Cerrando mes...' : `Cerrar ${nombreMes} ${anio}`}
+              </button>
             )}
           </div>
 
-          {!mesCerrado && (
-            <button
-              type="button"
-              onClick={handleCerrarMes}
-              disabled={!validacion?.puede_cerrar || cerrando}
-              className="cm-btn-cierre"
-            >
-              {cerrando ? 'Cerrando mes...' : `Cerrar ${nombreMes} ${anio}`}
-            </button>
+          {/* Bloqueos y advertencias previas al cierre */}
+          {!mesCerrado && !cargando && (
+            <div className="cm-validaciones-lista">
+              {eventosAbiertos.length > 0 && (
+                <div className="cm-bloqueo-caja">
+                  <strong>Bloqueo de cierre:</strong> Hay {eventosAbiertos.length} evento(s) en este mes que aún no están en estado Cerrado:
+                  <ul className="cm-lista-items">
+                    {eventosAbiertos.map((ev) => (
+                      <li key={ev.id_evento}>
+                        Evento #{ev.id_evento} · {ev.tipo} ({new Date(ev.fecha).toLocaleDateString('es-CL', { timeZone: 'UTC' })}) — Estado: <strong>{ev.estado}</strong>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {acuerdosVencidos.length > 0 && (
+                <div className="cm-advertencia-caja">
+                  <strong>Advertencia — Acuerdos vencidos ({acuerdosVencidos.length}):</strong>
+                  <ul className="cm-lista-items">
+                    {acuerdosVencidos.map((a) => (
+                      <li key={a.id_acuerdo}>
+                        {a.auspiciador} (Venció el {new Date(a.fecha_fin).toLocaleDateString('es-CL', { timeZone: 'UTC' })})
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {remunPendientes.length > 0 && (
+                <div className="cm-advertencia-caja">
+                  <strong>Advertencia — Remuneraciones sin pagar ({remunPendientes.length}):</strong>
+                  <ul className="cm-lista-items">
+                    {remunPendientes.map((r) => (
+                      <li key={r.id_asignacion}>
+                        {r.trabajador} en {r.evento} (${r.monto_pactado.toLocaleString('es-CL')})
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
           )}
         </div>
+      )}
 
-        {/* Bloqueos y advertencias previas al cierre */}
-        {!mesCerrado && !cargando && (
-          <div className="cm-validaciones-lista">
-            {eventosAbiertos.length > 0 && (
-              <div className="cm-bloqueo-caja">
-                <strong>Bloqueo de cierre:</strong> Hay {eventosAbiertos.length} evento(s) en este mes que aún no están en estado Cerrado:
-                <ul className="cm-lista-items">
-                  {eventosAbiertos.map((ev) => (
-                    <li key={ev.id_evento}>
-                      Evento #{ev.id_evento} · {ev.tipo} ({new Date(ev.fecha).toLocaleDateString('es-CL', { timeZone: 'UTC' })}) — Estado: <strong>{ev.estado}</strong>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {acuerdosVencidos.length > 0 && (
-              <div className="cm-advertencia-caja">
-                <strong>Advertencia — Acuerdos vencidos ({acuerdosVencidos.length}):</strong>
-                <ul className="cm-lista-items">
-                  {acuerdosVencidos.map((a) => (
-                    <li key={a.id_acuerdo}>
-                      {a.auspiciador} (Venció el {new Date(a.fecha_fin).toLocaleDateString('es-CL', { timeZone: 'UTC' })})
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {remunPendientes.length > 0 && (
-              <div className="cm-advertencia-caja">
-                <strong>Advertencia — Remuneraciones sin pagar ({remunPendientes.length}):</strong>
-                <ul className="cm-lista-items">
-                  {remunPendientes.map((r) => (
-                    <li key={r.id_asignacion}>
-                      {r.trabajador} en {r.evento} (${r.monto_pactado.toLocaleString('es-CL')})
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Bloque RF-P8-06: Corregir un mes cerrado */}
-      {mesCerrado && (
+      {/* Bloque RF-P8-06: Corregir un mes cerrado - Solo Contador */}
+      {esContador && mesCerrado && (
         <div className="cm-card cm-card-col">
           <div>
             <h3 className="cm-card-titulo-sin-margen">
@@ -505,6 +512,70 @@ export default function ResumenFinancieroMensual() {
           </div>
         </div>
       )}
+      {/* Modal institucional de confirmación de cierre de mes */}
+   {esContador && modalCierreAbierto && (
+     <div
+       className="cm-modal-overlay"
+       onClick={() => !cerrando && setModalCierreAbierto(false)}
+     >
+       <div className="cm-modal" onClick={(e) => e.stopPropagation()}>
+         <div className="cm-modal-cab">
+           <h4 className="cm-modal-titulo">Confirmar Cierre Contable</h4>
+           <button
+             type="button"
+             className="cm-modal-cerrar"
+             disabled={cerrando}
+             onClick={() => setModalCierreAbierto(false)}
+           >
+             ✕
+           </button>
+         </div>
+
+         <div className="cm-modal-cuerpo">
+           <p className="cm-modal-texto">
+             ¿Confirmas el cierre contable de{' '}
+             <strong>
+               {nombreMes} {anio}
+             </strong>
+             ? Una vez cerrado se fijarán los resultados del período y no se podrán registrar nuevos gastos fijos.
+           </p>
+
+           {(acuerdosVencidos.length > 0 || remunPendientes.length > 0) && (
+             <div className="cm-modal-aviso">
+               <strong>Advertencias pendientes en este período:</strong>
+               <ul className="cm-lista-items">
+                 {acuerdosVencidos.length > 0 && (
+                   <li>{acuerdosVencidos.length} acuerdo(s) de auspicio vencido(s)</li>
+                 )}
+                 {remunPendientes.length > 0 && (
+                   <li>{remunPendientes.length} remuneración(es) sin pagar</li>
+                 )}
+               </ul>
+             </div>
+           )}
+
+           <div className="cm-modal-acciones">
+             <button
+               type="button"
+               className="cm-btn-secundario"
+               disabled={cerrando}
+               onClick={() => setModalCierreAbierto(false)}
+             >
+               Cancelar
+             </button>
+             <button
+               type="button"
+               className="cm-btn-cierre"
+               disabled={cerrando}
+               onClick={confirmarCierreMes}
+             >
+               {cerrando ? 'Cerrando mes...' : `Cerrar ${nombreMes} ${anio}`}
+             </button>
+           </div>
+         </div>
+       </div>
+     </div>
+   )}
     </div>
   );
 }
