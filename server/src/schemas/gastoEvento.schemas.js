@@ -41,6 +41,32 @@ const texto = (valor, campo, max) => {
   return t;
 };
 
+// Texto libre (descripción, motivo): solo letras (con tildes y ñ), números, espacios y . , ; : ( ) - / ¿ ? ¡ !
+const CARACTERES_PERMITIDOS = /^[\p{L}\p{N} .,;:()\-\/¿?¡!]+$/u;
+const TIENE_LETRA_O_NUMERO = /[\p{L}\p{N}]/u;
+
+const textoLibre = (valor, campo, max, nombre) => {
+  if(valor === undefined || valor === null) return null;
+  const t = String(valor).replace(/\s+/g, ' ').trim(); // saltos de línea y espacios repetidos pasan a un solo espacio
+  if(t === '') return null;
+  if(t.length > max){
+    throw new ValidationError(`El campo ${campo} no puede superar ${max} caracteres`, campo);
+  }
+  if(!CARACTERES_PERMITIDOS.test(t)){
+    throw new ValidationError(
+      `${nombre} solo admite letras, números, espacios y los signos . , ; : ( ) - / ¿ ? ¡ !`,
+      campo,
+    );
+  }
+  if(!TIENE_LETRA_O_NUMERO.test(t)){
+    throw new ValidationError(`${nombre} debe incluir al menos una letra o un número`, campo);
+  }
+  return t;
+};
+
+const descripcionGasto = (valor) => textoLibre(valor, 'descripcion', 255, 'La descripción');
+const motivoCambio = (valor) => textoLibre(valor, 'motivo', 255, 'El motivo');
+
 const tipoGasto = (valor) => {
   if(!TIPOS_GASTO.includes(valor)){
     throw new ValidationError(`tipo_gasto debe ser uno de: ${TIPOS_GASTO.join(', ')}`, 'tipo_gasto');
@@ -64,7 +90,7 @@ export const validarCrearGasto = (body, file) => {
     throw new ValidationError('La evidencia (JPG, PNG o PDF) es obligatoria', 'evidencia');
   }
   const tipo_gasto = tipoGasto(body.tipo_gasto);
-  const descripcion = texto(body.descripcion, 'descripcion', 255);
+  const descripcion = descripcionGasto(body.descripcion);
   if(tipo_gasto === 'OTRO' && !descripcion){
     throw new ValidationError('La descripción es obligatoria para gastos de tipo OTRO', 'descripcion');
   }
@@ -84,7 +110,7 @@ export const validarCrearGasto = (body, file) => {
 
 // RF-P7-03 (modificar): todo es opcional salvo id_contador y motivo
 export const validarModificarGasto = (body, file) => {
-  const motivo = texto(body.motivo, 'motivo', 255);
+  const motivo = motivoCambio(body.motivo);
   if(!motivo) throw new ValidationError('El motivo del cambio es obligatorio', 'motivo');
 
   const datos = {
@@ -96,7 +122,7 @@ export const validarModificarGasto = (body, file) => {
   if(body.tipo_gasto !== undefined) datos.tipo_gasto = tipoGasto(body.tipo_gasto);
   if(body.monto !== undefined) datos.monto = entero(body.monto, 'monto');
   if(body.fecha !== undefined) datos.fecha = fechaDate(body.fecha);
-  if(body.descripcion !== undefined) datos.descripcion = texto(body.descripcion, 'descripcion', 255);
+  if(body.descripcion !== undefined) datos.descripcion = descripcionGasto(body.descripcion);
   if(body.origen !== undefined) datos.origen = texto(body.origen, 'origen', 80);
   if(body.destino !== undefined) datos.destino = texto(body.destino, 'destino', 80);
   if(file) datos.evidencia = `uploads/evidencias/${file.filename}`;
@@ -105,7 +131,7 @@ export const validarModificarGasto = (body, file) => {
 };
 
 export const validarEliminarGasto = (body) => {
-  const motivo = texto(body.motivo, 'motivo', 255);
+  const motivo = motivoCambio(body.motivo);
   if(!motivo) throw new ValidationError('El motivo de la eliminación es obligatorio', 'motivo');
   return { id_contador: entero(body.id_contador, 'id_contador'), motivo };
 };
