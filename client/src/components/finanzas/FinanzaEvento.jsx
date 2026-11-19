@@ -6,7 +6,7 @@ import PanelGastos from './PanelGastos';
 import PanelRendiciones from './PanelRendiciones';
 import PanelRemuneraciones from './PanelRemuneraciones';
 import PanelRentabilidad from './PanelRentabilidad';
-import PanelPagos from './PanelPagos';
+import PanelPagos from './panelPagos';
 import PanelCierre from './PanelCierre';
 import { formatearFecha } from './formato';
 
@@ -65,7 +65,7 @@ export default function FinanzasEventos() {
     setAbierto(false);
   }
 
-  // Un solo aviso, siempre arriba: primero lo del cierre de la jornada, luego lo del rol y, al final, lo de los pagos
+  // Avisos: todos los que corresponden se muestran arriba, uno debajo del otro
   const avisoCierre = !cerrado
     ? ''
     : vista === 'cierre'
@@ -86,12 +86,14 @@ export default function FinanzasEventos() {
   // Los pagos solo se registran con la jornada cerrada
   const avisoPagos = vista === 'pagos' && idEvento && !cerrado ? 'Los pagos se registran cuando la jornada está cerrada.' : '';
 
-  const aviso = avisoCierre || avisoRol || avisoPagos;
+  const avisos = [avisoCierre, avisoRol, avisoPagos].filter(Boolean);
 
   return (
     <>
       {error && <div className="fin-alerta">{error}</div>}
-      {aviso && <div className="fin-alerta fin-alerta-info">{aviso}</div>}
+      {avisos.map((a) => (
+        <div key={a} className="fin-alerta fin-alerta-info">{a}</div>
+      ))}
 
       <section className="fin-filtros fin-filtros-evento">
         <div className="fin-busqueda">
