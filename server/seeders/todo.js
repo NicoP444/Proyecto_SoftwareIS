@@ -14,7 +14,7 @@
 //  Se puede correr las veces que se quiera: siempre deja el mismo set desde cero.
 // ============================================================================
 import 'dotenv/config';
-import { prisma } from './lib/base.js';
+import { prisma, HOY, dia } from './lib/base.js';
 import { limpiarTodo } from './limpiar.js';
 import sembrarUsuarios from './datos/01-usuarios.js';
 import sembrarCatalogo from './datos/02-catalogo.js';
@@ -35,6 +35,15 @@ async function main() {
 
   const eventos = await prisma.evento.count();
   console.log(`\nListo: set de pruebas completo (${eventos} eventos). Contraseña de todos los usuarios: 123456`);
+
+  // Los casos pasados (C09-C14) y sus pagos llegan hasta 15 días atrás. Si hoy es día 1 al 15,
+  // parte de ellos cae en el mes pasado y cambia lo que se espera al cerrar ese mes.
+  if (dia(-15).slice(0, 7) !== dia(0).slice(0, 7)) {
+    console.log(
+      `\n⚠ Hoy es día ${HOY.getDate()}: algunos casos pasados (C09 a C14) quedaron en el mes pasado.` +
+        '\n  El cierre del mes pasado se bloqueará hasta marcar C09 como realizado. Lo ideal es correr el set del día 16 en adelante.',
+    );
+  }
 }
 
 main()

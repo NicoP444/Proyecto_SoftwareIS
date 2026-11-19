@@ -114,10 +114,10 @@ export default async function sembrarCasos(ctx) {
       {
         tipo: 'C14 · Cerrado con pérdida', cliente: 'cultura', fecha: dia(-8), ini: '18:00', fin: '21:00',
         dir: 'Muelle Histórico, Penco', precio: 250000, estado: 'CERRADO',
-        pagos: [['ADELANTO', 125000, dia(-15)]],
+        pagos: [['ADELANTO', 125000, dia(-15)], ['SALDO', 125000, dia(-8)]],
         personal: [['bruno', 'son', 20], ['ana', 'cam', 20]],
         salidas: [{ kit: 'k6', responsable: 'bruno', sale: '16:30', vuelve: '22:30', perdido: 'CAM-006' }],
-        nota: nota('se perdió la cámara CAM-006 ($1.200.000): resultado −$1.175.000. Revisar pérdidas en Finanzas e Inventario. El Kit Compacto 06 quedó Incompleto.'),
+        nota: nota('pagado completo, pero se perdió la cámara CAM-006 ($1.200.000): resultado −$1.050.000. Revisar pérdidas en Finanzas e Inventario. El Kit Compacto 06 quedó Incompleto.'),
       },
     ],
     ctx,
