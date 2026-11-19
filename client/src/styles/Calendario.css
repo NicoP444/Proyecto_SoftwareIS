@@ -184,7 +184,7 @@ button.cal-mas { flex-shrink: 0; padding: 0; border: 0; background: none; text-a
 .mensaje-aviso { background: rgba(240, 138, 60, 0.12); color: #b45f12; }
 
 /* ---------- Detalle del evento: ventana más ancha y ordenada ---------- */
-.modal-detalle { max-width: 880px; }
+.modal-detalle { max-width: 1120px; }
 
 .cal-detalle { gap: 16px; }
 .cal-detalle .cal-tarjeta-cabecera h3 { font-size: 1.15rem; }
@@ -346,7 +346,7 @@ button.cal-mas { flex-shrink: 0; padding: 0; border: 0; background: none; text-a
 
 /* ---------- Detalle del evento con pestañas ---------- */
 .cal-tarjeta-titulo { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
-.cal-pestanas { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--borde); }
+.cal-pestanas { display: flex; gap: 4px; overflow-x: auto; overflow-y: hidden; border-bottom: 1px solid var(--borde); }
 .cal-pestanas button { flex-shrink: 0; padding: 8px 14px; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; background: none; font-size: 0.85rem; font-weight: 600; color: var(--texto-suave); cursor: pointer; }
 .cal-pestanas button:hover { color: var(--texto); }
 .cal-pestanas button.activa { color: var(--primario); border-bottom-color: var(--primario); }
@@ -385,3 +385,9 @@ button.cal-mas { flex-shrink: 0; padding: 0; border: 0; background: none; text-a
 /* Personal y kits: las dos cajas de asignación miden lo mismo y la lista ocupa el espacio que queda */
 .cal-bloque .personal-buscador { height: 540px; }
 .cal-bloque .personal-buscador .personal-lista { flex: 1; min-height: 0; max-height: none; }
+
+/* ===== Detalle del evento más ancho (1120 px) ===== */
+/* Los 5 datos del resumen caben en una sola fila */
+.modal-detalle .cal-datos { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+/* Los chips (auspiciadores) van en fila y no estirados a todo el ancho */
+.cal-bloque > .lista-roles { flex-direction: row; flex-wrap: wrap; }
