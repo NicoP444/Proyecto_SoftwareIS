@@ -2,8 +2,7 @@ import { validarBody, camposObligatorios, validarDueno } from './validate.middle
 import {
   ValidarNombreUsuario,
   ValidarCorreo,
-  ValidarRol,
-  VerificarCorreoUnicoGlobal
+  ValidarRol
 } from '../schemas/usuario.schemas.js';
 import { manejarError, ValidationError } from '../utils/errores.js';
 
@@ -21,8 +20,6 @@ export const verificarSchemaCrearUsuario = async (req, res, next) => {
         'contrasena'
       );
     }
-
-    await VerificarCorreoUnicoGlobal(req.body.correo);
 
     next();
   } catch (error) {

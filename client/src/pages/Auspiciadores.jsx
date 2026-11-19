@@ -1004,7 +1004,7 @@ export default function Auspiciadores() {
                                   Recibido: ${(recibidoAcumulado || montoComp).toLocaleString('es-CL')}
                                 </div>
                               )}
-                              {esParcial && (
+                              {!esCumplido && recibidoAcumulado > 0 && (
                                 <div className="ausp-td-recibido">
                                   Abonado: ${recibidoAcumulado.toLocaleString('es-CL')} · Saldo: ${saldoRestanteFila.toLocaleString('es-CL')}
                                 </div>
@@ -1043,7 +1043,7 @@ export default function Auspiciadores() {
                                         }}
                                         className="ausp-menu-item"
                                       >
-                                        {esParcial
+                                        {esParcial || recibidoAcumulado > 0
                                           ? 'Registrar Siguiente Abono'
                                           : 'Registrar Pago / Abono'}
                                       </button>

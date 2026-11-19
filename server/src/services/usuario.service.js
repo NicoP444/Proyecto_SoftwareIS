@@ -1,148 +1,223 @@
 import prisma from '../config/prisma.js';
-import { ValidationError } from '../utils/errores.js';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
-export const ListarTodosLosUsuarios = async () => {
-  const duenos = await prisma.dueno.findMany({
-    select: { id_dueno: true, nombre: true, correo: true, estado: true }
-  });
-  
-  const contadores = await prisma.contador.findMany({
-    select: { id_contador: true, nombre: true, correo: true, estado: true }
-  });
-
-  const jefes = await prisma.jefeAreaTecnica.findMany({
-    select: { id_jefe: true, nombre: true, correo: true, estado: true }
-  });
-
-  return [
-    ...duenos.map(u => ({ ...u, id: u.id_dueno, rol: 'DUENO' })),
-    ...contadores.map(u => ({ ...u, id: u.id_contador, rol: 'CONTADOR' })),
-    ...jefes.map(u => ({ ...u, id: u.id_jefe, rol: 'JEFE_TECNICO' }))
-  ];
-};
-
-export const CrearUsuarioGlobal = async ({ nombre, correo, contrasena, rol }) => {
-  const nombreLimpio = String(nombre || '').trim();
-  const regexNombre = /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/;
-  if (!regexNombre.test(nombreLimpio)) {
-    throw new ValidationError('El nombre completo solo debe contener letras y espacios', 'nombre');
-  }
-
-  if (!contrasena || String(contrasena).trim().length < 6) {
-    throw new ValidationError('La contraseña es obligatoria y debe tener al menos 6 caracteres', 'contrasena');
-  }
-
-  const correoLimpio = String(correo || '').trim().toLowerCase();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correoLimpio)) {
-    throw new ValidationError('El correo debe tener el formato texto@texto.texto', 'correo');
-  }
-
-  const rolUpper = String(rol || '').toUpperCase();
-  if (rolUpper === 'DUENO') {
-    throw new ValidationError('No está permitido crear nuevas cuentas de Dueño', 'rol');
-  }
-
-  const [existeDueno, existeContador, existeJefe] = await Promise.all([
-    prisma.dueno.findUnique({ where: { correo: correoLimpio } }),
-    prisma.contador.findUnique({ where: { correo: correoLimpio } }),
-    prisma.jefeAreaTecnica.findUnique({ where: { correo: correoLimpio } })
+const validarCorreoUnicoGlobal = async (correoNormalizado, excluir = null) => {
+  const [duenoExistente, contadorExistente, jefeExistente] = await Promise.all([
+    prisma.dueno.findFirst({ where: { correo: correoNormalizado } }),
+    prisma.contador.findFirst({ where: { correo: correoNormalizado } }),
+    prisma.jefeTecnico.findFirst({ where: { correo: correoNormalizado } }),
   ]);
 
-  if (existeDueno || existeContador || existeJefe) {
-    throw new ValidationError('Este correo electrónico ya está registrado en el sistema', 'correo');
-  }
-
-  const hashedPassword = await bcrypt.hash(contrasena, 10);
-
-  if (rolUpper === 'CONTADOR') {
-    return prisma.contador.create({
-      data: { nombre: nombreLimpio, correo: correoLimpio, contrasena: hashedPassword },
-      select: { id_contador: true, nombre: true, correo: true, estado: true }
-    });
-  } else if (rolUpper === 'JEFE_TECNICO') {
-    return prisma.jefeAreaTecnica.create({
-      data: { nombre: nombreLimpio, correo: correoLimpio, contrasena: hashedPassword },
-      select: { id_jefe: true, nombre: true, correo: true, estado: true }
-    });
-  } else {
-    throw new ValidationError('Rol inválido (solo se permite CONTADOR o JEFE_TECNICO)', 'rol');
-  }
-};
-
-export const ModificarUsuarioGlobal = async (id, { nombre, correo, rol }) => {
-  const idNum = Number(id);
-  const rolUpper = String(rol).toUpperCase();
-  const correoLimpio = String(correo || '').trim().toLowerCase();
-  const nombreLimpio = String(nombre || '').trim();
-
-  const regexNombre = /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/;
-  if (!regexNombre.test(nombreLimpio)) {
-    throw new ValidationError('El nombre completo solo debe contener letras y espacios', 'nombre');
-  }
-
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correoLimpio)) {
-    throw new ValidationError('El correo debe tener el formato texto@texto.texto', 'correo');
-  }
-
-  if (rolUpper === 'DUENO') {
-    return prisma.dueno.update({
-      where: { id_dueno: idNum },
-      data: { nombre: nombreLimpio, correo: correoLimpio },
-      select: { id_dueno: true, nombre: true, correo: true, estado: true }
-    });
-  } else if (rolUpper === 'CONTADOR') {
-    return prisma.contador.update({
-      where: { id_contador: idNum },
-      data: { nombre: nombreLimpio, correo: correoLimpio },
-      select: { id_contador: true, nombre: true, correo: true, estado: true }
-    });
-  } else if (rolUpper === 'JEFE_TECNICO') {
-    return prisma.jefeAreaTecnica.update({
-      where: { id_jefe: idNum },
-      data: { nombre: nombreLimpio, correo: correoLimpio },
-      select: { id_jefe: true, nombre: true, correo: true, estado: true }
-    });
-  } else {
-    throw new ValidationError('Rol no reconocido para modificar', 'rol');
-  }
-};
-
-export const ActualizarEstadoUsuario = async (id, rol, { estado }) => {
-  const idNum = Number(id);
-  const rolUpper = String(rol).toUpperCase();
-
-  if (rolUpper === 'DUENO' && estado === 'INACTIVO') {
-    const duenosActivos = await prisma.dueno.count({
-      where: { estado: 'ACTIVO', id_dueno: { not: idNum } }
-    });
-
-    if (duenosActivos < 1) {
-      throw new ValidationError('No se puede desactivar la última cuenta de Dueño activa.', 'estado');
+  if (duenoExistente) {
+    const esMismoUsuario =
+      excluir &&
+      String(excluir.rol).toUpperCase() === 'DUENO' &&
+      Number(duenoExistente.id_dueno) === Number(excluir.id);
+    if (!esMismoUsuario) {
+      throw new Error('El correo electrónico ya está registrado en otro usuario del sistema (Dueño).');
     }
   }
 
-  const nuevoEstado = String(estado).toUpperCase();
-
-  if (rolUpper === 'DUENO') {
-    return prisma.dueno.update({
-      where: { id_dueno: idNum },
-      data: { estado: nuevoEstado },
-      select: { id_dueno: true, nombre: true, correo: true, estado: true }
-    });
-  } else if (rolUpper === 'CONTADOR') {
-    return prisma.contador.update({
-      where: { id_contador: idNum },
-      data: { estado: nuevoEstado },
-      select: { id_contador: true, nombre: true, correo: true, estado: true }
-    });
-  } else if (rolUpper === 'JEFE_TECNICO') {
-    return prisma.jefeAreaTecnica.update({
-      where: { id_jefe: idNum },
-      data: { estado: nuevoEstado },
-      select: { id_jefe: true, nombre: true, correo: true, estado: true }
-    });
-  } else {
-    throw new ValidationError('Rol no reconocido', 'rol');
+  if (contadorExistente) {
+    const esMismoUsuario =
+      excluir &&
+      String(excluir.rol).toUpperCase() === 'CONTADOR' &&
+      Number(contadorExistente.id_contador) === Number(excluir.id);
+    if (!esMismoUsuario) {
+      throw new Error('El correo electrónico ya está registrado en otro usuario del sistema (Contador).');
+    }
   }
+
+  if (jefeExistente) {
+    const esMismoUsuario =
+      excluir &&
+      String(excluir.rol).toUpperCase() === 'JEFE_TECNICO' &&
+      Number(jefeExistente.id_jefe) === Number(excluir.id);
+    if (!esMismoUsuario) {
+      throw new Error('El correo electrónico ya está registrado en otro usuario del sistema (Jefe Técnico).');
+    }
+  }
+};
+
+export const usuarioService = {
+  async listarTodos() {
+    const [duenos, contadores, jefes] = await Promise.all([
+      prisma.dueno.findMany({ orderBy: { id_dueno: 'asc' } }),
+      prisma.contador.findMany({ orderBy: { id_contador: 'asc' } }),
+      prisma.jefeTecnico.findMany({ orderBy: { id_jefe: 'asc' } }),
+    ]);
+
+    const listaDuenos = duenos.map((d) => ({
+      id: d.id_dueno,
+      id_dueno: d.id_dueno,
+      nombre: d.nombre,
+      correo: d.correo,
+      rol: 'DUENO',
+      estado: d.estado,
+    }));
+
+    const listaContadores = contadores.map((c) => ({
+      id: c.id_contador,
+      id_contador: c.id_contador,
+      nombre: c.nombre,
+      correo: c.correo,
+      rol: 'CONTADOR',
+      estado: c.estado,
+    }));
+
+    const listaJefes = jefes.map((j) => ({
+      id: j.id_jefe,
+      id_jefe: j.id_jefe,
+      nombre: j.nombre,
+      correo: j.correo,
+      rol: 'JEFE_TECNICO',
+      estado: j.estado,
+    }));
+
+    return [...listaDuenos, ...listaContadores, ...listaJefes];
+  },
+
+  async crear({ nombre, correo, contrasena, rol, id_dueno }) {
+    const rolNormalizado = String(rol || '').toUpperCase();
+    if (rolNormalizado === 'DUENO') {
+      throw new Error('No está permitido crear cuentas con rol Dueño.');
+    }
+    if (rolNormalizado !== 'CONTADOR' && rolNormalizado !== 'JEFE_TECNICO') {
+      throw new Error('El rol seleccionado no es válido.');
+    }
+
+    const nombreLimpio = String(nombre || '').trim();
+    if (!/^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/.test(nombreLimpio) || nombreLimpio.length < 2) {
+      throw new Error('El nombre solo debe contener letras y espacios.');
+    }
+
+    const correoLimpio = String(correo || '').trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correoLimpio)) {
+      throw new Error('El correo electrónico debe tener formato válido: texto@texto.texto.');
+    }
+
+    if (!contrasena || String(contrasena).trim().length < 6) {
+      throw new Error('La contraseña debe tener al menos 6 caracteres.');
+    }
+
+    await validarCorreoUnicoGlobal(correoLimpio);
+
+    let duenoId = Number(id_dueno);
+    let duenoValido = duenoId ? await prisma.dueno.findUnique({ where: { id_dueno: duenoId } }) : null;
+    if (!duenoValido) {
+      const primerDueno = await prisma.dueno.findFirst();
+      duenoId = primerDueno ? primerDueno.id_dueno : 1;
+    }
+
+    const hash = await bcrypt.hash(String(contrasena), 10);
+
+    if (rolNormalizado === 'CONTADOR') {
+      const creado = await prisma.contador.create({
+        data: {
+          nombre: nombreLimpio,
+          correo: correoLimpio,
+          contrasena: hash,
+          estado: 'ACTIVO',
+          id_dueno: duenoId,
+        },
+      });
+      return { ...creado, id: creado.id_contador, rol: 'CONTADOR' };
+    }
+
+    const creado = await prisma.jefeTecnico.create({
+      data: {
+        nombre: nombreLimpio,
+        correo: correoLimpio,
+        contrasena: hash,
+        estado: 'ACTIVO',
+        id_dueno: duenoId,
+      },
+    });
+    return { ...creado, id: creado.id_jefe, rol: 'JEFE_TECNICO' };
+  },
+
+  async modificar(id, { nombre, correo, rol }) {
+    const idNum = Number(id);
+    const rolNormalizado = String(rol || '').toUpperCase();
+
+    if (!['DUENO', 'CONTADOR', 'JEFE_TECNICO'].includes(rolNormalizado)) {
+      throw new Error('Rol de usuario no válido para modificación.');
+    }
+
+    const nombreLimpio = String(nombre || '').trim();
+    if (!/^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/.test(nombreLimpio) || nombreLimpio.length < 2) {
+      throw new Error('El nombre solo debe contener letras y espacios.');
+    }
+
+    const correoLimpio = String(correo || '').trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correoLimpio)) {
+      throw new Error('El correo electrónico debe tener formato válido: texto@texto.texto.');
+    }
+
+    await validarCorreoUnicoGlobal(correoLimpio, { id: idNum, rol: rolNormalizado });
+
+    if (rolNormalizado === 'DUENO') {
+      const existe = await prisma.dueno.findUnique({ where: { id_dueno: idNum } });
+      if (!existe) throw new Error('El usuario Dueño no existe.');
+      const actualizado = await prisma.dueno.update({
+        where: { id_dueno: idNum },
+        data: { nombre: nombreLimpio, correo: correoLimpio },
+      });
+      return { ...actualizado, id: actualizado.id_dueno, rol: 'DUENO' };
+    }
+
+    if (rolNormalizado === 'CONTADOR') {
+      const existe = await prisma.contador.findUnique({ where: { id_contador: idNum } });
+      if (!existe) throw new Error('El usuario Contador no existe.');
+      const actualizado = await prisma.contador.update({
+        where: { id_contador: idNum },
+        data: { nombre: nombreLimpio, correo: correoLimpio },
+      });
+      return { ...actualizado, id: actualizado.id_contador, rol: 'CONTADOR' };
+    }
+
+    const existe = await prisma.jefeTecnico.findUnique({ where: { id_jefe: idNum } });
+    if (!existe) throw new Error('El usuario Jefe Técnico no existe.');
+    const actualizado = await prisma.jefeTecnico.update({
+      where: { id_jefe: idNum },
+      data: { nombre: nombreLimpio, correo: correoLimpio },
+    });
+    return { ...actualizado, id: actualizado.id_jefe, rol: 'JEFE_TECNICO' };
+  },
+
+  async actualizarEstado(id, { rol, estado }) {
+    const idNum = Number(id);
+    const rolNormalizado = String(rol || '').toUpperCase();
+    const estadoNormalizado = String(estado || '').toUpperCase();
+
+    if (!['ACTIVO', 'INACTIVO'].includes(estadoNormalizado)) {
+      throw new Error('El estado debe ser ACTIVO o INACTIVO.');
+    }
+
+    if (rolNormalizado === 'DUENO') {
+      const actualizado = await prisma.dueno.update({
+        where: { id_dueno: idNum },
+        data: { estado: estadoNormalizado },
+      });
+      return { ...actualizado, id: actualizado.id_dueno, rol: 'DUENO' };
+    }
+
+    if (rolNormalizado === 'CONTADOR') {
+      const actualizado = await prisma.contador.update({
+        where: { id_contador: idNum },
+        data: { estado: estadoNormalizado },
+      });
+      return { ...actualizado, id: actualizado.id_contador, rol: 'CONTADOR' };
+    }
+
+    if (rolNormalizado === 'JEFE_TECNICO') {
+      const actualizado = await prisma.jefeTecnico.update({
+        where: { id_jefe: idNum },
+        data: { estado: estadoNormalizado },
+      });
+      return { ...actualizado, id: actualizado.id_jefe, rol: 'JEFE_TECNICO' };
+    }
+
+    throw new Error('Rol de usuario no válido.');
+  },
 };
