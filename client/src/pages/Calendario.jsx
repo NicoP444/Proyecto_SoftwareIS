@@ -128,7 +128,8 @@ export default function Calendario() {
   const [editando, setEditando] = useState(false); // ventana "Modificar evento" (RF-P1-07)
   const [avisosEdicion, setAvisosEdicion] = useState([]); // avisos que devuelve el back al modificar
   const [versionFin, setVersionFin] = useState(0); // sube para que el detalle financiero se vuelva a pedir
-    const [diaAbierto, setDiaAbierto] = useState(null); // día ("2026-11-05") cuya lista completa se muestra
+  const [diaAbierto, setDiaAbierto] = useState(null); // día ("2026-11-05") cuya lista completa se muestra
+  const [pestana, setPestana] = useState("resumen"); // pestaña visible en el detalle del evento
 
   // RF-P1-12 y RF-P1-13: el Jefe técnico no ve datos financieros
   const rol = obtenerUsuario()?.rol;
@@ -161,6 +162,7 @@ export default function Calendario() {
   // Cierra el detalle y limpia lo de eliminar
   function cerrarDetalle() {
     setEventoAbierto(null);
+    setPestana("resumen"); // el próximo evento se abre en "Resumen"
     setErrorEliminar("");
     setPidiendoMotivo(false);
     setMotivoEliminar("");
@@ -246,8 +248,7 @@ export default function Calendario() {
       ),
     [eventos],
   );
-
-    // Tipos de evento ya usados, para sugerirlos al crear o modificar
+  // Tipos de evento ya usados, para sugerirlos al crear o modificar
   const tipos = useMemo(
     () =>
       [...new Set(eventos.map((c) => c.tipo).filter(Boolean))].sort((a, b) =>
@@ -495,69 +496,29 @@ export default function Calendario() {
       >
         {e && (
           <div className="cal-detalle">
+            {/* Cabecera: tipo, estado y "Modificar" a mano */}
             <div className="cal-tarjeta-cabecera">
-              <h3>{e.tipo}</h3>
-              <span
-                className={`chip-cal ${ESTADOS[e.estado]?.clase ?? "cerrado"}`}
-              >
-                {ESTADOS[e.estado]?.texto ?? e.estado}
-              </span>
-            </div>
-
-            {/* Datos principales en tarjetitas */}
-            <div className="cal-datos">
-              <div className="cal-dato">
-                <span className="cal-dato-icono">
-                  <CalendarDays />
+              <div className="cal-tarjeta-titulo">
+                <h3>{e.tipo}</h3>
+                <span
+                  className={`chip-cal ${ESTADOS[e.estado]?.clase ?? "cerrado"}`}
+                >
+                  {ESTADOS[e.estado]?.texto ?? e.estado}
                 </span>
-                <div>
-                  <small>Fecha</small>
-                  <strong>{claveDe(e).split("-").reverse().join("/")}</strong>
-                </div>
               </div>
-              <div className="cal-dato">
-                <span className="cal-dato-icono">
-                  <Clock />
-                </span>
-                <div>
-                  <small>Horario</small>
-                  <strong>
-                    {horaDe(e.hora_inicio)} – {horaDe(e.hora_termino)}
-                  </strong>
-                </div>
-              </div>
-              <div className="cal-dato">
-                <span className="cal-dato-icono">
-                  <MapPin />
-                </span>
-                <div>
-                  <small>Dirección</small>
-                  <strong>{e.direccion}</strong>
-                </div>
-              </div>
-              <div className="cal-dato">
-                <span className="cal-dato-icono">
-                  <UserCheck />
-                </span>
-                <div>
-                  <small>Cliente</small>
-                  <strong>{e.cliente?.nombre ?? "—"}</strong>
-                </div>
-              </div>
-              {verFinanzas && (
-                <div className="cal-dato">
-                  <span className="cal-dato-icono">
-                    <Wallet />
-                  </span>
-                  <div>
-                    <small>Precio acordado</small>
-                    <strong>{plata(e.precio_acordado)}</strong>
-                  </div>
-                </div>
+              {puedeModificar && e.estado !== "CERRADO" && (
+                <button
+                  type="button"
+                  className="boton boton-secundario"
+                  onClick={() => {
+                    setAvisosEdicion([]);
+                    setEditando(true);
+                  }}
+                >
+                  <Pencil size={16} /> Modificar
+                </button>
               )}
             </div>
-
-            {e.observaciones && <p className="cal-nota">{e.observaciones}</p>}
 
             {avisosEdicion.length > 0 && (
               <div className="mensaje mensaje-aviso">
@@ -570,34 +531,86 @@ export default function Calendario() {
               </div>
             )}
 
-            <div className="cal-columnas">
-              {/* Columna izquierda: personal, kits, auspiciadores, incidentes */}
-              <div className="cal-col">
-                {/* Dotación del evento (RF-P3-01) */}
-                <section className="cal-bloque">
-                  <PanelPersonal
-                    evento={{
-                      id_evento: e.id_evento,
-                      estado: e.estado,
-                      fecha: claveDe(e),
-                      hora_inicio: horaDe(e.hora_inicio),
-                      hora_termino: horaDe(e.hora_termino),
-                    }}
-                    puedeEditar={puedeCrear}
-                    onCambio={() => {
-                      cargarDatos();
-                      setVersionFin((v) => v + 1);
-                    }}
-                  />
-                </section>
-                {/* Kits del evento (RF-P1-05) */}
-                <section className="cal-bloque">
-                  <PanelKits
-                    evento={{ id_evento: e.id_evento, estado: e.estado }}
-                    puedeEditar={puedeCrear}
-                    onCambio={cargarDatos}
-                  />
-                </section>
+            {/* Pestañas: cada rol ve solo las que le corresponden */}
+            <div className="cal-pestanas" role="tablist">
+              {[
+                { id: "resumen", texto: "Resumen", ver: true },
+                { id: "equipo", texto: "Personal y kits", ver: true },
+                { id: "finanzas", texto: "Finanzas", ver: verFinanzas }, // RF-P1-12 / RF-P1-13
+                { id: "convocatoria", texto: "Convocatoria", ver: puedeCrear },
+              ]
+                .filter((p) => p.ver)
+                .map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={pestana === p.id}
+                    className={pestana === p.id ? "activa" : ""}
+                    onClick={() => setPestana(p.id)}
+                  >
+                    {p.texto}
+                  </button>
+                ))}
+            </div>
+
+            {/* ---------- Resumen ---------- */}
+            {pestana === "resumen" && (
+              <>
+                <div className="cal-datos">
+                  <div className="cal-dato">
+                    <span className="cal-dato-icono">
+                      <CalendarDays />
+                    </span>
+                    <div>
+                      <small>Fecha</small>
+                      <strong>{claveDe(e).split("-").reverse().join("/")}</strong>
+                    </div>
+                  </div>
+                  <div className="cal-dato">
+                    <span className="cal-dato-icono">
+                      <Clock />
+                    </span>
+                    <div>
+                      <small>Horario</small>
+                      <strong>
+                        {horaDe(e.hora_inicio)} – {horaDe(e.hora_termino)}
+                      </strong>
+                    </div>
+                  </div>
+                  <div className="cal-dato">
+                    <span className="cal-dato-icono">
+                      <MapPin />
+                    </span>
+                    <div>
+                      <small>Dirección</small>
+                      <strong>{e.direccion}</strong>
+                    </div>
+                  </div>
+                  <div className="cal-dato">
+                    <span className="cal-dato-icono">
+                      <UserCheck />
+                    </span>
+                    <div>
+                      <small>Cliente</small>
+                      <strong>{e.cliente?.nombre ?? "—"}</strong>
+                    </div>
+                  </div>
+                  {verFinanzas && (
+                    <div className="cal-dato">
+                      <span className="cal-dato-icono">
+                        <Wallet />
+                      </span>
+                      <div>
+                        <small>Precio acordado</small>
+                        <strong>{plata(e.precio_acordado)}</strong>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {e.observaciones && <p className="cal-nota">{e.observaciones}</p>}
+
                 {e.acuerdos?.length > 0 && (
                   <section className="cal-bloque">
                     <span className="etiqueta">Auspiciadores</span>
@@ -627,121 +640,141 @@ export default function Calendario() {
                     )}
                   </section>
                 )}
-              </div>
+              </>
+            )}
 
-              {/* Columna derecha: viabilidad (RF-P1-06) y convocatoria (RF-P3-03) */}
-              {(verFinanzas || puedeCrear) && (
+            {/* ---------- Personal y kits ---------- */}
+            {pestana === "equipo" && (
+              <div className="cal-columnas">
+                {/* Dotación del evento (RF-P3-01) */}
+                <section className="cal-bloque">
+                  <PanelPersonal
+                    evento={{
+                      id_evento: e.id_evento,
+                      estado: e.estado,
+                      fecha: claveDe(e),
+                      hora_inicio: horaDe(e.hora_inicio),
+                      hora_termino: horaDe(e.hora_termino),
+                    }}
+                    puedeEditar={puedeCrear}
+                    onCambio={() => {
+                      cargarDatos();
+                      setVersionFin((v) => v + 1);
+                    }}
+                  />
+                </section>
+                {/* Kits del evento (RF-P1-05) */}
+                <section className="cal-bloque">
+                  <PanelKits
+                    evento={{ id_evento: e.id_evento, estado: e.estado }}
+                    puedeEditar={puedeCrear}
+                    onCambio={cargarDatos}
+                  />
+                </section>
+              </div>
+            )}
+
+            {/* ---------- Finanzas: viabilidad (RF-P1-06), pagos y detalle ---------- */}
+            {pestana === "finanzas" && verFinanzas && (
+              <div className="cal-columnas">
                 <div className="cal-col">
-                  {verFinanzas && (
-                    <section className="cal-bloque">
-                      <ViabilidadEvento
-                        idEvento={e.id_evento}
-                        puedeEditar={puedeCrear && e.estado !== "CERRADO"}
-                        version={versionFin}
-                      />
-                    </section>
-                  )}
-                  {verFinanzas && (
-                    <section className="cal-bloque">
-                      <PagosEvento
-                        idEvento={e.id_evento}
-                        puedeRegistrar={rol === "CONTADOR" && e.estado !== "CERRADO"}
-                        onCambio={refrescarDetalle}
-                        version={versionFin}
-                      />
-                    </section>
-                  )}
-                  {verFinanzas && (
-                    <section className="cal-bloque">
-                      <DetalleFinancieroEvento
-                        idEvento={e.id_evento}
-                        version={versionFin}
-                      />
-                    </section>
-                  )}
-                  {puedeCrear && (
-                    <section className="cal-bloque">
-                      <ConvocatoriaEvento
-                        key={`${e.id_evento}-${e.fecha}-${e.hora_inicio}-${e.hora_termino}-${e.direccion}`}
-                        evento={{
-                          id_evento: e.id_evento,
-                          tipo: e.tipo,
-                          fecha: claveDe(e),
-                          hora_inicio: horaDe(e.hora_inicio),
-                          hora_termino: horaDe(e.hora_termino),
-                          direccion: e.direccion,
-                        }}
-                      />
-                    </section>
-                  )}
+                  <section className="cal-bloque">
+                    <ViabilidadEvento
+                      idEvento={e.id_evento}
+                      puedeEditar={puedeCrear && e.estado !== "CERRADO"}
+                      version={versionFin}
+                    />
+                  </section>
+                  <section className="cal-bloque">
+                    <DetalleFinancieroEvento
+                      idEvento={e.id_evento}
+                      version={versionFin}
+                    />
+                  </section>
                 </div>
-              )}
-            </div>
+                <div className="cal-col">
+                  <section className="cal-bloque">
+                    <PagosEvento
+                      idEvento={e.id_evento}
+                      puedeRegistrar={rol === "CONTADOR" && e.estado !== "CERRADO"}
+                      onCambio={refrescarDetalle}
+                      version={versionFin}
+                    />
+                  </section>
+                </div>
+              </div>
+            )}
+
+            {/* ---------- Convocatoria (RF-P3-03) ---------- */}
+            {pestana === "convocatoria" && puedeCrear && (
+              <section className="cal-bloque">
+                <ConvocatoriaEvento
+                  key={`${e.id_evento}-${e.fecha}-${e.hora_inicio}-${e.hora_termino}-${e.direccion}`}
+                  evento={{
+                    id_evento: e.id_evento,
+                    tipo: e.tipo,
+                    fecha: claveDe(e),
+                    hora_inicio: horaDe(e.hora_inicio),
+                    hora_termino: horaDe(e.hora_termino),
+                    direccion: e.direccion,
+                  }}
+                />
+              </section>
+            )}
 
             {errorEliminar && (
               <div className="mensaje mensaje-error">{errorEliminar}</div>
             )}
 
-            {/* Acciones al final, una al lado de la otra */}
-            <div className="cal-acciones">
-              {puedeModificar && !pidiendoMotivo && e.estado !== "CERRADO" && (
-                <button
-                  type="button"
-                  className="boton boton-secundario"
-                  onClick={() => {
-                    setAvisosEdicion([]);
-                    setEditando(true);
-                  }}
-                >
-                  <Pencil size={16} /> Modificar evento
-                </button>
-              )}
-              {puedeEliminar && !pidiendoMotivo && !["REALIZADO", "CERRADO"].includes(e.estado) && (
-                <button
-                  type="button"
-                  className="boton boton-peligro"
-                  onClick={() => setPidiendoMotivo(true)}
-                >
-                  <Trash2 size={16} /> Eliminar evento
-                </button>
-              )}
-              {puedeEliminar && pidiendoMotivo && (
-                <div className="cal-eliminar">
-                  <div className="campo">
-                    <label htmlFor="motivo-eliminar">
-                      Motivo de la eliminación
-                    </label>
-                    <textarea
-                      id="motivo-eliminar"
-                      rows={3}
-                      maxLength={255}
-                      value={motivoEliminar}
-                      onChange={(ev) => setMotivoEliminar(ev.target.value)}
-                      placeholder="Ej: El cliente canceló el evento"
-                    />
+            {/* Eliminar: al final y discreto, para no presionarlo por error */}
+            {puedeEliminar && !["REALIZADO", "CERRADO"].includes(e.estado) && (
+              <div className="cal-acciones cal-acciones-peligro">
+                {!pidiendoMotivo ? (
+                  <button
+                    type="button"
+                    className="boton boton-peligro-suave"
+                    onClick={() => setPidiendoMotivo(true)}
+                  >
+                    <Trash2 size={16} /> Eliminar evento
+                  </button>
+                ) : (
+                  <div className="cal-eliminar">
+                    <div className="campo">
+                      <label htmlFor="motivo-eliminar">
+                        Motivo de la eliminación
+                      </label>
+                      <textarea
+                        id="motivo-eliminar"
+                        rows={3}
+                        maxLength={255}
+                        value={motivoEliminar}
+                        onChange={(ev) => setMotivoEliminar(ev.target.value)}
+                        placeholder="Ej: El cliente canceló el evento"
+                      />
+                    </div>
+                    <div className="cal-eliminar-botones">
+                      <button
+                        type="button"
+                        className="boton boton-secundario"
+                        onClick={cancelarEliminar}
+                        disabled={eliminando}
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        className="boton boton-peligro"
+                        onClick={manejarEliminar}
+                        disabled={eliminando || !motivoEliminar.trim()}
+                      >
+                        <Trash2 size={16} />
+                        {eliminando ? "Eliminando…" : "Confirmar eliminación"}
+                      </button>
+                    </div>
                   </div>
-                  <div className="cal-eliminar-botones">
-                    <button
-                      type="button"
-                      className="boton boton-secundario"
-                      onClick={cancelarEliminar}
-                      disabled={eliminando}
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="button"
-                      className="boton boton-peligro"
-                      onClick={manejarEliminar}
-                      disabled={eliminando || !motivoEliminar.trim()}
-                    >
-                      <Trash2 size={16} />
-                      {eliminando ? "Eliminando…" : "Confirmar eliminación"}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </Modal>

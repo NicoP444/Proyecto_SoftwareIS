@@ -31,8 +31,22 @@ export default function ModalGestionUsuarios({ isOpen, onClose, idDueno }) {
     }
   };
 
-  const manejarCrearUsuario = async (e) => {
+const manejarCrearUsuario = async (e) => {
     e.preventDefault();
+    
+    // Validación: solo letras y espacios (incluyendo acentos y ñ)
+    const regexNombre = /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/;
+    if (!regexNombre.test(formUser.nombre.trim())) {
+      alert("El nombre completo solo debe contener letras y espacios.");
+      return;
+    }
+
+    const regexCorreo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!regexCorreo.test(formUser.correo.trim())) {
+      alert("El correo debe tener el formato válido: texto@texto.texto");
+      return;
+    }
+
     try {
       await crearUsuario(formUser);
       alert("¡Usuario creado con éxito!");
@@ -62,7 +76,7 @@ export default function ModalGestionUsuarios({ isOpen, onClose, idDueno }) {
         
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", borderBottom: "1px solid #f1f5f9", paddingBottom: "12px" }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: "18px", color: "#0f172a" }}>Administración de Usuarios (RF-T-03)</h2>
+            <h2 style={{ margin: 0, fontSize: "18px", color: "#0f172a" }}>Administración de Usuarios</h2>
             <p style={{ margin: "2px 0 0 0", fontSize: "13px", color: "#64748b" }}>Crear, modificar y gestionar cuentas del sistema con rol y correo único.</p>
           </div>
           <button 
@@ -193,9 +207,8 @@ export default function ModalGestionUsuarios({ isOpen, onClose, idDueno }) {
                 onChange={(e) => setFormUser({ ...formUser, rol: e.target.value })}
                 style={{ width: "100%", padding: "8px", borderRadius: "8px", border: "1px solid #cbd5e1", boxSizing: "border-box", fontSize: "13px", backgroundColor: "#fff" }}
               >
-                <option value="DUENO">DUEÑO</option>
                 <option value="CONTADOR">CONTADOR</option>
-                <option value="JEFE_TECNICA">JEFE DE ÁREA TÉCNICA</option>
+                <option value="JEFE_TECNICO">JEFE DE ÁREA TÉCNICA</option>
               </select>
             </div>
 

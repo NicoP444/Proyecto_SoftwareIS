@@ -9,7 +9,9 @@ import '../styles/Plantilla.css';
  * Plantilla de las pantallas internas: barra superior + menú lateral + contenido.
  * En App.jsx se usa como ruta "padre" y cada página aparece en <Outlet /> contiene layout.
  */
-export default function Plantilla({ nombreEmpresa = 'Empresa' }) {
+// Rol tal como viene del back -> como se muestra en pantalla
+const NOMBRES_ROL = { DUENO: 'Dueño', CONTADOR: 'Contador', JEFE_TECNICO: 'Jefe técnico' };
+export default function Plantilla({ nombreEmpresa = 'SixSeven' }) {
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [modalUsuariosAbierto, setModalUsuariosAbierto] = useState(false);
   // El Login guardó el usuario en el navegador
@@ -58,7 +60,7 @@ export default function Plantilla({ nombreEmpresa = 'Empresa' }) {
         <div className="usuario">
           <div className="usuario-texto">
             <strong>{usuario.nombre}</strong>
-            <span>{usuario.rol}</span>
+            <span>{NOMBRES_ROL[rol] ?? usuario.rol}</span>
           </div>
           <span className="usuario-avatar">{usuario.nombre?.charAt(0)}</span>
         </div>

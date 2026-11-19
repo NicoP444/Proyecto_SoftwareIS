@@ -40,10 +40,9 @@ async modificar(req, res) {
       await auspiciadorService.eliminar(id);
       res.status(200).json({ mensaje: "Auspiciador eliminado con éxito." });
     } catch (error) {
-      if (error.message.includes("tiene acuerdos")) {
-        return res.status(400).json({ error: error.message });
-      }
-      res.status(500).json({ error: "Ocurrió un error al eliminar el auspiciador." });
+      // Retorna el mensaje exacto con la clave "mensaje" que espera el frontend
+      const msg = error.message || "No se puede eliminar el auspiciador.";
+      res.status(400).json({ mensaje: error.message || 'Error en la operación', error: error.message });
     }
   }
 };

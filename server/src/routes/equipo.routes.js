@@ -16,8 +16,10 @@ import {
 
 const router = Router();
 
-// Obtener todos los equiposs
 router.use(autenticar, permitirRoles('JEFE_TECNICO'));
+
+// Obtener todos los equipos
+router.get('/', equipoController.obtenerEquipos);
 
 // Registrar equipo (RF-P5-01)
 router.post(

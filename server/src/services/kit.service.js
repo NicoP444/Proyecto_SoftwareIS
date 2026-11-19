@@ -1,12 +1,12 @@
 import prisma from '../config/prisma.js';
 import { ValidationError } from '../utils/errores.js';
 
-// Función auxiliar para calcular el estado automático de un kit según sus equipos operativos
+const CATEGORIAS_REQUERIDAS = ['CAMARA', 'TRIPODE', 'MICROFONO', 'SWITCH_VIDEO'];
+
 const calcularEstadoKit = (equipos) => {
   if (!Array.isArray(equipos) || equipos.length === 0) return 'INCOMPLETO';
   const categoriasPresentes = new Set(equipos.map((e) => e.categoria?.toUpperCase()));
-  const requeridas = ['CAMARA', 'TRIPODE', 'MICROFONO', 'SWITCH_VIDEO'];
-  const cumpleMinimo = requeridas.every((cat) => categoriasPresentes.has(cat));
+  const cumpleMinimo = CATEGORIAS_REQUERIDAS.every((cat) => categoriasPresentes.has(cat));
   return cumpleMinimo ? 'DISPONIBLE' : 'INCOMPLETO';
 };
 
@@ -53,8 +53,7 @@ export const kitService = {
     }
 
     const categoriasPresentes = equiposEncontrados.map((eq) => eq.categoria);
-    const categoriasRequeridas = ['CAMARA', 'TRIPODE', 'MICROFONO', 'SWITCH_VIDEO'];
-    const faltantes = categoriasRequeridas.filter((cat) => !categoriasPresentes.includes(cat));
+    const faltantes = CATEGORIAS_REQUERIDAS.filter((cat) => !categoriasPresentes.includes(cat));
 
     if (faltantes.length > 0) {
       throw new ValidationError(
@@ -136,7 +135,14 @@ export const kitService = {
       throw new ValidationError('El kit no existe', 'id_kit');
     }
 
-    const intentandoCambiarEquipos = equipos !== undefined;
+    const codigosActuales = kitActual.equipos.map((eq) => eq.codigo);
+    const mismosEquipos =
+      Array.isArray(equipos) &&
+      equipos.length === codigosActuales.length &&
+      equipos.every((c) => codigosActuales.includes(c));
+
+    // Solo consideramos que intenta cambiar equipos si envió un arreglo distinto al actual
+    const intentandoCambiarEquipos = equipos !== undefined && !mismosEquipos;
 
     if (intentandoCambiarEquipos && kitActual.estado === 'EN_TERRENO') {
       throw new ValidationError('No se pueden modificar los equipos de un kit mientras está en terreno', 'equipos');
@@ -149,7 +155,7 @@ export const kitService = {
       }
     }
 
-    let nuevosEquiposCodigos = kitActual.equipos.map((eq) => eq.codigo);
+    let nuevosEquiposCodigos = codigosActuales;
     let equiposEncontrados = kitActual.equipos;
 
     if (intentandoCambiarEquipos) {
@@ -174,10 +180,24 @@ export const kitService = {
         const nombres = deOtroKit.map((e) => e.nombre).join(', ');
         throw new ValidationError(`Los siguientes equipos ya pertenecen a otro kit: ${nombres}`, 'equipos');
       }
+
+      // RF-P5-05: Validar siempre composición mínima de equipos al modificar el kit
+      const categoriasPresentes = equiposEncontrados.map((eq) => eq.categoria);
+      const faltantes = CATEGORIAS_REQUERIDAS.filter((cat) => !categoriasPresentes.includes(cat));
+
+      if (faltantes.length > 0) {
+        throw new ValidationError(
+          `El kit requiere al menos un equipo de cada categoría obligatoria. Faltan: ${faltantes.join(', ')}`,
+          'equipos'
+        );
+      }
     }
 
-    // Calcula el estado automático basado en los equipos definitivos
-    const estadoCalculado = calcularEstadoKit(equiposEncontrados);
+    // RF-P5-05: Si está EN_TERRENO y solo se edita el nombre/nivel/recargo, NO debe cambiar a DISPONIBLE
+    const estadoCalculado =
+      kitActual.estado === 'EN_TERRENO'
+        ? 'EN_TERRENO'
+        : calcularEstadoKit(equiposEncontrados);
 
     const kitActualizado = await prisma.$transaction(async (tx) => {
       await tx.kit.update({
@@ -192,8 +212,6 @@ export const kitService = {
       });
 
       if (intentandoCambiarEquipos) {
-        const codigosActuales = kitActual.equipos.map((eq) => eq.codigo);
-
         const aLiberar = codigosActuales.filter((c) => !nuevosEquiposCodigos.includes(c));
         if (aLiberar.length > 0) {
           await tx.equipo.updateMany({
@@ -236,17 +254,68 @@ export const kitService = {
       throw new ValidationError('No se puede eliminar un kit que se encuentra en terreno', 'estado');
     }
 
-    return await prisma.$transaction(async (tx) => {
-      await tx.equipo.updateMany({
-        where: { id_kit },
-        data: { id_kit: null },
-      });
+    // RF-P5-06: Validar si tiene reservas asociadas en eventos futuros
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
 
-      await tx.kit.delete({
-        where: { id_kit },
-      });
+    let tieneReservasFuturas = false;
+    const modelosReserva = [
+      prisma.kitEvento,
+      prisma.eventoKit,
+      prisma.reservaKit,
+      prisma.asignacionKit,
+    ].filter(Boolean);
 
-      return { mensaje: 'Kit eliminado exitosamente y sus equipos pasaron a ser repuestos' };
-    });
+    for (const modelo of modelosReserva) {
+      try {
+        const asignaciones = await modelo.findMany({
+          where: { id_kit },
+          include: { evento: true },
+        });
+
+        tieneReservasFuturas = asignaciones.some((asig) => {
+          const ev = asig.evento;
+          if (!ev) return false;
+          const fechaEv = new Date(
+            ev.fecha || ev.fecha_evento || ev.fecha_inicio || ev.fecha_realizacion
+          );
+          const estadoEv = String(ev.estado || '').toUpperCase();
+          if (['CANCELADO', 'FINALIZADO', 'CERRADO'].includes(estadoEv)) return false;
+          return !Number.isNaN(fechaEv.getTime()) && fechaEv >= hoy;
+        });
+
+        if (tieneReservasFuturas) break;
+      } catch {
+        // Continúa si el modelo tiene otra estructura
+      }
+    }
+
+    if (tieneReservasFuturas) {
+      throw new ValidationError(
+        'No se puede eliminar el kit porque tiene reservas asignadas en eventos futuros.',
+        'id_kit'
+      );
+    }
+
+    try {
+      return await prisma.$transaction(async (tx) => {
+        await tx.equipo.updateMany({
+          where: { id_kit },
+          data: { id_kit: null },
+        });
+
+        await tx.kit.delete({
+          where: { id_kit },
+        });
+
+        return { mensaje: 'Kit eliminado exitosamente y sus equipos pasaron a ser repuestos' };
+      });
+    } catch (error) {
+      // Si falla por restricción de llave foránea con eventos/reservas
+      throw new ValidationError(
+        'No se puede eliminar el kit porque tiene reservas o eventos asociados.',
+        'id_kit'
+      );
+    }
   },
 };

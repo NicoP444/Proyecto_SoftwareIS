@@ -1,14 +1,15 @@
 import { Router } from "express";
-import { validarDueno, validarId } from "../middlewares/validate.middleware.js";
 import { autenticar, permitirRoles } from "../middlewares/auth.middleware.js";
-import { ListarUsuarios, CrearUsuario, ActualizarEstadoUsuario } from "../controllers/usuario.controller.js";
+import { validarId } from "../middlewares/validate.middleware.js";
+import { ListarUsuarios, CrearUsuario, ActualizarEstadoUsuario, ModificarUsuario } from "../controllers/usuario.controller.js";
 
 const router = Router();
 
-// Administrar usuarios: solo el Dueño 
+router.use(autenticar, permitirRoles('DUENO'));
 
-router.get('/', validarDueno, ListarUsuarios);
-router.post('/', validarDueno, CrearUsuario);
-router.put('/:id/estado', validarId, validarDueno, ActualizarEstadoUsuario);
+router.get('/', ListarUsuarios);
+router.post('/', CrearUsuario);
+router.put('/:id/estado', validarId, ActualizarEstadoUsuario);
+router.put('/:id', validarId, ModificarUsuario);
 
 export default router;

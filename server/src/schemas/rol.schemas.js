@@ -17,7 +17,7 @@ export const ValidarPorcentaje = (porcentaje) => {
     const numero = Number(limpio);
     
     if (numero < 0 || numero > 30) {
-        throw new ValidationError('El porcentaje debe estar entre 0 y 100', 'porcentaje_referencial');
+        throw new ValidationError('El porcentaje debe estar entre 0 y 30', 'porcentaje_referencial');
     }
     return Number(numero.toFixed(2));
 };

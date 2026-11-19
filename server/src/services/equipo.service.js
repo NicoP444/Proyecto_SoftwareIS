@@ -7,9 +7,28 @@ const parsearFechaSegura = (fechaStr) => {
   return new Date(`${limpia}T12:00:00`);
 };
 
+// RF-P5-07: Marca estrictamente como repuesto solo a equipos OPERATIVO y sin kit actual
+const formatearRepuesto = (eq) => ({
+  ...eq,
+  es_repuesto: eq.estado === 'OPERATIVO' && eq.id_kit === null,
+});
+
+// RF-P5-02: Registra el cambio de valor en la tabla real "historial_cambio"
+const registrarCambioValorHistorial = async (codigo, valorAnterior, valorNuevo) => {
+  await prisma.historialCambio.create({
+    data: {
+      tabla_afectada: 'equipo',
+      dato: `valor_compra - ${codigo}`,
+      valor_anterior: String(valorAnterior),
+      valor_nuevo: String(valorNuevo),
+      motivo: `Modificación del valor de compra del equipo con código ${codigo}`,
+    },
+  });
+};
+
 export const equipoService = {
   async obtenerTodos() {
-    return await prisma.equipo.findMany({
+    const equipos = await prisma.equipo.findMany({
       include: {
         kit: true,
         jefe: true,
@@ -18,6 +37,8 @@ export const equipoService = {
         fecha_compra: 'desc',
       },
     });
+
+    return equipos.map(formatearRepuesto);
   },
 
   async crear(datos) {
@@ -40,7 +61,6 @@ export const equipoService = {
       throw new Error('El valor de compra debe ser un número mayor a 0.');
     }
 
-    // 1. Obtener un id_jefe válido existente en la base de datos
     let jefeId = Number(id_jefe);
     let jefeExistente = null;
 
@@ -64,7 +84,6 @@ export const equipoService = {
       jefeId = jefeExistente.id_jefe;
     }
 
-    // 2. Prefijo según categoría
     const prefijos = {
       CAMARA: 'CAM',
       TRIPODE: 'TRI',
@@ -74,7 +93,6 @@ export const equipoService = {
     };
     const prefijo = prefijos[categoria] || 'EQP';
 
-    // 3. Generar correlativo único
     const totalExistentes = await prisma.equipo.count({
       where: { categoria },
     });
@@ -87,11 +105,9 @@ export const equipoService = {
       codigoGenerado = `${prefijo}-${String(correlativoNum).padStart(3, '0')}`;
     }
 
-    // 4. Formatear fecha segura para @db.Date
     const fechaObj = parsearFechaSegura(fecha_compra);
 
-    // 5. Inserción
-    return await prisma.equipo.create({
+    const creado = await prisma.equipo.create({
       data: {
         codigo: codigoGenerado,
         nombre: nombre.trim(),
@@ -110,6 +126,8 @@ export const equipoService = {
         jefe: true,
       },
     });
+
+    return formatearRepuesto(creado);
   },
 
   async actualizar(codigo, datos) {
@@ -142,15 +160,24 @@ export const equipoService = {
     if (fecha_compra) {
       dataActualizada.fecha_compra = parsearFechaSegura(fecha_compra);
     }
+
+    let cambioValor = false;
+    const valorAnterior = Number(equipoExistente.valor_compra);
+    let valorNuevo = valorAnterior;
+
     if (valor_compra !== undefined && valor_compra !== '') {
       const valorNum = Math.round(Number(valor_compra));
       if (Number.isNaN(valorNum) || valorNum <= 0) {
         throw new Error('El valor de compra debe ser mayor a 0.');
       }
       dataActualizada.valor_compra = valorNum;
+      if (valorNum !== valorAnterior) {
+        cambioValor = true;
+        valorNuevo = valorNum;
+      }
     }
 
-    return await prisma.equipo.update({
+    const actualizado = await prisma.equipo.update({
       where: { codigo },
       data: dataActualizada,
       include: {
@@ -158,6 +185,12 @@ export const equipoService = {
         jefe: true,
       },
     });
+
+    if (cambioValor) {
+      await registrarCambioValorHistorial(codigo, valorAnterior, valorNuevo);
+    }
+
+    return formatearRepuesto(actualizado);
   },
 
   async darDeBaja(codigo, motivo) {
@@ -180,7 +213,6 @@ export const equipoService = {
     const idKitAnterior = equipo.id_kit;
     const sinHistorial = equipo.incidentes.length === 0 && equipo.revisiones.length === 0;
 
-    // 1. Dar de baja el equipo y sacarlo de su kit
     const equipoActualizado = await prisma.equipo.update({
       where: { codigo },
       data: {
@@ -196,7 +228,6 @@ export const equipoService = {
       },
     });
 
-    // 2. Postcondición RF-P5-03: Si pertenecía a un kit, verificar si queda incompleto
     if (idKitAnterior) {
       const equiposRestantes = await prisma.equipo.findMany({
         where: { id_kit: idKitAnterior, estado: 'OPERATIVO' },
@@ -215,7 +246,7 @@ export const equipoService = {
     }
 
     return {
-      equipo: equipoActualizado,
+      equipo: formatearRepuesto(equipoActualizado),
       sinHistorial,
       mensaje: 'Equipo dado de baja correctamente.',
     };
@@ -244,7 +275,6 @@ export const equipoService = {
       where: { codigo },
     });
 
-    // Si estaba en un kit antes de eliminarse, verificar si el kit queda INCOMPLETO
     if (idKitAnterior) {
       const equiposRestantes = await prisma.equipo.findMany({
         where: { id_kit: idKitAnterior, estado: 'OPERATIVO' },
