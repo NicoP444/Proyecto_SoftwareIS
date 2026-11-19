@@ -104,7 +104,7 @@ const evento = await obtenerEvento(id_evento, id_dueno);
   const kit = await prisma.kit.findUnique({ where: { id_kit } });
   if (!kit) throw new NotFoundError('El kit no existe');
   if (kit.estado === 'INCOMPLETO') {
-    throw new ValidationError(`El kit "${kit.nombre}" está incompleto y no se puede asignar`, 'id_kit');
+    throw new ValidationError(`El "${kit.nombre}" está incompleto y no se puede asignar`, 'id_kit');
   }
 
   const yaReservado = await prisma.reservaKit.findUnique({

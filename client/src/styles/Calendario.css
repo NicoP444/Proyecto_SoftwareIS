@@ -366,3 +366,16 @@ button.cal-mas { flex-shrink: 0; padding: 0; border: 0; background: none; text-a
 
 /* Margen de traslado: aviso "Sin cambios por guardar" junto al botón */
 .margen-acciones { align-items: center; gap: 10px; }
+
+/* ===== Asignar personal: todos listados, los bloqueados con su motivo ===== */
+.personal-nombre { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.personal-motivo { font-size: 0.75rem; color: var(--texto-suave); }
+.personal-motivo.aviso { color: #b45f12; }
+.personal-fila.personal-bloqueado { background: var(--fondo); }
+.personal-fila.personal-bloqueado strong,
+.personal-fila.personal-bloqueado .chip-rol { opacity: 0.6; }
+
+/* En el detalle del evento el panel es angosto: datos arriba y la acción abajo */
+.personal-buscador .personal-fila { flex-direction: column; align-items: stretch; gap: 8px; }
+.personal-buscador .personal-accion { justify-content: flex-end; }
+.personal-buscador .personal-accion select { flex: 1; min-width: 0; }

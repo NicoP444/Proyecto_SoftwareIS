@@ -1,32 +1,50 @@
 import { useEffect, useState } from "react";
 import { Phone, UserPlus } from "lucide-react";
 import { listarRoles } from "../../services/personalServicio.js";
-import {
-  listarPersonalDisponible,
-  asignarTrabajador,
-} from "../../services/asignacion.service.js";
+import { listarPersonalConEstado, listarAsignaciones, asignarTrabajador } from "../../services/asignacion.service.js";
+
+// Cómo se muestra cada estado y si se puede asignar (las reglas son las mismas del back):
+//  - Disponible: se asigna sin avisos.
+//  - Sin disponibilidad: se permite, pero el back avisa que queda fuera de su disponibilidad.
+//  - Ocupado, en licencia o inactivo: el back lo rechaza, así que se muestra bloqueado.
+const ESTADOS = {
+  DISPONIBLE: { texto: "Disponible", color: "var(--verde)", orden: 0, asignable: true },
+  SIN_DISPONIBILIDAD: { texto: "Sin disponibilidad", color: "var(--naranjo)", orden: 1, asignable: true },
+  OCUPADO: { texto: "Ocupado", color: "var(--rojo)", orden: 2, asignable: false },
+  LICENCIA: { texto: "En licencia", color: "var(--texto-tenue)", orden: 3, asignable: false },
+  INACTIVO: { texto: "Inactivo", color: "var(--texto-tenue)", orden: 4, asignable: false },
+};
+
+// Estado de una persona: primero su cuenta (licencia/inactivo) y luego la franja del evento
+const estadoDe = (t) => (t.estado_cuenta !== "ACTIVO" ? t.estado_cuenta : (t.estado_franja ?? "DISPONIBLE"));
+
+// Por qué no se puede (o qué conviene saber) al lado de su nombre
+function motivoDe(t, estado) {
+  if (estado === "OCUPADO")
+    return `Ocupado ${t.detalle ? t.detalle.replace(/^En /, "en ") : "en otro evento a esa hora"}`;
+  if (estado === "SIN_DISPONIBILIDAD") return "No registró disponibilidad para esa fecha: se puede asignar, con aviso";
+  if (estado === "LICENCIA") return "Está con licencia";
+  if (estado === "INACTIVO") return "Su cuenta está inactiva";
+  if (t.roles.length === 0) return "No tiene roles asignados";
+  return null;
+}
 
 /**
- * Consulta de personal disponible (RF-P1-03) y asignación al evento (RF-P3-01).
- *  - Sin "evento": el Dueño elige fecha y horario y solo mira quién está libre.
- *  - Con "evento": la fecha y el horario son los del evento y cada trabajador
- *    tiene un botón para asignarlo con uno de sus roles.
+ * Asignación de personal a un evento (RF-P1-03 y RF-P3-01).
+ * Lista a TODO el personal que aún no está en el evento, con su estado para el horario
+ * del evento. Quien no se puede asignar aparece bloqueado y con el motivo, en vez de
+ * desaparecer de la lista.
  */
 export default function BuscadorPersonal({ evento, onAsignado }) {
-  const [fecha, setFecha] = useState(evento?.fecha ?? "");
-  const [horaInicio, setHoraInicio] = useState(evento?.hora_inicio ?? "");
-  const [horaTermino, setHoraTermino] = useState(evento?.hora_termino ?? "");
   const [idRol, setIdRol] = useState("");
   const [roles, setRoles] = useState([]);
-  const [disponibles, setDisponibles] = useState([]);
+  const [personal, setPersonal] = useState([]);
   const [rolElegido, setRolElegido] = useState({}); // id_trabajador -> id_rol
   const [cargando, setCargando] = useState(false);
   const [asignando, setAsignando] = useState(null); // id del trabajador que se está asignando
   const [error, setError] = useState("");
   const [aviso, setAviso] = useState(null); // { advertencia, textos }
   const [version, setVersion] = useState(0); // sube para volver a buscar
-
-  const franjaValida = Boolean(fecha && horaInicio && horaTermino && horaTermino > horaInicio);
 
   // Roles para el filtro (solo los activos)
   useEffect(() => {
@@ -35,24 +53,22 @@ export default function BuscadorPersonal({ evento, onAsignado }) {
       .catch(() => setRoles([]));
   }, []);
 
-  // Cada vez que cambia la franja, el rol o se asigna a alguien, se vuelve a consultar
+  // Personal con su estado en el horario del evento, sin quienes ya están asignados
   useEffect(() => {
-    if (!franjaValida) {
-      setDisponibles([]);
-      return;
-    }
     let vigente = true;
     setCargando(true);
-    listarPersonalDisponible({
-      fecha,
-      hora_inicio: horaInicio,
-      hora_termino: horaTermino,
-      id_rol: idRol,
-      id_evento: evento?.id_evento,
-    })
-      .then((lista) => {
+    Promise.all([
+      listarPersonalConEstado({
+        fecha: evento.fecha,
+        hora_inicio: evento.hora_inicio,
+        hora_termino: evento.hora_termino,
+      }),
+      listarAsignaciones(evento.id_evento),
+    ])
+      .then(([lista, asignados]) => {
         if (!vigente) return;
-        setDisponibles(lista);
+        const yaEstan = new Set(asignados.map((a) => a.id_trabajador));
+        setPersonal(lista.filter((t) => !yaEstan.has(t.id_trabajador)));
         setError("");
       })
       .catch((err) => vigente && setError(err.message))
@@ -60,7 +76,19 @@ export default function BuscadorPersonal({ evento, onAsignado }) {
     return () => {
       vigente = false;
     };
-  }, [fecha, horaInicio, horaTermino, idRol, version, franjaValida, evento?.id_evento]);
+  }, [evento.id_evento, evento.fecha, evento.hora_inicio, evento.hora_termino, version]);
+
+  // Filtro por rol y orden: primero los que se pueden asignar
+  const filas = personal
+    .filter((t) => !idRol || t.roles.some((r) => r.id_rol === Number(idRol)))
+    .map((t) => {
+      const estado = estadoDe(t);
+      const info = ESTADOS[estado] ?? ESTADOS.DISPONIBLE;
+      return { ...t, estado, info, motivo: motivoDe(t, estado), asignable: info.asignable && t.roles.length > 0 };
+    })
+    .sort((a, b) => a.info.orden - b.info.orden || a.nombre.localeCompare(b.nombre, "es"));
+
+  const libres = filas.filter((t) => t.estado === "DISPONIBLE").length;
 
   // Rol con el que se asignaría: el que eligió en la fila, el del filtro o el primero que sabe
   function rolDe(t) {
@@ -92,22 +120,6 @@ export default function BuscadorPersonal({ evento, onAsignado }) {
   return (
     <div className="personal-buscador">
       <div className="personal-filtros">
-        {!evento && (
-          <>
-            <div className="campo">
-              <label htmlFor="pd-fecha">Fecha</label>
-              <input id="pd-fecha" type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
-            </div>
-            <div className="campo">
-              <label htmlFor="pd-inicio">Desde</label>
-              <input id="pd-inicio" type="time" value={horaInicio} onChange={(e) => setHoraInicio(e.target.value)} />
-            </div>
-            <div className="campo">
-              <label htmlFor="pd-termino">Hasta</label>
-              <input id="pd-termino" type="time" value={horaTermino} onChange={(e) => setHoraTermino(e.target.value)} />
-            </div>
-          </>
-        )}
         <div className="campo">
           <label htmlFor="pd-rol">Filtrar por rol</label>
           <select id="pd-rol" value={idRol} onChange={(e) => setIdRol(e.target.value)}>
@@ -129,26 +141,29 @@ export default function BuscadorPersonal({ evento, onAsignado }) {
         </div>
       )}
 
-      {!franjaValida && (
+      {cargando && personal.length === 0 && <p className="texto-tenue">Buscando…</p>}
+      {!cargando && filas.length === 0 && !error && (
         <p className="texto-tenue">
-          Elige la fecha y un horario válido para ver quién está disponible.
+          {idRol ? "Nadie tiene ese rol (o ya están todos en el evento)." : "Todo el personal ya está en este evento."}
         </p>
       )}
-      {franjaValida && cargando && disponibles.length === 0 && <p className="texto-tenue">Buscando…</p>}
-      {franjaValida && !cargando && disponibles.length === 0 && !error && (
-        <p className="texto-tenue">Nadie está disponible en ese horario.</p>
-      )}
 
-      {disponibles.length > 0 && (
+      {filas.length > 0 && (
         <>
           <p className="texto-tenue">
-            {disponibles.length} {disponibles.length === 1 ? "persona disponible" : "personas disponibles"}
+            {libres} {libres === 1 ? "persona disponible" : "personas disponibles"} de {filas.length}. Los bloqueados
+            muestran el motivo.
           </p>
           <ul className="personal-lista">
-            {disponibles.map((t) => (
-              <li key={t.id_trabajador} className="personal-fila">
+            {filas.map((t) => (
+              <li key={t.id_trabajador} className={`personal-fila${t.asignable ? "" : " personal-bloqueado"}`}>
                 <div className="personal-datos">
-                  <strong>{t.nombre}</strong>
+                  <div className="personal-nombre">
+                    <strong>{t.nombre}</strong>
+                    <span className="chip-cal" style={{ "--color": t.info.color }}>
+                      {t.info.texto}
+                    </span>
+                  </div>
                   <span className="texto-pequeno">
                     <Phone /> {t.telefono_whatsapp}
                   </span>
@@ -159,8 +174,9 @@ export default function BuscadorPersonal({ evento, onAsignado }) {
                       </span>
                     ))}
                   </div>
+                  {t.motivo && <span className={`personal-motivo${t.asignable ? " aviso" : ""}`}>{t.motivo}</span>}
                 </div>
-                {evento && (
+                {t.asignable && (
                   <div className="personal-accion">
                     {t.roles.length > 1 && (
                       <select
@@ -179,11 +195,16 @@ export default function BuscadorPersonal({ evento, onAsignado }) {
                     )}
                     <button
                       type="button"
-                      className="boton boton-principal"
+                      className={`boton ${t.estado === "DISPONIBLE" ? "boton-principal" : "boton-secundario"}`}
                       disabled={asignando !== null || !rolDe(t)}
                       onClick={() => asignar(t)}
                     >
-                      <UserPlus /> {asignando === t.id_trabajador ? "Asignando…" : "Asignar"}
+                      <UserPlus />{" "}
+                      {asignando === t.id_trabajador
+                        ? "Asignando…"
+                        : t.estado === "SIN_DISPONIBILIDAD"
+                          ? "Asignar igual"
+                          : "Asignar"}
                     </button>
                   </div>
                 )}
