@@ -13,7 +13,7 @@
   padding: 1.1rem 1.25rem;
   border-radius: 12px;
   border: 1px solid #e2e8f0;
-  border-top: 4px solid #333c87;
+  border-top: 4px solid var(--primario, #1E3A8A);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
@@ -66,8 +66,8 @@
 
 .inv-tab.activa {
   font-weight: 700;
-  color: #333c87;
-  border-bottom-color: #333c87;
+  color: var(--primario, #1E3A8A);
+  border-bottom-color: var(--primario, #1E3A8A);
 }
 
 .inv-cuerpo {
@@ -195,7 +195,7 @@
 
 .inv-badge-hist-compra { background-color: #dcfce7; color: #15803d; }
 .inv-badge-hist-salida { background-color: #dbeafe; color: #1d4ed8; }
-.inv-badge-hist-retorno { background-color: #e0e7ff; color: #333c87; }
+.inv-badge-hist-retorno { background-color: #e0e7ff; color: var(--primario, #1E3A8A); }
 .inv-badge-hist-incidente { background-color: #fef3c7; color: #b45309; }
 .inv-badge-hist-baja { background-color: #fee2e2; color: #dc2626; }
 
@@ -254,7 +254,7 @@
 
 .inv-kit-item.seleccionado {
   background-color: #f0f4ff;
-  border: 1.5px solid #333c87;
+  border: 1.5px solid var(--primario, #1E3A8A);
   box-shadow: 0 2px 8px rgba(51, 60, 135, 0.08);
 }
 
@@ -449,7 +449,7 @@
 
 .inv-kit-asignado {
   font-weight: 600;
-  color: #333c87;
+  color: var(--primario, #1E3A8A);
 }
 
 .inv-kit-sin-asignar {
@@ -467,7 +467,7 @@
 .inv-btn-sec {
   padding: 0.35rem 0.7rem;
   background-color: #f1f5f9;
-  color: #333c87;
+  color: var(--primario, #1E3A8A);
   border: 1px solid #cbd5e1;
   border-radius: 6px;
   font-size: 0.78rem;
@@ -478,7 +478,7 @@
 
 .inv-btn-prim {
   padding: 0.4rem 0.75rem;
-  background-color: #333c87;
+  background-color: var(--primario, #1E3A8A);
   color: #ffffff;
   border: none;
   border-radius: 6px;
@@ -538,7 +538,7 @@
 .inv-resumen-cant-azul {
   text-align: right;
   font-weight: 700;
-  color: #333c87;
+  color: var(--primario, #1E3A8A);
 }
 
 .inv-resumen-cant-oscuro {
@@ -703,7 +703,7 @@
 
 .inv-btn-cerrar-prim {
   padding: 0.55rem 1.25rem;
-  background-color: #333c87;
+  background-color: var(--primario, #1E3A8A);
   color: #ffffff;
   border: none;
   border-radius: 6px;

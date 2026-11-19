@@ -217,7 +217,7 @@
   background-color: #f8fafc;
   padding: 0.85rem 1rem;
   border-radius: 8px;
-  border-left: 4px solid #333c87;
+  border-left: 4px solid var(--primario, #1E3A8A);
   border-top: 1px solid #e2e8f0;
   border-right: 1px solid #e2e8f0;
   border-bottom: 1px solid #e2e8f0;
@@ -234,7 +234,7 @@
 
 .inc-btn-registrar {
   padding: 0.65rem 1.4rem;
-  background-color: #333c87;
+  background-color: var(--primario, #1E3A8A);
   color: #ffffff;
   border: none;
   border-radius: 6px;

@@ -21,7 +21,7 @@
 .akr-btn-incidente {
   padding: 0.45rem 0.85rem;
   background-color: #f8fafc;
-  color: #333c87;
+  color: var(--primario, #1E3A8A);
   border: 1px solid #cbd5e1;
   border-radius: 6px;
   font-size: 0.82rem;
@@ -32,7 +32,7 @@
 
 .akr-btn-retornos {
   padding: 0.45rem 0.85rem;
-  background-color: #333c87;
+  background-color: var(--primario, #1E3A8A);
   color: #ffffff;
   border: none;
   border-radius: 6px;

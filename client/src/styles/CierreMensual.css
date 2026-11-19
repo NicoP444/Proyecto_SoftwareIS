@@ -171,7 +171,7 @@
 
 .cm-total-azul {
   font-weight: 800;
-  color: #333c87;
+  color: var(--primario, #1E3A8A);
   font-size: 1rem;
 }
 
@@ -209,7 +209,7 @@
   padding: 1.1rem 1.25rem;
   border-radius: 12px;
   border: 1px solid #e2e8f0;
-  border-top: 4px solid #333c87;
+  border-top: 4px solid var(--primario, #1E3A8A);
 }
 
 .cm-kpi-verde { border-top-color: #16a34a; }
@@ -301,7 +301,7 @@
 .cm-file-btn {
   padding: 0.22rem 0.6rem;
   background-color: #d7e1ff;
-  color: #333c87;
+  color: var(--primario, #1E3A8A);
   border-radius: 4px;
   font-size: 0.78rem;
   font-weight: 600;
@@ -327,7 +327,7 @@
 .cm-btn-primario {
   height: 40px;
   padding: 0 1.25rem;
-  background-color: #333c87;
+  background-color: var(--primario, #1E3A8A);
   color: #ffffff;
   border: none;
   border-radius: 6px;
@@ -344,7 +344,7 @@
 
 .cm-btn-cierre {
   padding: 0.7rem 1.35rem;
-  background-color: #333c87;
+  background-color: var(--primario, #1E3A8A);
   color: #ffffff;
   border: none;
   border-radius: 8px;
@@ -531,7 +531,7 @@
 }
 
 .cm-enlace {
-  color: #333c87;
+  color: var(--primario, #1E3A8A);
   font-weight: 600;
   text-decoration: underline;
 }
@@ -614,4 +614,203 @@
   border-radius: 8px;
   color: #64748b;
   font-size: 0.84rem;
+}
+
+/* ---------- Botón desplegable Gestionar y Modal de Eliminación (Gastos Fijos) ---------- */
+.cm-form-botones {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cm-btn-secundario {
+  height: 40px;
+  padding: 0 1rem;
+  background-color: #ffffff;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.cm-btn-secundario:hover:not(:disabled) {
+  background-color: #f8fafc;
+}
+
+.cm-btn-secundario:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cm-gestionar-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.cm-btn-gestionar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.42rem 0.85rem;
+  background-color: #ffffff;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cm-btn-gestionar:hover:not(:disabled),
+.cm-btn-gestionar.activo {
+  background-color: #0f1b61;
+  color: #ffffff;
+  border-color: #0f1b61;
+}
+
+.cm-gestionar-flecha {
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+.cm-gestionar-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  min-width: 165px;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.14);
+  z-index: 30;
+  overflow: hidden;
+  text-align: left;
+}
+
+.cm-gestionar-opcion {
+  display: block;
+  width: 100%;
+  padding: 0.6rem 0.9rem;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1e293b;
+  cursor: pointer;
+}
+
+.cm-gestionar-opcion:hover {
+  background-color: #f1f5f9;
+}
+
+.cm-gestionar-opcion.peligro {
+  color: #dc2626;
+  border-top: 1px solid #f1f5f9;
+}
+
+.cm-gestionar-opcion.peligro:hover {
+  background-color: #fef2f2;
+}
+
+/* Modal institucional de confirmación de eliminación */
+.cm-modal-fondo {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 999;
+}
+
+.cm-modal-caja {
+  background-color: #ffffff;
+  width: 100%;
+  max-width: 480px;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 20px 35px -10px rgba(15, 23, 42, 0.25);
+  border: 1px solid #e2e8f0;
+}
+
+.cm-modal-titulo {
+  margin: 0 0 0.45rem 0;
+  font-size: 1.12rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.cm-modal-sub {
+  margin: 0 0 1rem 0;
+  font-size: 0.88rem;
+  color: #475569;
+  line-height: 1.45;
+}
+
+.cm-modal-label {
+  display: block;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.4rem;
+}
+
+.cm-modal-textarea {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  border: 1.5px solid #0f172a;
+  font-size: 0.9rem;
+  font-family: inherit;
+  color: #0f172a;
+  box-sizing: border-box;
+  resize: vertical;
+  margin-bottom: 1rem;
+}
+
+.cm-modal-acciones {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.cm-btn-eliminar-confirmar {
+  height: 40px;
+  padding: 0 1.15rem;
+  background-color: #dc2626;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.cm-btn-eliminar-confirmar:hover:not(:disabled) {
+  background-color: #b91c1c;
+}
+
+.cm-btn-eliminar-confirmar:disabled {
+  background-color: #fca5a5;
+  cursor: not-allowed;
+}
+
+.cm-tabla-scroll-gastos {
+  min-height: 220px;
+  max-height: 440px;
+}
+
+.cm-gestionar-menu.arriba {
+  top: auto;
+  bottom: calc(100% + 4px);
 }

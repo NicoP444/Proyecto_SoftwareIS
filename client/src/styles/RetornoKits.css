@@ -93,7 +93,7 @@
 
 .ret-btn-revisar {
   padding: 0.55rem 1.1rem;
-  background-color: #333c87;
+  background-color: var(--primario, #1E3A8A);
   color: #ffffff;
   border: none;
   border-radius: 6px;
