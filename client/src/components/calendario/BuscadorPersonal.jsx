@@ -29,6 +29,10 @@ function motivoDe(t, estado) {
   return null;
 }
 
+// Para buscar sin importar tildes ni mayúsculas ("matias" encuentra a "Matías")
+const normalizar = (texto) =>
+  texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
 /**
  * Asignación de personal a un evento (RF-P1-03 y RF-P3-01).
  * Lista a TODO el personal que aún no está en el evento, con su estado para el horario
@@ -37,6 +41,7 @@ function motivoDe(t, estado) {
  */
 export default function BuscadorPersonal({ evento, onAsignado }) {
   const [idRol, setIdRol] = useState("");
+  const [busqueda, setBusqueda] = useState("");
   const [roles, setRoles] = useState([]);
   const [personal, setPersonal] = useState([]);
   const [rolElegido, setRolElegido] = useState({}); // id_trabajador -> id_rol
@@ -81,6 +86,7 @@ export default function BuscadorPersonal({ evento, onAsignado }) {
   // Filtro por rol y orden: primero los que se pueden asignar
   const filas = personal
     .filter((t) => !idRol || t.roles.some((r) => r.id_rol === Number(idRol)))
+    .filter((t) => !busqueda || normalizar(t.nombre).includes(normalizar(busqueda)))
     .map((t) => {
       const estado = estadoDe(t);
       const info = ESTADOS[estado] ?? ESTADOS.DISPONIBLE;
@@ -120,6 +126,16 @@ export default function BuscadorPersonal({ evento, onAsignado }) {
   return (
     <div className="personal-buscador">
       <div className="personal-filtros">
+                <div className="campo">
+          <label htmlFor="pd-buscar">Buscar por nombre</label>
+          <input
+            id="pd-buscar"
+            type="search"
+            placeholder="Ej: Ana"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+          />
+        </div>
         <div className="campo">
           <label htmlFor="pd-rol">Filtrar por rol</label>
           <select id="pd-rol" value={idRol} onChange={(e) => setIdRol(e.target.value)}>
