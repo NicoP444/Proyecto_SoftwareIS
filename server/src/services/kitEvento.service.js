@@ -55,7 +55,15 @@ export const listarKitsEvento = async (id_evento, id_dueno) => {
   });
 };
 
-// ---------- RF-P1-05: kits para asignar (los que no se pueden, vienen bloqueados con su motivo) ----------
+// ---------- RF-P1-05: kits para asignar, con su estado para el horario del evento ----------
+// Se listan TODOS los kits que aún no tiene el evento (igual que el personal):
+//  - DISPONIBLE: completo y libre a esa hora.
+//  - EN_TERRENO: salió a otro evento y no registra retorno; se puede asignar, con aviso.
+//  - OCUPADO: reservado en otro evento que se traslapa; no se puede.
+//  - INCOMPLETO: le falta equipo operativo; no se puede.
+const CATEGORIAS_MINIMAS = ['CAMARA', 'TRIPODE', 'MICROFONO', 'SWITCH_VIDEO'];
+const NOMBRE_CATEGORIA = { CAMARA: 'cámara', TRIPODE: 'trípode', MICROFONO: 'micrófono', SWITCH_VIDEO: 'switch de video' };
+
 export const listarKitsDisponibles = async (id_evento, id_dueno) => {
   const evento = await obtenerEvento(id_evento, id_dueno);
 
@@ -63,11 +71,15 @@ export const listarKitsDisponibles = async (id_evento, id_dueno) => {
     await prisma.reservaKit.findMany({ where: { id_evento }, select: { id_kit: true } })
   ).map((r) => r.id_kit);
 
-  // Se listan TODOS los kits que aún no tiene el evento; los que no se pueden asignar
-  // vienen con disponible: false y el motivo, para que el selector los muestre bloqueados
   const kits = await prisma.kit.findMany({
     where: { id_kit: { notIn: yaEnElEvento } },
-    select: { id_kit: true, nombre: true, nivel: true, estado: true },
+    select: {
+      id_kit: true,
+      nombre: true,
+      nivel: true,
+      estado: true,
+      equipos: { select: { codigo: true, categoria: true, estado: true }, orderBy: { codigo: 'asc' } },
+    },
     orderBy: { nombre: 'asc' },
   });
 
@@ -78,14 +90,27 @@ export const listarKitsDisponibles = async (id_evento, id_dueno) => {
   }
 
   return kits.map((k) => {
+    let estado_franja = 'DISPONIBLE';
     let motivo = null;
     if (k.estado === 'INCOMPLETO') {
-      motivo = 'Incompleto: le falta equipo operativo';
+      const operativas = new Set(k.equipos.filter((e) => e.estado === 'OPERATIVO').map((e) => e.categoria));
+      const faltan = CATEGORIAS_MINIMAS.filter((c) => !operativas.has(c)).map((c) => NOMBRE_CATEGORIA[c]);
+      estado_franja = 'INCOMPLETO';
+      motivo = faltan.length ? `Le falta equipo operativo: ${faltan.join(', ')}` : 'Le falta equipo operativo';
     } else if (choques.has(k.id_kit)) {
       const otro = choques.get(k.id_kit);
+      estado_franja = 'OCUPADO';
       motivo = `Ocupado en "${otro.tipo}" (${aHora(otro.hora_inicio)}–${aHora(otro.hora_termino)})`;
+    } else if (k.estado === 'EN_TERRENO') {
+      estado_franja = 'EN_TERRENO';
+      motivo = 'Salió a otro evento y aún no registra su retorno: se puede asignar, con aviso';
     }
-    return { ...k, disponible: motivo === null, motivo };
+    return {
+      ...k,
+      estado_franja,
+      motivo,
+      disponible: estado_franja === 'DISPONIBLE' || estado_franja === 'EN_TERRENO',
+    };
   });
 };
 
