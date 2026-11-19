@@ -506,3 +506,26 @@
   color: var(--muted);
   font-size: 0.85rem;
 }
+
+.badge-estado-cobro {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.badge-estado-pendiente {
+  background-color: #e2e8f0;
+  color: #475569;
+}
+
+.badge-estado-parcial {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.badge-estado-vencido {
+  background-color: #fee2e2;
+  color: #991b1b;
+}

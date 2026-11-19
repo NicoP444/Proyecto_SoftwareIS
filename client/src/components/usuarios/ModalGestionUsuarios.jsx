@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
+import { FaCheckCircle } from "react-icons/fa";
 import { obtenerUsuarios, crearUsuario, cambiarEstadoUsuario } from "../../services/usuarioService";
 
 export default function ModalGestionUsuarios({ isOpen, onClose, idDueno }) {
   const [listaUsuarios, setListaUsuarios] = useState([]);
   const [cargandoUsuarios, setCargandoUsuarios] = useState(false);
   const [mostrarFormCrearUser, setMostrarFormCrearUser] = useState(false);
+  const [mensajeExito, setMensajeExito] = useState("");
   const [formUser, setFormUser] = useState({
     nombre: "",
     correo: "",
@@ -19,6 +21,13 @@ export default function ModalGestionUsuarios({ isOpen, onClose, idDueno }) {
     }
   }, [isOpen]);
 
+  const mostrarConfirmacionAnimada = (texto) => {
+    setMensajeExito(texto);
+    setTimeout(() => {
+      setMensajeExito("");
+    }, 1500);
+  };
+
   const cargarUsuariosSistema = async () => {
     try {
       setCargandoUsuarios(true);
@@ -31,10 +40,9 @@ export default function ModalGestionUsuarios({ isOpen, onClose, idDueno }) {
     }
   };
 
-const manejarCrearUsuario = async (e) => {
+  const manejarCrearUsuario = async (e) => {
     e.preventDefault();
-    
-    // Validación: solo letras y espacios (incluyendo acentos y ñ)
+
     const regexNombre = /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/;
     if (!regexNombre.test(formUser.nombre.trim())) {
       alert("El nombre completo solo debe contener letras y espacios.");
@@ -49,10 +57,10 @@ const manejarCrearUsuario = async (e) => {
 
     try {
       await crearUsuario(formUser);
-      alert("¡Usuario creado con éxito!");
       setFormUser({ nombre: "", correo: "", contrasena: "", rol: "CONTADOR", id_dueno: idDueno || 1 });
       setMostrarFormCrearUser(false);
-      cargarUsuariosSistema();
+      await cargarUsuariosSistema();
+      mostrarConfirmacionAnimada("¡Usuario creado con éxito!");
     } catch (error) {
       alert(error.message || "Error al crear usuario");
     }
@@ -72,6 +80,18 @@ const manejarCrearUsuario = async (e) => {
 
   return (
     <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(15, 23, 42, 0.45)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: "20px" }}>
+      <style>{`
+        @keyframes usrPopIn {
+          from { opacity: 0; transform: scale(0.9) translateY(8px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes usrCheckBounce {
+          0% { transform: scale(0.4); }
+          70% { transform: scale(1.15); }
+          100% { transform: scale(1); }
+        }
+      `}</style>
+
       <div style={{ backgroundColor: "#ffffff", borderRadius: "20px", padding: "24px", width: "100%", maxWidth: "700px", boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)", maxHeight: "90vh", overflowY: "auto", boxSizing: "border-box" }}>
         
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", borderBottom: "1px solid #f1f5f9", paddingBottom: "12px" }}>
@@ -231,6 +251,45 @@ const manejarCrearUsuario = async (e) => {
         )}
 
       </div>
+
+      {mensajeExito && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(15, 23, 42, 0.25)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 10000
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "#ffffff",
+              borderRadius: "20px",
+              padding: "24px 32px",
+              boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.15)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "10px",
+              animation: "usrPopIn 0.25s ease-out"
+            }}
+          >
+            <FaCheckCircle
+              style={{
+                fontSize: "44px",
+                color: "#166534",
+                animation: "usrCheckBounce 0.45s ease"
+              }}
+            />
+            <p style={{ margin: 0, fontSize: "15px", fontWeight: "700", color: "#166534" }}>
+              {mensajeExito}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
