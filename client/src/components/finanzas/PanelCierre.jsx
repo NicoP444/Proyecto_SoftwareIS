@@ -86,7 +86,7 @@ export default function PanelCierre({ idEvento, idDueno, puedeEditar, onCerrado 
 
           {r && (
             <div className="fin-resultado">
-              <div className="fin-linea"><span>Ingresos (pagos del cliente y aportes)</span><span>{clp(r.ingresos)}</span></div>
+              <div className="fin-linea"><span>Ingresos (precio acordado y aportes)</span><span>{clp(r.ingresos)}</span></div>
               <div className="fin-linea"><span>Remuneraciones</span><span>− {clp(r.remuneraciones)}</span></div>
               <div className="fin-linea"><span>Gastos del evento</span><span>− {clp(r.gastos)}</span></div>
               <div className="fin-linea"><span>Pérdidas de inventario</span><span>− {clp(r.perdidas_inventario)}</span></div>

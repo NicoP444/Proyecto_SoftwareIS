@@ -13,7 +13,7 @@ import '../styles/Finanzas.css';
 // Cada persona agrega UNA línea aquí con su pestaña
 const PESTANAS = [
   { id: 'eventos', texto: 'Eventos', componente: FinanzasEventos }, // Persona 2 (P7)
-  { id: 'rentabilidad', texto: 'Rentabilidad', componente: RentabilidadMes },   // Persona 2 (pendiente)
+  { id: 'rentabilidad', texto: 'Rentabilidad Mensual', componente: RentabilidadMes },   // Persona 2 (pendiente)
   { id: 'resumen-mensual', texto: 'Resumen Mensual', componente: ResumenFinancieroMensual }, // Persona 4
   { id: 'perdidas', texto: 'Pérdidas de Inventario', componente: PerdidasInventario }, // Persona 4
   { id: 'mensual', texto: 'Gastos Fijos', componente: GastosFijos },        // Persona 4 (P8)

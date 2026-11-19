@@ -1,31 +1,58 @@
 import { useState } from 'react';
 
 /**
- * Formulario para crear o modificar un rol.
- * rol = null  -> crear
- * rol = {...} -> modificar
+ * Formulario único para crear o modificar un rol.
+ * El selector de arriba decide: "Crear un rol nuevo" o uno de los roles existentes.
+ * rolInicial: null -> empieza en "crear"; un rol -> empieza modificándolo.
  */
-// creamos la funcion formulario rol, para crear o modificar un rol, recibe como props el rol a modificar
-export default function FormularioRol({ rol, onGuardar, onCancelar }) {
-  const [nombre, setNombre] = useState(rol?.nombre ?? ''); // tomamos el nombre del body o nada
-  const [comision, setComision] = useState(rol?.porcentaje_referencial ?? ''); // tomamos la comision del body o nada
+export default function FormularioRol({ roles, rolInicial, onGuardar, onCancelar }) {
+  const [idElegido, setIdElegido] = useState(rolInicial ? String(rolInicial.id_rol) : ''); // '' = crear un rol nuevo
+  const [nombre, setNombre] = useState(rolInicial?.nombre ?? ''); // nombre del rol
+  const [comision, setComision] = useState(rolInicial?.porcentaje_referencial ?? ''); // comisión del rol
   const [error, setError] = useState(''); // mensaje de error para mostrar al usuario
-  const [guardando, setGuardando] = useState(false); // estado de si se guardo el rol. 
+  const [exito, setExito] = useState(''); // mensaje de éxito
+  const [guardando, setGuardando] = useState(false); // indica si se está guardando
+
+  const rolElegido = roles.find((r) => String(r.id_rol) === idElegido) ?? null;
+  const editando = Boolean(rolElegido);
+
+  // Al cambiar el selector se cargan los datos del rol elegido, o se deja el formulario vacío
+  function elegir(e) {
+    const id = e.target.value;
+    const rol = roles.find((r) => String(r.id_rol) === id);
+    setIdElegido(id);
+    setNombre(rol?.nombre ?? '');
+    setComision(rol?.porcentaje_referencial ?? '');
+    setError('');
+    setExito('');
+  }
 
   async function enviar(e) {
-    e.preventDefault();//evitaamos que el formulario se envie de forma predeterminada, para poder manejarlo nosotros mismos
-    if (!nombre.trim()) return setError('Ingresa el nombre del rol');//verificamos de que tenga nombre
-    //verificamos de que comision este correcto
-    if (comision !== '' && (comision < 0 || comision > 100)) return setError('La comisión debe estar entre 0 y 100');
+    e.preventDefault(); // evitamos que el formulario recargue la página
+    setExito('');
+    if (!nombre.trim()) return setError('Ingresa el nombre del rol');
 
+    // La comisión es opcional: entre 0 y 100, con hasta dos decimales
+    const valor = comision === '' ? null : Number(comision);
+    if (valor !== null && (Number.isNaN(valor) || valor < 0 || valor > 100)) {
+      return setError('La comisión debe estar entre 0 y 100');
+    }
+    if (valor !== null && Math.round(valor * 100) / 100 !== valor) {
+      return setError('La comisión admite hasta dos decimales');
+    }
+
+    setError('');
     setGuardando(true);
-    try { // guardamos
-      await onGuardar({
-        nombre: nombre.trim(),
-        porcentaje_referencial: comision === '' ? null : Number(comision),
-      });
+    try {
+      await onGuardar({ nombre: nombre.trim(), porcentaje_referencial: valor }, rolElegido);
+      setExito(editando ? 'Rol modificado correctamente.' : 'Rol creado correctamente.');
+      // Después de guardar vuelve a "crear", con el formulario limpio
+      setIdElegido('');
+      setNombre('');
+      setComision('');
     } catch (err) {
       setError(err.message);
+    } finally {
       setGuardando(false);
     }
   }
@@ -33,6 +60,19 @@ export default function FormularioRol({ rol, onGuardar, onCancelar }) {
   return (
     <form className="formulario" onSubmit={enviar} noValidate>
       {error && <div className="mensaje mensaje-error">{error}</div>}
+      {exito && <div className="mensaje mensaje-exito">{exito}</div>}
+
+      <div className="campo">
+        <label htmlFor="rol-elegido">Rol</label>
+        <select id="rol-elegido" value={idElegido} onChange={elegir} disabled={guardando}>
+          <option value="">Crear un rol nuevo</option>
+          {roles.map((rol) => (
+            <option key={rol.id_rol} value={rol.id_rol}>
+              {rol.nombre}
+            </option>
+          ))}
+        </select>
+      </div>
 
       <div className="campo">
         <label htmlFor="rol-nombre">Nombre del rol</label>
@@ -46,20 +86,25 @@ export default function FormularioRol({ rol, onGuardar, onCancelar }) {
           type="number"
           min="0"
           max="100"
+          step="0.01"
           value={comision}
           onChange={(e) => setComision(e.target.value)}
           placeholder="Opcional, ej: 10"
         />
       </div>
 
-      {rol && <p className="texto-tenue">El cambio se aplica a todos los trabajadores con este rol.</p>}
+      {editando && (
+        <p className="texto-tenue">
+          La comisión es el porcentaje sugerido al definir la remuneración. No cambia los porcentajes ya guardados.
+        </p>
+      )}
 
-      <div className="acciones">
+      <div className="acciones" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '16px' }}>
         <button type="button" className="boton boton-secundario" onClick={onCancelar}>
-          Cancelar
+          Cerrar
         </button>
         <button type="submit" className="boton boton-principal" disabled={guardando}>
-          {guardando ? 'Guardando…' : rol ? 'Guardar cambios' : 'Crear rol'}
+          {guardando ? 'Guardando…' : editando ? 'Guardar cambios' : 'Crear rol'}
         </button>
       </div>
     </form>

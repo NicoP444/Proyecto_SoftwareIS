@@ -125,7 +125,7 @@ export default function EditorDisponibilidad({ idTrabajador, disponibilidad, onG
                 </span>
               </div>
               
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '12px' }}>
                 <button 
                   type="button" 
                   className="chip-quitar" 
@@ -158,7 +158,7 @@ export default function EditorDisponibilidad({ idTrabajador, disponibilidad, onG
           <div className={`mensaje mensaje-${mensaje.tipo}`}>
             <p style={{ margin: 0 }}>{mensaje.texto}</p>
             {bloqueAEliminar && (
-              <div className="acciones" style={{ marginTop: '12px', justifyContent: 'flex-start' }}>
+              <div className="acciones" style={{ display: 'flex', gap: '12px', marginTop: '12px', justifyContent: 'flex-start' }}>
                 <button 
                   type="button" 
                   className="boton" 
@@ -215,7 +215,7 @@ export default function EditorDisponibilidad({ idTrabajador, disponibilidad, onG
           </div>
         </div>
 
-        <div className="acciones">
+        <div className="acciones" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '16px' }}>
           {bloque.nro_bloque && (
             <button 
               type="button" 
