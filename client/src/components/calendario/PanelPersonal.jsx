@@ -12,6 +12,7 @@ export default function PanelPersonal({ evento, puedeEditar, onCambio }) {
   const [asignaciones, setAsignaciones] = useState([]);
   const [abierto, setAbierto] = useState(false); // muestra el buscador
   const [error, setError] = useState("");
+  const [refresco, setRefresco] = useState(0); // sube al quitar a alguien: el buscador vuelve a consultar
 
   const cerrado = evento.estado === "CERRADO";
 
@@ -38,6 +39,7 @@ export default function PanelPersonal({ evento, puedeEditar, onCambio }) {
     setError("");
     try {
       await quitarAsignacion(evento.id_evento, a.id_asignacion);
+      setRefresco((r) => r + 1); // así vuelve a aparecer en la lista para asignar
       alCambiar();
     } catch (err) {
       setError(err.message);
@@ -88,6 +90,7 @@ export default function PanelPersonal({ evento, puedeEditar, onCambio }) {
             hora_termino: evento.hora_termino,
           }}
           onAsignado={alCambiar}
+          refresco={refresco}
         />
       )}
     </div>

@@ -39,7 +39,7 @@ const normalizar = (texto) =>
  * del evento. Quien no se puede asignar aparece bloqueado y con el motivo, en vez de
  * desaparecer de la lista.
  */
-export default function BuscadorPersonal({ evento, onAsignado }) {
+export default function BuscadorPersonal({ evento, onAsignado, refresco = 0 }) {
   const [idRol, setIdRol] = useState("");
   const [busqueda, setBusqueda] = useState("");
   const [roles, setRoles] = useState([]);
@@ -58,7 +58,8 @@ export default function BuscadorPersonal({ evento, onAsignado }) {
       .catch(() => setRoles([]));
   }, []);
 
-  // Personal con su estado en el horario del evento, sin quienes ya están asignados
+  // Personal con su estado en el horario del evento, sin quienes ya están asignados.
+  // Se vuelve a consultar al asignar (version) y cuando el panel quita a alguien (refresco).
   useEffect(() => {
     let vigente = true;
     setCargando(true);
@@ -81,7 +82,7 @@ export default function BuscadorPersonal({ evento, onAsignado }) {
     return () => {
       vigente = false;
     };
-  }, [evento.id_evento, evento.fecha, evento.hora_inicio, evento.hora_termino, version]);
+  }, [evento.id_evento, evento.fecha, evento.hora_inicio, evento.hora_termino, version, refresco]);
 
   // Filtro por rol y orden: primero los que se pueden asignar
   const filas = personal
