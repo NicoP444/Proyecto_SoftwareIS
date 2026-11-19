@@ -15,8 +15,8 @@ export const createIncidenteService = async (data, id_jefe) => {
       throw error;
     }
 
-    if (['PERDIDO', 'ROBADO', 'DADO_DE_BAJA'].includes(equipo.estado)) {
-      const error = new Error(`El equipo ya figura como ${equipo.estado}; no se puede registrar otro incidente.`);
+    if (equipo.estado !== 'OPERATIVO') {
+      const error = new Error(`El equipo figura actualmente como ${equipo.estado}; solo se pueden registrar incidentes en equipos OPERATIVOS.`);
       error.statusCode = 400;
       throw error;
     }
@@ -119,7 +119,7 @@ export const getIncidentesService = async () => {
       trabajador: { select: { id_trabajador: true, nombre: true } },
       jefe: { select: { id_jefe: true, nombre: true } },
     },
-    orderBy: { fecha: 'desc' },
+    orderBy: [{ fecha: 'desc' }, { id_incidente: 'desc' }],
   });
 };
 
@@ -146,9 +146,7 @@ export const getIncidentesPorEventoService = async (id_evento) => {
         },
       },
     },
-    orderBy: {
-      fecha: 'desc',
-    },
+    orderBy: [{ fecha: 'desc' }, { id_incidente: 'desc' }],
   });
 
   const totalPerdidas = incidentes.reduce((acc, inc) => acc + (inc.valor || 0), 0);

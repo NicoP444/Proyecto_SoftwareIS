@@ -3,6 +3,7 @@ import { ValidationError } from '../utils/errores.js';
 export const TIPOS_INCIDENTE = ['DANO', 'PERDIDA', 'ROBO'];
 const CODIGO_EQUIPO = /^[A-Za-z0-9_-]+$/;
 const FECHA_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+const TIENE_LETRAS_REGEX = /[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]/;
 
 const enteroPositivoOpcional = (valor, campo) => {
   if (valor === undefined || valor === null || valor === '') return null;
@@ -55,6 +56,12 @@ export const validarCrearIncidente = (body) => {
   const descLimpia = String(descripcion).trim();
   if (descLimpia.length > 255) {
     throw new ValidationError('La descripción no puede superar los 255 caracteres', 'descripcion');
+  }
+  if (!TIENE_LETRAS_REGEX.test(descLimpia)) {
+    throw new ValidationError(
+      'La descripción del incidente debe contener texto descriptivo (no puede ser solo números)',
+      'descripcion'
+    );
   }
 
   // 4. Costo de reparación (obligatorio y >= 0 cuando es DANO)

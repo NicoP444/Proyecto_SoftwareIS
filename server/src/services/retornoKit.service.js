@@ -1,6 +1,12 @@
 import prisma from '../config/prisma.js';
 import { ValidationError } from '../utils/errores.js';
 
+const ETIQUETA_ESTADO_RETORNO = {
+  DANADO: 'dañado',
+  PERDIDO: 'perdido',
+  ROBADO: 'robado',
+};
+
 // Obtener salidas activas con kits que están actualmente en terreno y sin retorno registrado
 export const obtenerKitsEnTerrenoService = async () => {
   return await prisma.salidaKit.findMany({
@@ -148,11 +154,15 @@ export const registrarRetornoService = async ({ id_salida, id_jefe, revisiones }
           if (estadoRetornoNormalizado === 'PERDIDO') tipoIncidente = 'PERDIDA';
           if (estadoRetornoNormalizado === 'ROBADO') tipoIncidente = 'ROBO';
 
+          const etiquetaEstado =
+            ETIQUETA_ESTADO_RETORNO[estadoRetornoNormalizado] ||
+            estadoRetornoNormalizado.toLowerCase();
+
           await tx.incidente.create({
             data: {
               tipo: tipoIncidente,
               fecha: new Date(),
-              descripcion: rev.observacion || `Incidente reportado en retorno (${estadoRetornoNormalizado})`,
+              descripcion: rev.observacion?.trim() || `Incidente reportado en retorno (${etiquetaEstado})`,
               valor: Math.round(valorIncidente),
               codigo: rev.codigo,
               id_evento: salida.reserva.id_evento,

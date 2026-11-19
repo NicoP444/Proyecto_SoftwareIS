@@ -1,5 +1,19 @@
 import prisma from '../config/prisma.js';
 
+const PRIORIDAD_MISMO_DIA = {
+  BAJA: 5,
+  INCIDENTE: 4,
+  RETORNO: 3,
+  SALIDA: 2,
+  COMPRA: 1,
+};
+
+const obtenerClaveDiaUTC = (fecha) => {
+  const d = new Date(fecha);
+  if (Number.isNaN(d.getTime())) return '0000-00-00';
+  return d.toISOString().slice(0, 10);
+};
+
 export const obtenerHistorialEquipoService = async (codigo) => {
   // Buscar la ficha del equipo junto con sus incidentes y revisiones de salidas
   const equipo = await prisma.equipo.findUnique({
@@ -111,8 +125,23 @@ export const obtenerHistorialEquipoService = async (codigo) => {
     });
   }
 
-  // Orden cronológico: el más reciente primero
-  eventosHistorial.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+  // Orden cronológico: por día descendente y, dentro del mismo día, por ciclo lógico
+  eventosHistorial.sort((a, b) => {
+    const diaA = obtenerClaveDiaUTC(a.fecha);
+    const diaB = obtenerClaveDiaUTC(b.fecha);
+
+    if (diaA !== diaB) {
+      return diaB.localeCompare(diaA);
+    }
+
+    const prioA = PRIORIDAD_MISMO_DIA[a.tipo] || 0;
+    const prioB = PRIORIDAD_MISMO_DIA[b.tipo] || 0;
+    if (prioA !== prioB) {
+      return prioB - prioA;
+    }
+
+    return new Date(b.fecha) - new Date(a.fecha);
+  });
 
   return {
     equipo: {

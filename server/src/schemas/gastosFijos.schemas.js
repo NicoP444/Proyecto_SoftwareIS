@@ -1,5 +1,7 @@
 import { ValidationError } from '../utils/errores.js';
 
+const TIENE_LETRAS_REGEX = /[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]/;
+
 export const validarPeriodoQuery = (query) => {
   const ahora = new Date();
   const anioNum = query.anio !== undefined && query.anio !== '' ? Number(query.anio) : ahora.getFullYear();
@@ -45,6 +47,12 @@ export const validarCrearGastoFijo = (body) => {
   if (descLimpia.length > 255) {
     throw new ValidationError('La descripción no puede superar los 255 caracteres', 'descripcion');
   }
+  if (!TIENE_LETRAS_REGEX.test(descLimpia)) {
+    throw new ValidationError(
+      'La descripción del gasto fijo debe incluir texto explicativo (no puede contener solo números)',
+      'descripcion'
+    );
+  }
 
   const montoNum = Number(monto);
   if (monto === undefined || monto === null || monto === '' || !Number.isInteger(montoNum) || montoNum <= 0) {
@@ -89,6 +97,12 @@ export const validarActualizarGastoFijo = (body) => {
   const descLimpia = String(descripcion).trim();
   if (descLimpia.length > 255) {
     throw new ValidationError('La descripción no puede superar los 255 caracteres', 'descripcion');
+  }
+  if (!TIENE_LETRAS_REGEX.test(descLimpia)) {
+    throw new ValidationError(
+      'La descripción del gasto fijo debe incluir texto explicativo (no puede contener solo números)',
+      'descripcion'
+    );
   }
 
   const montoNum = Number(monto);
