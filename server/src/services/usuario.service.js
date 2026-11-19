@@ -1,42 +1,54 @@
 import prisma from '../config/prisma.js';
 import bcrypt from 'bcryptjs';
 
-const validarCorreoUnicoGlobal = async (correoNormalizado, excluir = null) => {
+const verificarCorreoUnicoGlobal = async (correoNormalizado, excluir = null) => {
   const [duenoExistente, contadorExistente, jefeExistente] = await Promise.all([
     prisma.dueno.findFirst({ where: { correo: correoNormalizado } }),
     prisma.contador.findFirst({ where: { correo: correoNormalizado } }),
-    prisma.jefeTecnico.findFirst({ where: { correo: correoNormalizado } }),
+    prisma.jefeAreaTecnica.findFirst({ where: { correo: correoNormalizado } }),
   ]);
 
   if (duenoExistente) {
-    const esMismoUsuario =
+    const esMismo =
       excluir &&
       String(excluir.rol).toUpperCase() === 'DUENO' &&
       Number(duenoExistente.id_dueno) === Number(excluir.id);
-    if (!esMismoUsuario) {
-      throw new Error('El correo electrónico ya está registrado en otro usuario del sistema (Dueño).');
+    if (!esMismo) {
+      throw new Error('El correo electrónico ya está registrado en otro usuario del sistema.');
     }
   }
 
   if (contadorExistente) {
-    const esMismoUsuario =
+    const esMismo =
       excluir &&
       String(excluir.rol).toUpperCase() === 'CONTADOR' &&
       Number(contadorExistente.id_contador) === Number(excluir.id);
-    if (!esMismoUsuario) {
-      throw new Error('El correo electrónico ya está registrado en otro usuario del sistema (Contador).');
+    if (!esMismo) {
+      throw new Error('El correo electrónico ya está registrado en otro usuario del sistema.');
     }
   }
 
   if (jefeExistente) {
-    const esMismoUsuario =
+    const esMismo =
       excluir &&
       String(excluir.rol).toUpperCase() === 'JEFE_TECNICO' &&
       Number(jefeExistente.id_jefe) === Number(excluir.id);
-    if (!esMismoUsuario) {
-      throw new Error('El correo electrónico ya está registrado en otro usuario del sistema (Jefe Técnico).');
+    if (!esMismo) {
+      throw new Error('El correo electrónico ya está registrado en otro usuario del sistema.');
     }
   }
+};
+
+const sanitizarUsuario = (registro, rol) => {
+  if (!registro) return null;
+  const { contrasena, ...sinClave } = registro;
+  const id =
+    rol === 'DUENO'
+      ? registro.id_dueno
+      : rol === 'CONTADOR'
+      ? registro.id_contador
+      : registro.id_jefe;
+  return { ...sinClave, id, rol };
 };
 
 export const usuarioService = {
@@ -44,40 +56,17 @@ export const usuarioService = {
     const [duenos, contadores, jefes] = await Promise.all([
       prisma.dueno.findMany({ orderBy: { id_dueno: 'asc' } }),
       prisma.contador.findMany({ orderBy: { id_contador: 'asc' } }),
-      prisma.jefeTecnico.findMany({ orderBy: { id_jefe: 'asc' } }),
+      prisma.jefeAreaTecnica.findMany({ orderBy: { id_jefe: 'asc' } }),
     ]);
 
-    const listaDuenos = duenos.map((d) => ({
-      id: d.id_dueno,
-      id_dueno: d.id_dueno,
-      nombre: d.nombre,
-      correo: d.correo,
-      rol: 'DUENO',
-      estado: d.estado,
-    }));
-
-    const listaContadores = contadores.map((c) => ({
-      id: c.id_contador,
-      id_contador: c.id_contador,
-      nombre: c.nombre,
-      correo: c.correo,
-      rol: 'CONTADOR',
-      estado: c.estado,
-    }));
-
-    const listaJefes = jefes.map((j) => ({
-      id: j.id_jefe,
-      id_jefe: j.id_jefe,
-      nombre: j.nombre,
-      correo: j.correo,
-      rol: 'JEFE_TECNICO',
-      estado: j.estado,
-    }));
-
-    return [...listaDuenos, ...listaContadores, ...listaJefes];
+    return [
+      ...duenos.map((d) => sanitizarUsuario(d, 'DUENO')),
+      ...contadores.map((c) => sanitizarUsuario(c, 'CONTADOR')),
+      ...jefes.map((j) => sanitizarUsuario(j, 'JEFE_TECNICO')),
+    ];
   },
 
-  async crear({ nombre, correo, contrasena, rol, id_dueno }) {
+  async crear({ nombre, correo, contrasena, rol }) {
     const rolNormalizado = String(rol || '').toUpperCase();
     if (rolNormalizado === 'DUENO') {
       throw new Error('No está permitido crear cuentas con rol Dueño.');
@@ -100,14 +89,7 @@ export const usuarioService = {
       throw new Error('La contraseña debe tener al menos 6 caracteres.');
     }
 
-    await validarCorreoUnicoGlobal(correoLimpio);
-
-    let duenoId = Number(id_dueno);
-    let duenoValido = duenoId ? await prisma.dueno.findUnique({ where: { id_dueno: duenoId } }) : null;
-    if (!duenoValido) {
-      const primerDueno = await prisma.dueno.findFirst();
-      duenoId = primerDueno ? primerDueno.id_dueno : 1;
-    }
+    await verificarCorreoUnicoGlobal(correoLimpio);
 
     const hash = await bcrypt.hash(String(contrasena), 10);
 
@@ -118,22 +100,20 @@ export const usuarioService = {
           correo: correoLimpio,
           contrasena: hash,
           estado: 'ACTIVO',
-          id_dueno: duenoId,
         },
       });
-      return { ...creado, id: creado.id_contador, rol: 'CONTADOR' };
+      return sanitizarUsuario(creado, 'CONTADOR');
     }
 
-    const creado = await prisma.jefeTecnico.create({
+    const creado = await prisma.jefeAreaTecnica.create({
       data: {
         nombre: nombreLimpio,
         correo: correoLimpio,
         contrasena: hash,
         estado: 'ACTIVO',
-        id_dueno: duenoId,
       },
     });
-    return { ...creado, id: creado.id_jefe, rol: 'JEFE_TECNICO' };
+    return sanitizarUsuario(creado, 'JEFE_TECNICO');
   },
 
   async modificar(id, { nombre, correo, rol }) {
@@ -154,7 +134,7 @@ export const usuarioService = {
       throw new Error('El correo electrónico debe tener formato válido: texto@texto.texto.');
     }
 
-    await validarCorreoUnicoGlobal(correoLimpio, { id: idNum, rol: rolNormalizado });
+    await verificarCorreoUnicoGlobal(correoLimpio, { id: idNum, rol: rolNormalizado });
 
     if (rolNormalizado === 'DUENO') {
       const existe = await prisma.dueno.findUnique({ where: { id_dueno: idNum } });
@@ -163,7 +143,7 @@ export const usuarioService = {
         where: { id_dueno: idNum },
         data: { nombre: nombreLimpio, correo: correoLimpio },
       });
-      return { ...actualizado, id: actualizado.id_dueno, rol: 'DUENO' };
+      return sanitizarUsuario(actualizado, 'DUENO');
     }
 
     if (rolNormalizado === 'CONTADOR') {
@@ -173,16 +153,16 @@ export const usuarioService = {
         where: { id_contador: idNum },
         data: { nombre: nombreLimpio, correo: correoLimpio },
       });
-      return { ...actualizado, id: actualizado.id_contador, rol: 'CONTADOR' };
+      return sanitizarUsuario(actualizado, 'CONTADOR');
     }
 
-    const existe = await prisma.jefeTecnico.findUnique({ where: { id_jefe: idNum } });
+    const existe = await prisma.jefeAreaTecnica.findUnique({ where: { id_jefe: idNum } });
     if (!existe) throw new Error('El usuario Jefe Técnico no existe.');
-    const actualizado = await prisma.jefeTecnico.update({
+    const actualizado = await prisma.jefeAreaTecnica.update({
       where: { id_jefe: idNum },
       data: { nombre: nombreLimpio, correo: correoLimpio },
     });
-    return { ...actualizado, id: actualizado.id_jefe, rol: 'JEFE_TECNICO' };
+    return sanitizarUsuario(actualizado, 'JEFE_TECNICO');
   },
 
   async actualizarEstado(id, { rol, estado }) {
@@ -195,11 +175,22 @@ export const usuarioService = {
     }
 
     if (rolNormalizado === 'DUENO') {
+      if (estadoNormalizado === 'INACTIVO') {
+        const otrosDuenosActivos = await prisma.dueno.count({
+          where: {
+            estado: 'ACTIVO',
+            NOT: { id_dueno: idNum },
+          },
+        });
+        if (otrosDuenosActivos === 0) {
+          throw new Error('No se puede desactivar al último Dueño activo del sistema.');
+        }
+      }
       const actualizado = await prisma.dueno.update({
         where: { id_dueno: idNum },
         data: { estado: estadoNormalizado },
       });
-      return { ...actualizado, id: actualizado.id_dueno, rol: 'DUENO' };
+      return sanitizarUsuario(actualizado, 'DUENO');
     }
 
     if (rolNormalizado === 'CONTADOR') {
@@ -207,15 +198,15 @@ export const usuarioService = {
         where: { id_contador: idNum },
         data: { estado: estadoNormalizado },
       });
-      return { ...actualizado, id: actualizado.id_contador, rol: 'CONTADOR' };
+      return sanitizarUsuario(actualizado, 'CONTADOR');
     }
 
     if (rolNormalizado === 'JEFE_TECNICO') {
-      const actualizado = await prisma.jefeTecnico.update({
+      const actualizado = await prisma.jefeAreaTecnica.update({
         where: { id_jefe: idNum },
         data: { estado: estadoNormalizado },
       });
-      return { ...actualizado, id: actualizado.id_jefe, rol: 'JEFE_TECNICO' };
+      return sanitizarUsuario(actualizado, 'JEFE_TECNICO');
     }
 
     throw new Error('Rol de usuario no válido.');
