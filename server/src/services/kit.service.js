@@ -5,7 +5,8 @@ const CATEGORIAS_REQUERIDAS = ['CAMARA', 'TRIPODE', 'MICROFONO', 'SWITCH_VIDEO']
 
 const calcularEstadoKit = (equipos) => {
   if (!Array.isArray(equipos) || equipos.length === 0) return 'INCOMPLETO';
-  const categoriasPresentes = new Set(equipos.map((e) => e.categoria?.toUpperCase()));
+  const equiposOperativos = equipos.filter((e) => e.estado === 'OPERATIVO');
+  const categoriasPresentes = new Set(equiposOperativos.map((e) => e.categoria?.toUpperCase()));
   const cumpleMinimo = CATEGORIAS_REQUERIDAS.every((cat) => categoriasPresentes.has(cat));
   return cumpleMinimo ? 'DISPONIBLE' : 'INCOMPLETO';
 };

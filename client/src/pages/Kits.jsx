@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react';
-import { 
-  FaVideo, FaSlidersH, FaMicrophone, FaDesktop, 
-  FaExclamationTriangle, FaBoxOpen 
+import {
+  FaVideo,
+  FaSlidersH,
+  FaMicrophone,
+  FaDesktop,
+  FaExclamationTriangle,
+  FaBoxOpen,
+  FaCheckCircle
 } from 'react-icons/fa';
 import { kitClientService } from '../services/kit.service';
 import '../styles/Kits.css';
@@ -12,6 +17,11 @@ const tieneMinimoLetras = (texto, minLetras = 2) => {
   return coincidencias.length >= minLetras;
 };
 
+const formatearEtiquetaSinGuion = (texto) => {
+  if (!texto) return '';
+  return String(texto).replace(/_/g, ' ');
+};
+
 export default function Kits() {
   const [kits, setKits] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -20,6 +30,15 @@ export default function Kits() {
   const [recargoPct, setRecargoPct] = useState(0);
   const [errorKit, setErrorKit] = useState('');
   const [loadingKit, setLoadingKit] = useState(false);
+  const [eliminandoId, setEliminandoId] = useState(null);
+  const [animacionExito, setAnimacionExito] = useState('');
+
+  const mostrarAnimacionExito = (mensaje) => {
+    setAnimacionExito(mensaje);
+    setTimeout(() => {
+      setAnimacionExito('');
+    }, 1500);
+  };
 
   const cargarKits = async () => {
     try {
@@ -36,11 +55,16 @@ export default function Kits() {
 
   const getIconoCategoria = (categoria) => {
     switch (categoria?.toUpperCase()) {
-      case 'CAMARA': return <FaVideo className="text-blue-500" />;
-      case 'TRIPODE': return <FaSlidersH className="text-gray-500" />;
-      case 'MICROFONO': return <FaMicrophone className="text-indigo-500" />;
-      case 'SWITCH_VIDEO': return <FaDesktop className="text-slate-700" />;
-      default: return <FaVideo />;
+      case 'CAMARA':
+        return <FaVideo className="text-blue-500" />;
+      case 'TRIPODE':
+        return <FaSlidersH className="text-gray-500" />;
+      case 'MICROFONO':
+        return <FaMicrophone className="text-indigo-500" />;
+      case 'SWITCH_VIDEO':
+        return <FaDesktop className="text-slate-700" />;
+      default:
+        return <FaVideo />;
     }
   };
 
@@ -69,13 +93,12 @@ export default function Kits() {
       };
 
       const resultado = await kitClientService.crearKit(payload);
-      alert(resultado.mensaje || 'Kit creado exitosamente');
       setIsModalOpen(false);
-
       setNombreKit('');
       setNivelKit('BASICO');
       setRecargoPct(0);
       await cargarKits();
+      mostrarAnimacionExito(resultado?.mensaje || 'Kit creado correctamente');
     } catch (err) {
       setErrorKit(err.message || 'Error al crear el kit');
     } finally {
@@ -83,10 +106,29 @@ export default function Kits() {
     }
   };
 
+  const handleEliminarKit = async (kit) => {
+    const idKit = kit.id_kit || kit.id;
+    const confirmar = window.confirm(`¿Seguro que deseas eliminar el kit "${kit.nombre}"?`);
+    if (!confirmar) return;
+
+    try {
+      setEliminandoId(idKit);
+      if (typeof kitClientService.eliminarKit === 'function') {
+        await kitClientService.eliminarKit(idKit);
+      }
+      setTimeout(async () => {
+        await cargarKits();
+        setEliminandoId(null);
+        mostrarAnimacionExito(`Kit "${kit.nombre}" eliminado correctamente`);
+      }, 240);
+    } catch (err) {
+      setEliminandoId(null);
+      alert(err.message || 'No se pudo eliminar el kit');
+    }
+  };
+
   return (
     <div className="kit-pagina">
-      
-      {/* Cabecera */}
       <div className="kit-encabezado">
         <h2 className="kit-titulo-seccion">Gestión de Kits</h2>
         <button
@@ -102,59 +144,85 @@ export default function Kits() {
         </button>
       </div>
 
-      {/* Listado de Kits en Tarjetas */}
       {kits.length === 0 ? (
-        <div style={{ backgroundColor: '#f8fafc', borderRadius: '16px', padding: '48px', textAlign: 'center', border: '1px solid #e2e8f0', color: '#64748b' }}>
+        <div
+          style={{
+            backgroundColor: '#f8fafc',
+            borderRadius: '16px',
+            padding: '48px',
+            textAlign: 'center',
+            border: '1px solid #e2e8f0',
+            color: '#64748b'
+          }}
+        >
           <FaBoxOpen style={{ fontSize: '40px', marginBottom: '12px', color: '#94a3b8' }} />
-          <h3 style={{ margin: '0 0 6px 0', fontSize: '16px', color: '#1e293b' }}>No hay kits registrados</h3>
+          <h3 style={{ margin: '0 0 6px 0', fontSize: '16px', color: '#1e293b' }}>
+            No hay kits registrados
+          </h3>
           <p style={{ margin: 0, fontSize: '13px' }}>Haz clic en "+ Crear kit" para comenzar.</p>
         </div>
       ) : (
         <div className="kit-grid">
-          {kits.map((kit) => (
-            <div key={kit.id_kit} className="kit-card">
-              <div className="kit-card-cab">
-                <div>
-                  <h3 className="kit-card-titulo">{kit.nombre}</h3>
-                  <p className="kit-card-sub">
-                    {kit.nivel} · Recargo: {kit.recargo_pct}%
-                  </p>
-                </div>
-                <div className="kit-card-acciones">
-                  <button type="button" className="kit-btn-modificar">Modificar</button>
-                  <button type="button" className="kit-btn-eliminar">Eliminar</button>
-                </div>
-              </div>
-
-              <div className="kit-equipos-grid">
-                {kit.equipos?.map((eq, idx) => (
-                  <div key={idx} className="kit-eq-item">
-                    <div className="kit-eq-icono">
-                      {getIconoCategoria(eq.categoria)}
-                    </div>
-                    <div className="kit-eq-info">
-                      <p className="kit-eq-nombre">{eq.nombre}</p>
-                      <p className="kit-eq-cat">{eq.categoria?.toLowerCase().replace('_', ' ')}</p>
-                    </div>
+          {kits.map((kit) => {
+            const idKit = kit.id_kit || kit.id;
+            const estaEliminando = eliminandoId === idKit;
+            return (
+              <div
+                key={idKit}
+                className={`kit-card ${estaEliminando ? 'kit-card-eliminando' : ''}`}
+              >
+                <div className="kit-card-cab">
+                  <div>
+                    <h3 className="kit-card-titulo">{kit.nombre}</h3>
+                    <p className="kit-card-sub">
+                      {formatearEtiquetaSinGuion(kit.nivel)} · Recargo: {kit.recargo_pct}%
+                    </p>
                   </div>
-                ))}
-              </div>
+                  <div className="kit-card-acciones">
+                    <button type="button" className="kit-btn-modificar">
+                      Modificar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleEliminarKit(kit)}
+                      className="kit-btn-eliminar"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
 
-              <div className="kit-card-pie">
-                {kit.estado === 'DISPONIBLE' ? (
-                  <span className="kit-badge-disponible">● Disponible</span>
-                ) : kit.estado === 'INCOMPLETO' ? (
-                  <span className="kit-badge-incompleto">● Incompleto</span>
-                ) : (
-                  <span className="kit-badge-terreno">● En Terreno</span>
-                )}
+                <div className="kit-equipos-grid">
+                  {kit.equipos?.map((eq, idx) => (
+                    <div key={idx} className="kit-eq-item">
+                      <div className="kit-eq-icono">{getIconoCategoria(eq.categoria)}</div>
+                      <div className="kit-eq-info">
+                        <p className="kit-eq-nombre">{eq.nombre}</p>
+                        <p className="kit-eq-cat">
+                          {formatearEtiquetaSinGuion(eq.categoria)?.toLowerCase()}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="kit-card-pie">
+                  {kit.estado === 'DISPONIBLE' ? (
+                    <span className="kit-badge-disponible">● Disponible</span>
+                  ) : kit.estado === 'INCOMPLETO' ? (
+                    <span className="kit-badge-incompleto">● Incompleto</span>
+                  ) : (
+                    <span className="kit-badge-terreno">
+                      ● {formatearEtiquetaSinGuion(kit.estado || 'EN_TERRENO')}
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
-      {/* MODAL CREAR KIT */}
       {isModalOpen && (
         <div className="kit-modal-fondo">
           <div className="kit-modal-caja">
@@ -213,8 +281,13 @@ export default function Kits() {
               </div>
 
               <div className="kit-info-box">
-                <p style={{ margin: '0 0 4px 0', fontWeight: '700' }}>Requisito obligatorio (RF-P5-04):</p>
-                <p style={{ margin: 0 }}>Debe incluir al menos 1 <strong>cámara</strong>, 1 <strong>trípode</strong>, 1 <strong>micrófono</strong> y 1 <code>switch de video</code> operativos.</p>
+                <p style={{ margin: '0 0 4px 0', fontWeight: '700' }}>
+                  Requisito obligatorio (RF-P5-04):
+                </p>
+                <p style={{ margin: 0 }}>
+                  Debe incluir al menos 1 <strong>cámara</strong>, 1 <strong>trípode</strong>, 1{' '}
+                  <strong>micrófono</strong> y 1 <code>switch de video</code> operativos.
+                </p>
               </div>
 
               <div className="kit-modal-pie">
@@ -225,11 +298,7 @@ export default function Kits() {
                 >
                   Cancelar
                 </button>
-                <button
-                  type="submit"
-                  disabled={loadingKit}
-                  className="kit-btn-guardar"
-                >
+                <button type="submit" disabled={loadingKit} className="kit-btn-guardar">
                   {loadingKit ? 'Guardando...' : 'Guardar Kit'}
                 </button>
               </div>
@@ -238,6 +307,12 @@ export default function Kits() {
         </div>
       )}
 
+      {animacionExito && (
+        <div className="kit-toast-exito">
+          <FaCheckCircle className="kit-toast-icono" />
+          <span>{animacionExito}</span>
+        </div>
+      )}
     </div>
   );
 }

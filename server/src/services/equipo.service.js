@@ -26,6 +26,29 @@ const registrarCambioValorHistorial = async (codigo, valorAnterior, valorNuevo) 
   });
 };
 
+// Recalcula el estado de un kit según sus equipos OPERATIVO (si no está EN_TERRENO)
+const recalcularEstadoKit = async (idKit) => {
+  if (!idKit) return;
+  const kit = await prisma.kit.findUnique({
+    where: { id_kit: idKit },
+    include: { equipos: true },
+  });
+  if (!kit || kit.estado === 'EN_TERRENO') return;
+
+  const equiposOperativos = (kit.equipos || []).filter((e) => e.estado === 'OPERATIVO');
+  const categoriasMinimas = ['CAMARA', 'TRIPODE', 'MICROFONO', 'SWITCH_VIDEO'];
+  const categoriasPresentes = new Set(equiposOperativos.map((e) => e.categoria));
+  const cumpleMinimo = categoriasMinimas.every((cat) => categoriasPresentes.has(cat));
+
+  const nuevoEstado = cumpleMinimo ? 'DISPONIBLE' : 'INCOMPLETO';
+  if (kit.estado !== nuevoEstado) {
+    await prisma.kit.update({
+      where: { id_kit: idKit },
+      data: { estado: nuevoEstado },
+    });
+  }
+};
+
 export const equipoService = {
   async obtenerTodos() {
     const equipos = await prisma.equipo.findMany({
@@ -137,6 +160,7 @@ export const equipoService = {
       modelo,
       fecha_compra,
       valor_compra,
+      estado,
     } = datos;
 
     const equipoExistente = await prisma.equipo.findUnique({
@@ -159,6 +183,17 @@ export const equipoService = {
     }
     if (fecha_compra) {
       dataActualizada.fecha_compra = parsearFechaSegura(fecha_compra);
+    }
+
+    // RF-P5-08: Permitir pasar de DANADO a OPERATIVO solo si actualmente está DANADO
+    let cambioAOperativo = false;
+    if (estado !== undefined && estado !== equipoExistente.estado) {
+      if (equipoExistente.estado === 'DANADO' && estado === 'OPERATIVO') {
+        dataActualizada.estado = 'OPERATIVO';
+        cambioAOperativo = true;
+      } else {
+        throw new Error('Solo se puede cambiar el estado a OPERATIVO cuando el equipo está DAÑADO.');
+      }
     }
 
     let cambioValor = false;
@@ -190,7 +225,18 @@ export const equipoService = {
       await registrarCambioValorHistorial(codigo, valorAnterior, valorNuevo);
     }
 
-    return formatearRepuesto(actualizado);
+    if (cambioAOperativo && actualizado.id_kit) {
+      await recalcularEstadoKit(actualizado.id_kit);
+    }
+
+    const finalEquipo = cambioAOperativo && actualizado.id_kit
+      ? await prisma.equipo.findUnique({
+          where: { codigo },
+          include: { kit: true, jefe: true },
+        })
+      : actualizado;
+
+    return formatearRepuesto(finalEquipo);
   },
 
   async darDeBaja(codigo, motivo) {
@@ -229,20 +275,7 @@ export const equipoService = {
     });
 
     if (idKitAnterior) {
-      const equiposRestantes = await prisma.equipo.findMany({
-        where: { id_kit: idKitAnterior, estado: 'OPERATIVO' },
-      });
-
-      const categoriasPresentes = new Set(equiposRestantes.map((e) => e.categoria));
-      const categoriasMinimas = ['CAMARA', 'TRIPODE', 'MICROFONO', 'SWITCH_VIDEO'];
-      const cumpleMinimo = categoriasMinimas.every((cat) => categoriasPresentes.has(cat));
-
-      if (!cumpleMinimo) {
-        await prisma.kit.update({
-          where: { id_kit: idKitAnterior },
-          data: { estado: 'INCOMPLETO' },
-        });
-      }
+      await recalcularEstadoKit(idKitAnterior);
     }
 
     return {
@@ -276,20 +309,7 @@ export const equipoService = {
     });
 
     if (idKitAnterior) {
-      const equiposRestantes = await prisma.equipo.findMany({
-        where: { id_kit: idKitAnterior, estado: 'OPERATIVO' },
-      });
-
-      const categoriasPresentes = new Set(equiposRestantes.map((e) => e.categoria));
-      const categoriasMinimas = ['CAMARA', 'TRIPODE', 'MICROFONO', 'SWITCH_VIDEO'];
-      const cumpleMinimo = categoriasMinimas.every((cat) => categoriasPresentes.has(cat));
-
-      if (!cumpleMinimo) {
-        await prisma.kit.update({
-          where: { id_kit: idKitAnterior },
-          data: { estado: 'INCOMPLETO' },
-        });
-      }
+      await recalcularEstadoKit(idKitAnterior);
     }
 
     return eliminado;

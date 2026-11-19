@@ -18,7 +18,6 @@ import {
 import { listarEventos } from '../services/evento.service.js';
 import '../styles/Auspiciadores.css';
 
-// Fecha actual en formato local YYYY-MM-DD para restringir inputs date
 const obtenerFechaHoyLocal = () => {
   const hoy = new Date();
   const anio = hoy.getFullYear();
@@ -27,7 +26,6 @@ const obtenerFechaHoyLocal = () => {
   return `${anio}-${mes}-${dia}`;
 };
 
-// Formatea fechas ISO ("2026-11-20T...") a "DD-MM-YYYY" sin desfase de zona horaria ni error 1969
 const formatearFechaEvento = (valorFecha) => {
   if (!valorFecha) return '';
   const iso = String(valorFecha).slice(0, 10);
@@ -38,24 +36,32 @@ const formatearFechaEvento = (valorFecha) => {
   return `${d}-${m}-${a}`;
 };
 
-// Impide escribir signos negativos, decimales o notación científica en campos numéricos enteros
 const bloquearNegativosTeclado = (e) => {
   if (['-', '+', 'e', 'E', '.', ','].includes(e.key)) {
     e.preventDefault();
   }
 };
 
-// Valida que un texto contenga al menos N letras reales (evita que pongan solo números como "222222")
 const tieneMinimoLetras = (texto, minLetras = 3) => {
   const limpio = String(texto || '').trim();
   const coincidencias = limpio.match(/[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]/g) || [];
   return coincidencias.length >= minLetras;
 };
 
+const calcularTotalRecibido = (acuerdo) => {
+  const cumplimientos = Array.isArray(acuerdo?.cumplimientos) ? acuerdo.cumplimientos : [];
+  if (cumplimientos.length > 0) {
+    return cumplimientos.reduce((acc, c) => acc + Number(c.monto_recibido || 0), 0);
+  }
+  if (acuerdo?.estado === 'CUMPLIDO') {
+    return Number(acuerdo?.monto_comprometido || 0);
+  }
+  return 0;
+};
+
 export default function Auspiciadores() {
   const fechaHoyLocal = obtenerFechaHoyLocal();
 
-  // Detectar rol e identificador real desde localStorage (o decodificando el token JWT si existe)
   const usuarioActual = useMemo(() => {
     try {
       const claves = ['usuario', 'sesion', 'user', 'auth'];
@@ -105,7 +111,6 @@ export default function Auspiciadores() {
   const [errorModal, setErrorModal] = useState('');
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
 
-  // Modal para Registrar Acuerdo
   const [mostrarModalAcuerdo, setMostrarModalAcuerdo] = useState(false);
   const [formAcuerdo, setFormAcuerdo] = useState({
     id_auspiciador: '',
@@ -118,13 +123,13 @@ export default function Auspiciadores() {
     glosa: ''
   });
 
-  // Pestaña activa: 'acuerdos', 'reporte' o 'auspiciadores'
   const [pestanaActiva, setPestanaActiva] = useState('acuerdos');
 
-  // Filtros de mes y año para el reporte
   const fechaActual = new Date();
   const [filtroMes, setFiltroMes] = useState(String(fechaActual.getMonth() + 1));
   const [filtroAnio, setFiltroAnio] = useState(String(fechaActual.getFullYear()));
+  const [busquedaAcuerdo, setBusquedaAcuerdo] = useState('');
+  const [busquedaAuspiciador, setBusquedaAuspiciador] = useState('');
 
   const [listaAcuerdos, setListaAcuerdos] = useState([]);
   const [cargandoAcuerdos, setCargandoAcuerdos] = useState(true);
@@ -188,14 +193,14 @@ export default function Auspiciadores() {
     );
   };
 
-  // Calcula el historial de cumplimiento de un auspiciador sin parciales (RF-P4-03 y RF-P4-07)
   const obtenerResumenHistorialAuspiciador = (idAuspiciador) => {
     const acuerdosDeAusp = listaAcuerdos.filter(
       (a) => String(a.id_auspiciador || a.auspiciador?.id_auspiciador) === String(idAuspiciador)
     );
     return {
       total: acuerdosDeAusp.length,
-      cumplidos: acuerdosDeAusp.filter((a) => a.estado === 'CUMPLIDO' || a.estado === 'PARCIAL').length,
+      cumplidos: acuerdosDeAusp.filter((a) => a.estado === 'CUMPLIDO').length,
+      parciales: acuerdosDeAusp.filter((a) => a.estado === 'PARCIAL').length,
       vencidos: acuerdosDeAusp.filter((a) => a.estado === 'VENCIDO').length,
       incobrables: acuerdosDeAusp.filter((a) => a.estado === 'INCOBRABLE').length
     };
@@ -240,7 +245,6 @@ export default function Auspiciadores() {
     cargarEventos();
   }, []);
 
-  // Filtro en tiempo real para el formulario de Auspiciador
   const manejarCambio = (e) => {
     const { name, value } = e.target;
     setErrorModal('');
@@ -266,7 +270,6 @@ export default function Auspiciadores() {
     setFormAcuerdo({ ...formAcuerdo, [name]: value });
   };
 
-  // Detecta si el auspiciador elegido en el modal de nuevo acuerdo es NO_CONFIABLE
   const auspiciadorElegidoAcuerdo = useMemo(() => {
     if (!formAcuerdo.id_auspiciador) return null;
     return listaAuspiciadores.find(
@@ -286,7 +289,6 @@ export default function Auspiciadores() {
     return obtenerResumenHistorialAuspiciador(id);
   }, [modalClasificacion.auspiciador, listaAcuerdos]);
 
-  // Solo permite seleccionar eventos desde hoy en adelante y que no estén realizados ni cerrados (RF-P4-02)
   const eventosAbiertos = useMemo(() => {
     return listaEventos.filter((ev) => {
       if (ev.estado === 'CERRADO' || ev.estado === 'REALIZADO') return false;
@@ -298,6 +300,42 @@ export default function Auspiciadores() {
       return fechaIso >= fechaHoyLocal;
     });
   }, [listaEventos, fechaHoyLocal]);
+
+  const acuerdosFiltradosBusqueda = useMemo(() => {
+    const q = busquedaAcuerdo.trim().toLowerCase();
+    if (!q) return listaAcuerdos;
+    return listaAcuerdos.filter((item) => {
+      const auspiciador = (item.auspiciador?.nombre || '').toLowerCase();
+      const evento = (item.evento?.tipo || item.evento?.nombre || '').toLowerCase();
+      const tipo = (item.tipo_aporte || item.tipo_pago || '').toLowerCase();
+      const glosa = (item.glosa || '').toLowerCase();
+      const estado = (item.estado || '').toLowerCase();
+      return (
+        auspiciador.includes(q) ||
+        evento.includes(q) ||
+        tipo.includes(q) ||
+        glosa.includes(q) ||
+        estado.includes(q)
+      );
+    });
+  }, [listaAcuerdos, busquedaAcuerdo]);
+
+  const auspiciadoresFiltradosBusqueda = useMemo(() => {
+    const q = busquedaAuspiciador.trim().toLowerCase();
+    if (!q) return listaAuspiciadores;
+    return listaAuspiciadores.filter((item) => {
+      const nombre = (item.nombre || '').toLowerCase();
+      const rubro = (item.rubro || '').toLowerCase();
+      const contacto = (item.contacto || '').toLowerCase();
+      const telefono = (item.telefono || '').toLowerCase();
+      return (
+        nombre.includes(q) ||
+        rubro.includes(q) ||
+        contacto.includes(q) ||
+        telefono.includes(q)
+      );
+    });
+  }, [listaAuspiciadores, busquedaAuspiciador]);
 
   const iniciarEdicion = (item) => {
     setErrorModal('');
@@ -503,10 +541,14 @@ export default function Auspiciadores() {
 
   const abrirModalCumplimiento = (acuerdo) => {
     setErrorModal('');
+    const montoTotal = Number(acuerdo?.monto_comprometido || 0);
+    const yaRecibido = calcularTotalRecibido(acuerdo);
+    const saldoRestante = Math.max(0, montoTotal - yaRecibido);
+
     setModalCumplimiento({
       abierto: true,
       acuerdo,
-      monto_recibido: acuerdo.monto_comprometido || '',
+      monto_recibido: saldoRestante > 0 ? String(saldoRestante) : '',
       fecha_recibida: fechaHoyLocal
     });
   };
@@ -517,9 +559,19 @@ export default function Auspiciadores() {
     const { acuerdo, monto_recibido, fecha_recibida } = modalCumplimiento;
     const id = acuerdo.id_acuerdo || acuerdo.id;
     const valorNum = Number(monto_recibido);
+    const montoComprometido = Number(acuerdo?.monto_comprometido || 0);
+    const yaRecibido = calcularTotalRecibido(acuerdo);
+    const saldoPendiente = Math.max(0, montoComprometido - yaRecibido);
 
-    if (Number.isNaN(valorNum) || valorNum <= 0 || valorNum > 500000000) {
-      setErrorModal('El monto recibido no es válido.');
+    if (!Number.isInteger(valorNum) || valorNum <= 0 || valorNum > 500000000) {
+      setErrorModal('El monto recibido debe ser un número entero mayor a $0.');
+      return;
+    }
+
+    if (valorNum > saldoPendiente) {
+      setErrorModal(
+        `El abono ($${valorNum.toLocaleString('es-CL')}) no puede superar el saldo pendiente ($${saldoPendiente.toLocaleString('es-CL')}) ni el monto acordado ($${montoComprometido.toLocaleString('es-CL')}).`
+      );
       return;
     }
 
@@ -528,7 +580,7 @@ export default function Auspiciadores() {
       return;
     }
 
-    const teniaPagosPrevios = (acuerdo?.cumplimientos || []).length > 0;
+    const quedaraParcial = yaRecibido + valorNum < montoComprometido;
 
     try {
       await registrarCumplimiento(id, {
@@ -541,9 +593,11 @@ export default function Auspiciadores() {
       setModalCumplimiento({ abierto: false, acuerdo: null, monto_recibido: '', fecha_recibida: '' });
       cargarAcuerdos();
 
-      if (!teniaPagosPrevios && valorNum > 0) {
-        mostrarExitoTemporal('Cumplimiento de aporte registrado con éxito');
-      }
+      mostrarExitoTemporal(
+        quedaraParcial
+          ? 'Abono parcial registrado con éxito (queda saldo pendiente)'
+          : 'Cumplimiento de aporte registrado con éxito'
+      );
     } catch (error) {
       setErrorModal(extraerMensajeError(error, 'Error al registrar cumplimiento.'));
     }
@@ -680,9 +734,10 @@ export default function Auspiciadores() {
   };
 
   const renderBadgeAcuerdo = (estado = 'PENDIENTE') => {
-    const estadoNormalizado = estado === 'PARCIAL' ? 'CUMPLIDO' : estado;
+    const estadoNormalizado = estado || 'PENDIENTE';
     let claseVariante = 'ausp-badge-pendiente';
     if (estadoNormalizado === 'CUMPLIDO') claseVariante = 'ausp-badge-cumplido';
+    else if (estadoNormalizado === 'PARCIAL') claseVariante = 'ausp-badge-parcial';
     else if (estadoNormalizado === 'VENCIDO') claseVariante = 'ausp-badge-vencido';
     else if (estadoNormalizado === 'INCOBRABLE') claseVariante = 'ausp-badge-incobrable';
 
@@ -736,20 +791,41 @@ export default function Auspiciadores() {
       }
 
       const monto = Number(acuerdo.monto_comprometido || 0);
+      const recibido = calcularTotalRecibido(acuerdo);
+      const saldoPendiente = Math.max(0, monto - recibido);
+      const fechaIso = acuerdo.fecha_comprometida
+        ? String(acuerdo.fecha_comprometida).slice(0, 10)
+        : '';
+      const estaVencidoPorFecha = Boolean(fechaIso && fechaIso < fechaHoyLocal);
 
       mapaAuspiciadores[idAusp].comprometido += monto;
       totalComprometido += monto;
       mapaAuspiciadores[idAusp].totalAcuerdos += 1;
 
-      if (acuerdo.estado === 'CUMPLIDO' || acuerdo.estado === 'PARCIAL') {
-        mapaAuspiciadores[idAusp].cumplido += monto;
-        totalCumplido += monto;
+      if (acuerdo.estado === 'CUMPLIDO') {
+        mapaAuspiciadores[idAusp].cumplido += recibido || monto;
+        totalCumplido += recibido || monto;
+      } else if (acuerdo.estado === 'PARCIAL') {
+        mapaAuspiciadores[idAusp].cumplido += recibido;
+        totalCumplido += recibido;
+        if (estaVencidoPorFecha) {
+          mapaAuspiciadores[idAusp].vencido += saldoPendiente;
+          totalVencido += saldoPendiente;
+        }
       } else if (acuerdo.estado === 'VENCIDO') {
-        mapaAuspiciadores[idAusp].vencido += monto;
-        totalVencido += monto;
+        if (recibido > 0) {
+          mapaAuspiciadores[idAusp].cumplido += recibido;
+          totalCumplido += recibido;
+        }
+        mapaAuspiciadores[idAusp].vencido += saldoPendiente;
+        totalVencido += saldoPendiente;
       } else if (acuerdo.estado === 'INCOBRABLE') {
-        mapaAuspiciadores[idAusp].incobrable += monto;
-        totalIncobrable += monto;
+        if (recibido > 0) {
+          mapaAuspiciadores[idAusp].cumplido += recibido;
+          totalCumplido += recibido;
+        }
+        mapaAuspiciadores[idAusp].incobrable += saldoPendiente;
+        totalIncobrable += saldoPendiente;
       }
     });
 
@@ -763,19 +839,20 @@ export default function Auspiciadores() {
       },
       filas: Object.values(mapaAuspiciadores)
     };
-  }, [listaAcuerdos, filtroMes, filtroAnio]);
+  }, [listaAcuerdos, filtroMes, filtroAnio, fechaHoyLocal]);
+
+  const montoComprometidoModal = Number(modalCumplimiento.acuerdo?.monto_comprometido || 0);
+  const recibidoPrevioModal = calcularTotalRecibido(modalCumplimiento.acuerdo);
+  const saldoPendienteModal = Math.max(0, montoComprometidoModal - recibidoPrevioModal);
 
   return (
     <div className="ausp-pagina">
-      {/* TÍTULO PRINCIPAL */}
       <div className="ausp-encabezado">
         <h1>Auspiciadores</h1>
         <p>Gestión de auspiciadores, eventos, acuerdos de auspicio y control de aportes</p>
       </div>
 
-      {/* CONTENEDOR GENERAL */}
       <div className="ausp-panel">
-        {/* PESTAÑAS */}
         <div className="ausp-tabs-bar">
           <div className="ausp-tabs-grupo">
             <button
@@ -804,7 +881,6 @@ export default function Auspiciadores() {
           </div>
         </div>
 
-        {/* BANNER DE ALERTA DE ACUERDOS VENCIDOS */}
         {pestanaActiva === 'acuerdos' && acuerdosVencidos.length > 0 && (
           <div className="ausp-alerta-vencidos">
             <AlertTriangle size={18} className="ausp-alerta-icono" />
@@ -820,7 +896,6 @@ export default function Auspiciadores() {
           </div>
         )}
 
-        {/* CONTENIDO SEGÚN PESTAÑA ACTIVA */}
         <div>
           {pestanaActiva === 'acuerdos' && (
             <div>
@@ -844,11 +919,34 @@ export default function Auspiciadores() {
                 )}
               </div>
 
+              <div className="ausp-buscador-wrap">
+                <input
+                  type="text"
+                  value={busquedaAcuerdo}
+                  onChange={(e) => setBusquedaAcuerdo(e.target.value)}
+                  placeholder="Buscar acuerdo por auspiciador, evento, glosa o estado..."
+                  className="ausp-buscador-input"
+                />
+                {busquedaAcuerdo && (
+                  <button
+                    type="button"
+                    onClick={() => setBusquedaAcuerdo('')}
+                    className="ausp-btn-limpiar-busqueda"
+                  >
+                    Limpiar
+                  </button>
+                )}
+              </div>
+
               {cargandoAcuerdos ? (
                 <p className="ausp-cargando">Cargando acuerdos...</p>
-              ) : listaAcuerdos.length === 0 ? (
+              ) : acuerdosFiltradosBusqueda.length === 0 ? (
                 <div className="ausp-vacio">
-                  <p>No hay acuerdos registrados todavía.</p>
+                  <p>
+                    {busquedaAcuerdo.trim()
+                      ? 'No se encontraron acuerdos que coincidan con tu búsqueda.'
+                      : 'No hay acuerdos registrados todavía.'}
+                  </p>
                 </div>
               ) : (
                 <div className="ausp-tabla-scroll">
@@ -865,7 +963,7 @@ export default function Auspiciadores() {
                       </tr>
                     </thead>
                     <tbody>
-                      {listaAcuerdos.map((item) => {
+                      {acuerdosFiltradosBusqueda.map((item) => {
                         const id = item.id_acuerdo || item.id;
                         const nombreAuspiciador =
                           item.auspiciador?.nombre || `Auspiciador #${item.id_auspiciador || '-'}`;
@@ -874,20 +972,22 @@ export default function Auspiciadores() {
                           item.evento?.nombre ||
                           `Evento #${item.id_evento || '-'}`;
                         const tipoPago = item.tipo_aporte || item.tipo_pago || 'Aporte';
+                        const montoComp = Number(item.monto_comprometido || item.monto || 0);
                         const detalleMonto =
-                          item.monto_comprometido || item.monto
-                            ? ` — $${Number(item.monto_comprometido || item.monto).toLocaleString('es-CL')}`
-                            : '';
+                          montoComp > 0 ? ` — $${montoComp.toLocaleString('es-CL')}` : '';
 
                         const rawFecha = item.fecha_comprometida || item.fecha_limite;
                         const fechaPlazo = rawFecha
                           ? String(rawFecha).slice(5, 10).split('-').reverse().join('/')
                           : '--';
 
-                        const estado = item.estado === 'PARCIAL' ? 'CUMPLIDO' : (item.estado || 'PENDIENTE');
+                        const estado = item.estado || 'PENDIENTE';
                         const esCumplido = estado === 'CUMPLIDO';
+                        const esParcial = estado === 'PARCIAL';
                         const esVencido = estado === 'VENCIDO';
                         const esIncobrable = estado === 'INCOBRABLE';
+                        const recibidoAcumulado = calcularTotalRecibido(item);
+                        const saldoRestanteFila = Math.max(0, montoComp - recibidoAcumulado);
 
                         return (
                           <tr
@@ -901,7 +1001,12 @@ export default function Auspiciadores() {
                               {detalleMonto}
                               {esCumplido && (
                                 <div className="ausp-td-recibido">
-                                  Recibido: ${Number(item.monto_comprometido || 0).toLocaleString('es-CL')}
+                                  Recibido: ${(recibidoAcumulado || montoComp).toLocaleString('es-CL')}
+                                </div>
+                              )}
+                              {!esCumplido && recibidoAcumulado > 0 && (
+                                <div className="ausp-td-recibido">
+                                  Abonado: ${recibidoAcumulado.toLocaleString('es-CL')} · Saldo: ${saldoRestanteFila.toLocaleString('es-CL')}
                                 </div>
                               )}
                             </td>
@@ -929,8 +1034,7 @@ export default function Auspiciadores() {
 
                                 {menuAccionesAbierto === id && (
                                   <div className="ausp-menu-dropdown">
-                                    {/* RF-P4-04: Registrar cumplimiento es exclusivo del Contador */}
-                                    {esContador && !esIncobrable && (
+                                    {esContador && !esIncobrable && !esCumplido && (
                                       <button
                                         type="button"
                                         onClick={() => {
@@ -939,9 +1043,9 @@ export default function Auspiciadores() {
                                         }}
                                         className="ausp-menu-item"
                                       >
-                                        {esCumplido
-                                          ? 'Ver / Modificar Fecha de Pago'
-                                          : 'Registrar Pago / Entrega'}
+                                        {esParcial || recibidoAcumulado > 0
+                                          ? 'Registrar Siguiente Abono'
+                                          : 'Registrar Pago / Abono'}
                                       </button>
                                     )}
 
@@ -963,7 +1067,6 @@ export default function Auspiciadores() {
                                       </button>
                                     )}
 
-                                    {/* Acciones exclusivas del Dueño (RF-P4-02, RF-P4-06) */}
                                     {esDueno && (
                                       <>
                                         <button
@@ -1066,7 +1169,6 @@ export default function Auspiciadores() {
                 </div>
               </div>
 
-              {/* TARJETAS RESUMEN DE TOTALES */}
               <div className="ausp-kpis-grid">
                 <div className="ausp-kpi-card">
                   <span className="ausp-kpi-label">Comprometido Total</span>
@@ -1103,7 +1205,6 @@ export default function Auspiciadores() {
                 </div>
               </div>
 
-              {/* TABLA CONSOLIDADA POR AUSPICIADOR */}
               {reporteConsolidado.filas.length === 0 ? (
                 <div className="ausp-vacio-caja">
                   <p>No se encontraron acuerdos registrados para el periodo seleccionado.</p>
@@ -1195,13 +1296,36 @@ export default function Auspiciadores() {
                 )}
               </div>
 
-              {listaAuspiciadores.length === 0 ? (
+              <div className="ausp-buscador-wrap">
+                <input
+                  type="text"
+                  value={busquedaAuspiciador}
+                  onChange={(e) => setBusquedaAuspiciador(e.target.value)}
+                  placeholder="Buscar auspiciador por nombre, rubro, contacto o teléfono..."
+                  className="ausp-buscador-input"
+                />
+                {busquedaAuspiciador && (
+                  <button
+                    type="button"
+                    onClick={() => setBusquedaAuspiciador('')}
+                    className="ausp-btn-limpiar-busqueda"
+                  >
+                    Limpiar
+                  </button>
+                )}
+              </div>
+
+              {auspiciadoresFiltradosBusqueda.length === 0 ? (
                 <div className="ausp-vacio-caja">
-                  <p>No hay auspiciadores registrados aún.</p>
+                  <p>
+                    {busquedaAuspiciador.trim()
+                      ? 'No se encontraron auspiciadores que coincidan con tu búsqueda.'
+                      : 'No hay auspiciadores registrados aún.'}
+                  </p>
                 </div>
               ) : (
                 <div className="ausp-tarjetas-grid">
-                  {listaAuspiciadores.map((item) => {
+                  {auspiciadoresFiltradosBusqueda.map((item) => {
                     const id = item.id_auspiciador || item.id;
                     const esNoConfiable = item.clasificacion === 'NO_CONFIABLE';
 
@@ -1272,7 +1396,6 @@ export default function Auspiciadores() {
         </div>
       </div>
 
-      {/* ================= MODAL DE ÉXITO (SOLO AL AÑADIR) ================= */}
       {mensajeExitoModal && (
         <div className="ausp-modal-fondo">
           <div className="ausp-modal-exito">
@@ -1285,7 +1408,6 @@ export default function Auspiciadores() {
         </div>
       )}
 
-      {/* ================= MODAL REGISTRAR / MODIFICAR AUSPICIADOR ================= */}
       {mostrarFormulario && (
         <div className="ausp-modal-fondo">
           <div className="ausp-modal-caja ausp-modal-caja-ancha">
@@ -1374,7 +1496,6 @@ export default function Auspiciadores() {
         </div>
       )}
 
-      {/* ================= MODAL REGISTRAR ACUERDO DE AUSPICIO ================= */}
       {mostrarModalAcuerdo && (
         <div className="ausp-modal-fondo">
           <div className="ausp-modal-caja ausp-modal-caja-ancha">
@@ -1432,7 +1553,6 @@ export default function Auspiciadores() {
                 </div>
               </div>
 
-              {/* RF-P4-03: Advertencia con historial de cumplimiento (sin parciales) */}
               {auspiciadorElegidoAcuerdo?.clasificacion === 'NO_CONFIABLE' && (
                 <div className="ausp-aviso-no-confiable">
                   <AlertTriangle size={16} className="ausp-alerta-icono" />
@@ -1446,7 +1566,8 @@ export default function Auspiciadores() {
                     {historialAuspiciadorElegido && (
                       <div>
                         <strong>Historial de cumplimiento:</strong> Cumplidos:{' '}
-                        {historialAuspiciadorElegido.cumplidos} · Vencidos:{' '}
+                        {historialAuspiciadorElegido.cumplidos} · Parciales:{' '}
+                        {historialAuspiciadorElegido.parciales} · Vencidos:{' '}
                         {historialAuspiciadorElegido.vencidos} · Incobrables:{' '}
                         {historialAuspiciadorElegido.incobrables}
                       </div>
@@ -1564,20 +1685,20 @@ export default function Auspiciadores() {
         </div>
       )}
 
-      {/* ================= MODAL 1: CUMPLIMIENTO (RF-P4-04) ================= */}
       {modalCumplimiento.abierto && (
         <div className="ausp-modal-fondo">
           <div className="ausp-modal-caja">
-            <h3 className="ausp-modal-titulo">Registrar Cumplimiento del Aporte</h3>
+            <h3 className="ausp-modal-titulo">Registrar Cumplimiento / Abono</h3>
 
             <p className="ausp-modal-sub">
               Auspiciador:{' '}
               <strong>{modalCumplimiento.acuerdo?.auspiciador?.nombre || 'Acuerdo'}</strong> <br />
               Monto Comprometido:{' '}
-              <strong>
-                ${Number(modalCumplimiento.acuerdo?.monto_comprometido || 0).toLocaleString('es-CL')}
-              </strong>{' '}
-              ({modalCumplimiento.acuerdo?.tipo_aporte})
+              <strong>${montoComprometidoModal.toLocaleString('es-CL')}</strong>{' '}
+              ({modalCumplimiento.acuerdo?.tipo_aporte}) <br />
+              Abonado a la fecha:{' '}
+              <strong>${recibidoPrevioModal.toLocaleString('es-CL')}</strong> · Saldo pendiente:{' '}
+              <strong>${saldoPendienteModal.toLocaleString('es-CL')}</strong>
             </p>
 
             {errorModal && <div className="ausp-error-modal">{errorModal}</div>}
@@ -1586,16 +1707,26 @@ export default function Auspiciadores() {
               <div className="ausp-campo-grupo">
                 <label className="ausp-label">
                   {modalCumplimiento.acuerdo?.tipo_aporte === 'DINERO'
-                    ? 'Monto Recibido ($):'
-                    : 'Valorización del Canje Recibido ($):'}
+                    ? `Monto a Abonar / Recibir ($) [Máx: $${saldoPendienteModal.toLocaleString('es-CL')}]:`
+                    : `Valorización del Canje Recibido ($) [Máx: $${saldoPendienteModal.toLocaleString('es-CL')}]:`}
                 </label>
                 <input
-                  type="text"
-                  value={`$${Number(modalCumplimiento.monto_recibido || 0).toLocaleString('es-CL')}`}
-                  readOnly
-                  disabled
+                  type="number"
+                  min="1"
+                  max={saldoPendienteModal}
+                  step="1"
+                  onKeyDown={bloquearNegativosTeclado}
+                  value={modalCumplimiento.monto_recibido}
+                  onChange={(e) => {
+                    setErrorModal('');
+                    setModalCumplimiento({ ...modalCumplimiento, monto_recibido: e.target.value });
+                  }}
+                  required
                   className="ausp-input"
                 />
+                <span className="ausp-ayuda-input">
+                  Si abonas menos del saldo pendiente, quedará como PARCIAL para registrar otro abono después.
+                </span>
               </div>
 
               <div className="ausp-campo-grupo-lg">
@@ -1632,7 +1763,7 @@ export default function Auspiciadores() {
                   Cancelar
                 </button>
                 <button type="submit" className="ausp-btn-guardar">
-                  Guardar Cumplimiento
+                  Guardar Abono
                 </button>
               </div>
             </form>
@@ -1640,7 +1771,6 @@ export default function Auspiciadores() {
         </div>
       )}
 
-      {/* ================= MODAL 2: CLASIFICACIÓN (RF-P4-07) ================= */}
       {modalClasificacion.abierto && (
         <div className="ausp-modal-fondo">
           <div className="ausp-modal-caja">
@@ -1656,7 +1786,8 @@ export default function Auspiciadores() {
                   <br />
                   <span>
                     Acuerdos registrados — Cumplidos:{' '}
-                    <strong>{historialModalClasificacion.cumplidos}</strong> · Vencidos:{' '}
+                    <strong>{historialModalClasificacion.cumplidos}</strong> · Parciales:{' '}
+                    <strong>{historialModalClasificacion.parciales}</strong> · Vencidos:{' '}
                     <strong>{historialModalClasificacion.vencidos}</strong> · Incobrables:{' '}
                     <strong>{historialModalClasificacion.incobrables}</strong>
                   </span>
@@ -1715,7 +1846,6 @@ export default function Auspiciadores() {
         </div>
       )}
 
-      {/* ================= MODAL 3: DECLARAR INCOBRABLE ================= */}
       {modalIncobrable.abierto && (
         <div className="ausp-modal-fondo">
           <div className="ausp-modal-caja">
@@ -1724,9 +1854,18 @@ export default function Auspiciadores() {
             <p className="ausp-modal-sub">
               Auspiciador:{' '}
               <strong>{modalIncobrable.acuerdo?.auspiciador?.nombre || 'Acuerdo'}</strong> <br />
-              Monto Comprometido no recuperado:{' '}
+              Monto Comprometido:{' '}
               <strong>
                 ${Number(modalIncobrable.acuerdo?.monto_comprometido || 0).toLocaleString('es-CL')}
+              </strong>{' '}
+              · Saldo pendiente:{' '}
+              <strong>
+                $
+                {Math.max(
+                  0,
+                  Number(modalIncobrable.acuerdo?.monto_comprometido || 0) -
+                    calcularTotalRecibido(modalIncobrable.acuerdo)
+                ).toLocaleString('es-CL')}
               </strong>
             </p>
 
@@ -1771,7 +1910,6 @@ export default function Auspiciadores() {
         </div>
       )}
 
-      {/* ================= MODAL 4: VER MOTIVO DE INCOBRABLE ================= */}
       {modalVerMotivo.abierto && (
         <div
           className="ausp-modal-fondo"
@@ -1816,7 +1954,6 @@ export default function Auspiciadores() {
         </div>
       )}
 
-      {/* ================= MODAL 5: MODIFICAR ACUERDO ================= */}
       {modalEditarAcuerdo.abierto && (
         <div className="ausp-modal-fondo">
           <div className="ausp-modal-caja ausp-modal-caja-media">

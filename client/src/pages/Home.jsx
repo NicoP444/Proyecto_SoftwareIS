@@ -150,17 +150,17 @@ export default function Home() {
                               Plazo: {fechaPlazo}
                             </span>
                           )}
-                          <span style={{ 
-                            fontSize: "11px", 
-                            padding: "2px 8px", 
-                            borderRadius: "10px", 
-                            backgroundColor: esVencido ? "#fee2e2" : "#fef3c7", 
-                            color: esVencido ? "#991b1b" : "#92400e", 
-                            fontWeight: "600",
-                            display: "inline-block"
-                          }}>
-                            {acuerdo.estado}
-                          </span>
+                          <span
+                         className={`badge-estado-cobro ${
+                           acuerdo.estado === "VENCIDO"
+                             ? "badge-estado-vencido"
+                             : acuerdo.estado === "PARCIAL"
+                             ? "badge-estado-parcial"
+                             : "badge-estado-pendiente"
+                         }`}
+                       >
+                         {acuerdo.estado}
+                         </span>
                         </div>
                       </div>
                     </div>

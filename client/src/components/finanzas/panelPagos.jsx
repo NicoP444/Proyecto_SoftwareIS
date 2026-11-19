@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import Modal from '../Modal.jsx';
-import { clp, formatearFecha } from './formato.js';
+import Modal from '../Modal';
+import { clp, formatearFecha } from './formato';
 import { listarPagos, registrarPago } from '../../services/pagoRemuneracion.service.js';
 
 const MEDIOS = ['Transferencia', 'Efectivo', 'Otro'];
@@ -52,9 +52,6 @@ export default function PanelPagos({ idEvento, idContador, puedeEditar }) {
   return (
     <>
       {error && <div className="fin-alerta">{error}</div>}
-      {datos && !datos.puede_pagar && (
-        <div className="fin-alerta fin-alerta-info">Los pagos se registran cuando la jornada está cerrada.</div>
-      )}
 
       {datos && (
         <section className="fin-panel">
