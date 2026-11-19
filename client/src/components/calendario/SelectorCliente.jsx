@@ -125,7 +125,7 @@ export default function SelectorCliente({ valor, onCambiar, puedeCrear = true })
         autoComplete="off"
       />
       {abierto && (
-        <ul className="selector-cliente-lista">
+        <ul className="selector-cliente-lista campo-sugerencias">
           {error && <li className="selector-cliente-vacio">{error}</li>}
           {!error && buscando && resultados.length === 0 && (
             <li className="selector-cliente-vacio">Buscando…</li>
@@ -136,7 +136,7 @@ export default function SelectorCliente({ valor, onCambiar, puedeCrear = true })
           {resultados.map((c) => (
             <li key={c.id_cliente}>
               <button type="button" onClick={() => elegir(c)}>
-                <strong>{c.nombre}</strong>
+                <span>{c.nombre}</span>
                 <small>{formatearRut(c.rut)}</small>
               </button>
             </li>
