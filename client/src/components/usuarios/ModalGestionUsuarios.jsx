@@ -7,6 +7,11 @@ import {
   cambiarEstadoUsuario
 } from "../../services/usuarioService";
 
+const formatearRolSinGuion = (rol) => {
+  if (!rol) return "";
+  return String(rol).replace(/_/g, " ");
+};
+
 export default function ModalGestionUsuarios({ isOpen, onClose, idDueno }) {
   const [listaUsuarios, setListaUsuarios] = useState([]);
   const [cargandoUsuarios, setCargandoUsuarios] = useState(false);
@@ -208,7 +213,7 @@ export default function ModalGestionUsuarios({ isOpen, onClose, idDueno }) {
                           <td style={{ padding: "10px", color: "#475569" }}>{u.correo}</td>
                           <td style={{ padding: "10px" }}>
                             <span style={{ backgroundColor: "#f1f5f9", padding: "3px 8px", borderRadius: "10px", fontWeight: "600", fontSize: "11px", color: "#334155" }}>
-                              {u.rol}
+                              {formatearRolSinGuion(u.rol)}
                             </span>
                           </td>
                           <td style={{ padding: "10px" }}>
@@ -362,7 +367,7 @@ export default function ModalGestionUsuarios({ isOpen, onClose, idDueno }) {
               <input
                 type="text"
                 disabled
-                value={formUser.rol}
+                value={formatearRolSinGuion(formUser.rol)}
                 style={{ width: "100%", padding: "8px", borderRadius: "8px", border: "1px solid #cbd5e1", boxSizing: "border-box", fontSize: "13px", backgroundColor: "#f1f5f9", color: "#64748b" }}
               />
             </div>
