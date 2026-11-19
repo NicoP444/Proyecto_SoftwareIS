@@ -391,3 +391,7 @@ button.cal-mas { flex-shrink: 0; padding: 0; border: 0; background: none; text-a
 .modal-detalle .cal-datos { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
 /* Los chips (auspiciadores) van en fila y no estirados a todo el ancho */
 .cal-bloque > .lista-roles { flex-direction: row; flex-wrap: wrap; }
+
+/* ===== Quitar personal o kit: confirmación en el mismo chip (sin ventana del navegador) ===== */
+.chip-confirmar { display: inline-flex; align-items: center; gap: 6px; padding: 3px 4px 3px 10px; border: 1px solid color-mix(in srgb, var(--rojo) 40%, white); border-radius: 999px; background: color-mix(in srgb, var(--rojo) 8%, white); font-size: 0.75rem; font-weight: 600; color: #b91c1c; }
+.chip-confirmar .boton { height: 26px; padding: 0 10px; border-radius: 999px; font-size: 0.72rem; }

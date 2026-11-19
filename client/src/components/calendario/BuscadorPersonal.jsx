@@ -58,6 +58,11 @@ export default function BuscadorPersonal({ evento, onAsignado, refresco = 0 }) {
       .catch(() => setRoles([]));
   }, []);
 
+  // Si el panel quitó a alguien, el aviso de la última asignación ya no corresponde
+  useEffect(() => {
+    if (refresco) setAviso(null);
+  }, [refresco]);
+
   // Personal con su estado en el horario del evento, sin quienes ya están asignados.
   // Se vuelve a consultar al asignar (version) y cuando el panel quita a alguien (refresco).
   useEffect(() => {

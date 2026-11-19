@@ -12,6 +12,7 @@ export default function PanelPersonal({ evento, puedeEditar, onCambio }) {
   const [asignaciones, setAsignaciones] = useState([]);
   const [abierto, setAbierto] = useState(false); // muestra el buscador
   const [error, setError] = useState("");
+  const [confirmando, setConfirmando] = useState(null); // id de la asignación que se está por quitar
   const [refresco, setRefresco] = useState(0); // sube al quitar a alguien: el buscador vuelve a consultar
 
   const cerrado = evento.estado === "CERRADO";
@@ -35,8 +36,8 @@ export default function PanelPersonal({ evento, puedeEditar, onCambio }) {
   }
 
   async function quitar(a) {
-    if (!window.confirm(`¿Quitar a ${a.trabajador.nombre} de este evento?`)) return;
     setError("");
+    setConfirmando(null);
     try {
       await quitarAsignacion(evento.id_evento, a.id_asignacion);
       setRefresco((r) => r + 1); // así vuelve a aparecer en la lista para asignar
@@ -63,21 +64,34 @@ export default function PanelPersonal({ evento, puedeEditar, onCambio }) {
         <p className="texto-tenue">Aún no hay trabajadores asignados</p>
       ) : (
         <div className="lista-roles">
-          {asignaciones.map((a) => (
-            <span key={a.id_asignacion} className="chip-rol">
-              {a.trabajador.nombre} · {a.rol.nombre}
-              {puedeEditar && !cerrado && (
-                <button
-                  type="button"
-                  className="chip-quitar"
-                  onClick={() => quitar(a)}
-                  aria-label={`Quitar a ${a.trabajador.nombre}`}
-                >
-                  <X />
+          {asignaciones.map((a) =>
+            confirmando === a.id_asignacion ? (
+              // Confirmación en la misma fila (como en Clientes), en vez de la ventana del navegador
+              <span key={a.id_asignacion} className="chip-confirmar">
+                ¿Quitar a {a.trabajador.nombre}?
+                <button type="button" className="boton boton-peligro" onClick={() => quitar(a)}>
+                  Quitar
                 </button>
-              )}
-            </span>
-          ))}
+                <button type="button" className="boton boton-secundario" onClick={() => setConfirmando(null)}>
+                  Cancelar
+                </button>
+              </span>
+            ) : (
+              <span key={a.id_asignacion} className="chip-rol">
+                {a.trabajador.nombre} · {a.rol.nombre}
+                {puedeEditar && !cerrado && (
+                  <button
+                    type="button"
+                    className="chip-quitar"
+                    onClick={() => setConfirmando(a.id_asignacion)}
+                    aria-label={`Quitar a ${a.trabajador.nombre}`}
+                  >
+                    <X />
+                  </button>
+                )}
+              </span>
+            ),
+          )}
         </div>
       )}
 

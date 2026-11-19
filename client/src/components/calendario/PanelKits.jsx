@@ -34,6 +34,7 @@ export default function PanelKits({ evento, puedeEditar, onCambio }) {
   const [asignando, setAsignando] = useState(null); // id del kit que se está asignando
   const [error, setError] = useState("");
   const [aviso, setAviso] = useState(null); // { advertencia, textos }
+  const [confirmando, setConfirmando] = useState(null); // id de la reserva que se está por quitar
 
   const cerrado = evento.estado === "CERRADO";
 
@@ -88,8 +89,8 @@ export default function PanelKits({ evento, puedeEditar, onCambio }) {
   }
 
   async function quitar(k) {
-    if (!window.confirm(`¿Quitar el kit "${k.kit.nombre}" de este evento?`)) return;
     setError("");
+    setConfirmando(null);
     setAviso(null);
     try {
       await quitarKit(evento.id_evento, k.id_reserva);
@@ -121,21 +122,34 @@ export default function PanelKits({ evento, puedeEditar, onCambio }) {
         <p className="texto-tenue">Aún no hay kits asignados</p>
       ) : (
         <div className="lista-roles">
-          {kits.map((k) => (
-            <span key={k.id_reserva} className="chip-rol">
-              {k.kit.nombre} · {NIVELES[k.kit.nivel] ?? k.kit.nivel}
-              {puedeEditar && !cerrado && !k.salida && (
-                <button
-                  type="button"
-                  className="chip-quitar"
-                  onClick={() => quitar(k)}
-                  aria-label={`Quitar el kit ${k.kit.nombre}`}
-                >
-                  <X />
+          {kits.map((k) =>
+            confirmando === k.id_reserva ? (
+              // Confirmación en la misma fila (como en Clientes), en vez de la ventana del navegador
+              <span key={k.id_reserva} className="chip-confirmar">
+                ¿Quitar {k.kit.nombre}?
+                <button type="button" className="boton boton-peligro" onClick={() => quitar(k)}>
+                  Quitar
                 </button>
-              )}
-            </span>
-          ))}
+                <button type="button" className="boton boton-secundario" onClick={() => setConfirmando(null)}>
+                  Cancelar
+                </button>
+              </span>
+            ) : (
+              <span key={k.id_reserva} className="chip-rol">
+                {k.kit.nombre} · {NIVELES[k.kit.nivel] ?? k.kit.nivel}
+                {puedeEditar && !cerrado && !k.salida && (
+                  <button
+                    type="button"
+                    className="chip-quitar"
+                    onClick={() => setConfirmando(k.id_reserva)}
+                    aria-label={`Quitar el kit ${k.kit.nombre}`}
+                  >
+                    <X />
+                  </button>
+                )}
+              </span>
+            ),
+          )}
         </div>
       )}
 
