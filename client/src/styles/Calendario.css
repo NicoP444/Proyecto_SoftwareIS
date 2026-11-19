@@ -379,3 +379,9 @@ button.cal-mas { flex-shrink: 0; padding: 0; border: 0; background: none; text-a
 .personal-buscador .personal-fila { flex-direction: column; align-items: stretch; gap: 8px; }
 .personal-buscador .personal-accion { justify-content: flex-end; }
 .personal-buscador .personal-accion select { flex: 1; min-width: 0; }
+
+/* ===== Asignar kits: mismo formato que asignar personal ===== */
+.chip-rol.chip-equipo-malo { color: var(--rojo); border-color: color-mix(in srgb, var(--rojo) 35%, white); text-decoration: line-through; }
+/* Personal y kits: las dos cajas de asignación miden lo mismo y la lista ocupa el espacio que queda */
+.cal-bloque .personal-buscador { height: 540px; }
+.cal-bloque .personal-buscador .personal-lista { flex: 1; min-height: 0; max-height: none; }
