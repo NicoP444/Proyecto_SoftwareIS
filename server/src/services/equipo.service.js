@@ -137,6 +137,7 @@ export const equipoService = {
       modelo,
       fecha_compra,
       valor_compra,
+      estado,
     } = datos;
 
     const equipoExistente = await prisma.equipo.findUnique({
@@ -159,6 +160,15 @@ export const equipoService = {
     }
     if (fecha_compra) {
       dataActualizada.fecha_compra = parsearFechaSegura(fecha_compra);
+    }
+
+    // RF-P5-08: Permitir pasar de DANADO a OPERATIVO solo si actualmente está DANADO
+    if (estado !== undefined && estado !== equipoExistente.estado) {
+      if (equipoExistente.estado === 'DANADO' && estado === 'OPERATIVO') {
+        dataActualizada.estado = 'OPERATIVO';
+      } else {
+        throw new Error('Solo se puede cambiar el estado a OPERATIVO cuando el equipo está DAÑADO.');
+      }
     }
 
     let cambioValor = false;

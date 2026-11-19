@@ -59,6 +59,14 @@ const tieneMinimoLetras = (texto, minLetras = 2) => {
   return coincidencias.length >= minLetras;
 };
 
+// Formatea etiquetas visuales reemplazando "_" por espacios y corrigiendo "DANADO"
+const etiqueta = (valor) => {
+  if (!valor) return '';
+  const limpio = String(valor).replace(/_/g, ' ').trim();
+  if (limpio.toUpperCase() === 'DANADO') return 'DAÑADO';
+  return limpio;
+};
+
 export default function Equipos() {
   const fechaHoyLocal = obtenerFechaHoyLocal();
   const [activeTab, setActiveTab] = useState('KITS');
@@ -85,6 +93,7 @@ export default function Equipos() {
 
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [equipoEditando, setEquipoEditando] = useState(null);
+  const [nuevoEstadoEdicion, setNuevoEstadoEdicion] = useState('');
   const [equipoBaja, setEquipoBaja] = useState(null);
   const [motivoBaja, setMotivoBaja] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState('TODOS');
@@ -192,14 +201,14 @@ export default function Equipos() {
     let clase = 'eqp-badge-gris';
     if (estado === 'OPERATIVO') clase = 'eqp-badge-verde';
     else if (estado !== 'DADO_DE_BAJA') clase = 'eqp-badge-rojo';
-    return <span className={`eqp-badge ${clase}`}>{estado}</span>;
+    return <span className={`eqp-badge ${clase}`}>{etiqueta(estado)}</span>;
   };
 
   const renderBadgeKit = (estado = 'DISPONIBLE') => {
     let clase = 'eqp-badge-verde';
     if (estado === 'EN_TERRENO') clase = 'eqp-badge-azul';
     else if (estado === 'INCOMPLETO') clase = 'eqp-badge-rojo';
-    return <span className={`eqp-badge ${clase}`}>{estado}</span>;
+    return <span className={`eqp-badge ${clase}`}>{etiqueta(estado)}</span>;
   };
 
   const manejarCambio = (e) => {
@@ -234,12 +243,12 @@ export default function Equipos() {
       }
     }
 
-    const modeloLimpio = (datos.modelo || '').trim();
-    if (modeloLimpio) {
-      if (modeloLimpio.length < 2 || modeloLimpio.length > 35) {
+    const modeloLimpia = (datos.modelo || '').trim();
+    if (modeloLimpia) {
+      if (modeloLimpia.length < 2 || modeloLimpia.length > 35) {
         return 'El modelo debe tener entre 2 y 35 caracteres.';
       }
-      if (!tieneMinimoLetras(modeloLimpio, 1)) {
+      if (!tieneMinimoLetras(modeloLimpia, 1)) {
         return 'El modelo debe incluir al menos una letra (ej: FX3, ILCE-7M4) y no ser solo números.';
       }
     }
@@ -302,6 +311,12 @@ export default function Equipos() {
     }
   };
 
+  const abrirModalEditarEquipo = (eq) => {
+    setErrorEditarEquipo('');
+    setEquipoEditando(eq);
+    setNuevoEstadoEdicion(eq.estado || 'OPERATIVO');
+  };
+
   const guardarEdicion = async (e) => {
     e.preventDefault();
     setErrorEditarEquipo('');
@@ -317,16 +332,24 @@ export default function Equipos() {
       return;
     }
 
+    const payload = {
+      nombre: equipoEditando.nombre.trim(),
+      categoria: equipoEditando.categoria,
+      marca: equipoEditando.marca ? equipoEditando.marca.trim() : null,
+      modelo: equipoEditando.modelo ? equipoEditando.modelo.trim() : null,
+      fecha_compra: formatearFechaInput(equipoEditando.fecha_compra),
+      valor_compra: Number(equipoEditando.valor_compra)
+    };
+
+    // RF-P5-08: Solo si el equipo estaba DAÑADO se permite pasar a OPERATIVO
+    if (equipoEditando.estado === 'DANADO' && nuevoEstadoEdicion === 'OPERATIVO') {
+      payload.estado = 'OPERATIVO';
+    }
+
     try {
-      await actualizarEquipo(equipoEditando.codigo, {
-        nombre: equipoEditando.nombre.trim(),
-        categoria: equipoEditando.categoria,
-        marca: equipoEditando.marca ? equipoEditando.marca.trim() : null,
-        modelo: equipoEditando.modelo ? equipoEditando.modelo.trim() : null,
-        fecha_compra: formatearFechaInput(equipoEditando.fecha_compra),
-        valor_compra: Number(equipoEditando.valor_compra)
-      });
+      await actualizarEquipo(equipoEditando.codigo, payload);
       setEquipoEditando(null);
+      setNuevoEstadoEdicion('');
       await cargarDatos();
     } catch (error) {
       setErrorEditarEquipo(extraerMensajeError(error, 'Error al actualizar el equipo.'));
@@ -475,7 +498,6 @@ export default function Equipos() {
         ...equiposAdicionalesEditar
       ].filter(Boolean);
 
-      // RF-P5-05: Si el kit está EN_TERRENO, solo enviamos nombre/nivel/recargo sin tocar sus equipos
       const payload =
         kitEditando.estado === 'EN_TERRENO'
           ? {
@@ -619,7 +641,7 @@ export default function Equipos() {
                       <div>
                         <h3 className="eqp-kit-titulo">{kit.nombre}</h3>
                         <p className="eqp-kit-sub">
-                          {kit.nivel} · Recargo: {kit.recargo_pct}%
+                          {etiqueta(kit.nivel)} · Recargo: {kit.recargo_pct}%
                         </p>
                       </div>
                       <div className="eqp-kit-acciones">
@@ -746,10 +768,7 @@ export default function Equipos() {
                             <div className="eqp-acciones-fila">
                               <button
                                 type="button"
-                                onClick={() => {
-                                  setErrorEditarEquipo('');
-                                  setEquipoEditando(eq);
-                                }}
+                                onClick={() => abrirModalEditarEquipo(eq)}
                                 className="eqp-btn-sec-chico"
                               >
                                 Modificar
@@ -1037,10 +1056,31 @@ export default function Equipos() {
                 />
               </div>
 
+              {/* RF-P5-08: Solo en equipos DAÑADOS se muestra la opción de cambiar a OPERATIVO */}
+              {equipoEditando.estado === 'DANADO' && (
+                <div>
+                  <label className="eqp-label">Estado del equipo (Dañado a Operativo):</label>
+                  <select
+                    value={nuevoEstadoEdicion}
+                    onChange={(e) => {
+                      setErrorEditarEquipo('');
+                      setNuevoEstadoEdicion(e.target.value);
+                    }}
+                    className="eqp-select"
+                  >
+                    <option value="DANADO">DAÑADO</option>
+                    <option value="OPERATIVO">OPERATIVO</option>
+                  </select>
+                </div>
+              )}
+
               <div className="eqp-modal-pie">
                 <button
                   type="button"
-                  onClick={() => setEquipoEditando(null)}
+                  onClick={() => {
+                    setEquipoEditando(null);
+                    setNuevoEstadoEdicion('');
+                  }}
                   className="eqp-btn-cancelar"
                 >
                   Cancelar
