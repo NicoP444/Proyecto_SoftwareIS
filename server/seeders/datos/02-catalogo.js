@@ -19,14 +19,15 @@ export const TRABAJADORES = {
   carlos: { nombre: 'Carlos Carrasco', telefono_whatsapp: '+56912345678', correo: 'carlos@sixseven.cl', roles: ['cam', 'swi'], disp: [[-150, 150]] },
   sebastian: { nombre: 'Sebastián Morales', telefono_whatsapp: '+56987654321', correo: 'sebastian@sixseven.cl', roles: ['son', 'cam'], disp: [[-150, 150]] },
   valentina: { nombre: 'Valentina Henríquez', telefono_whatsapp: '+56955443322', correo: 'valentina@sixseven.cl', roles: ['asis', 'son'], disp: [[-150, 150]] },
-  ana: { nombre: 'Ana Fuentes', telefono_whatsapp: '+56971110001', correo: 'ana.fuentes@sixseven.cl', roles: ['cam', 'son'], disp: [[-150, 150]] },
-  bruno: { nombre: 'Bruno Díaz', telefono_whatsapp: '+56971110002', correo: 'bruno.diaz@sixseven.cl', roles: ['son', 'cam'], disp: [[-150, 150]] },
+  ana: { nombre: 'Ana Fuentes', telefono_whatsapp: '+56971110001', correo: 'ana@sixseven.cl', roles: ['cam', 'son'], disp: [[-150, 150]] },
+  bruno: { nombre: 'Bruno Díaz', telefono_whatsapp: '+56971110002', correo: 'bruno@sixseven.cl', roles: ['son', 'cam'], disp: [[-150, 150]] },
   // Dos bloques con un hueco (vacaciones): sin disponibilidad desde hace 5 días hasta dentro de 20
   matias: { nombre: 'Matías Soto', telefono_whatsapp: '+56987654324', correo: 'matias@sixseven.cl', roles: ['swi', 'asis'], disp: [[-150, -5], [20, 150]] },
   // Disponible recién desde dentro de 20 días
   gonzalo: { nombre: 'Gonzalo Paz', telefono_whatsapp: '+56971110004', roles: ['cam'], disp: [[20, 90]] },
-  // Nunca registró disponibilidad: al asignarlo, el sistema avisa (caso de prueba)
-  daniela: { nombre: 'Daniela Rojas', telefono_whatsapp: '+56971110003', roles: ['asis'], disp: [] },
+  // Registró disponibilidad solo hasta ayer (trabajó en C09, C11 y C13): desde hoy no tiene,
+  // así que al asignarla a un evento futuro el sistema avisa (caso de prueba)
+  daniela: { nombre: 'Daniela Rojas', telefono_whatsapp: '+56971110003', roles: ['asis'], disp: [[-30, -1]] },
   esteban: { nombre: 'Esteban Mora', telefono_whatsapp: '+56971110005', roles: ['son'], disp: [[-150, 150]], estado: 'LICENCIA' },
   fernanda: { nombre: 'Fernanda Ruiz', telefono_whatsapp: '+56971110006', roles: ['asis'], disp: [[-150, 150]], estado: 'INACTIVO' },
 };
@@ -66,10 +67,10 @@ export const AUSPICIADORES = {
   fuerzasur: { nombre: 'Gimnasio Fuerza Sur', rubro: 'Gimnasio', contacto: 'Cristóbal Mella', telefono: '+56911000015' },
   cafe: { nombre: 'Café Puerto Sur', rubro: 'Cafetería', contacto: 'Rocío Medina', telefono: '+56981110001' },
   radio: { nombre: 'Radio Bío Sonora', rubro: 'Radio', contacto: 'Hugo Saavedra', telefono: '+56981110002' },
-  rayo: { nombre: 'Energética Rayo Azul', rubro: 'Bebidas energéticas', contacto: 'Jonathan Cárdenas', telefono: '+56911000016', ...noConfiable('Incumplió el pago comprometido en 2 eventos anteriores y no respondió los llamados.') },
+  rayo: { nombre: 'Energética Rayo Azul', rubro: 'Bebidas energéticas', contacto: 'Jonathan Cárdenas', telefono: '+56911000016', ...noConfiable('Incumplió el pago comprometido en 2 eventos y no respondió los llamados.') },
   cripto: { nombre: 'Cripto Fácil Chile', rubro: 'Criptomonedas', contacto: 'Ignacio Bravo', telefono: '+56911000017', ...noConfiable('Ofreció aportes muy altos sin contrato y desapareció antes del evento.') },
-  veloz: { nombre: 'Zapatillas Veloz', rubro: 'Calzado deportivo', contacto: 'Karen Olivares', telefono: '+56911000018', ...noConfiable('Entregó el canje con 3 semanas de atraso y con menos productos de los acordados.') },
-  tiopepe: { nombre: 'Súper Jugos Tío Pepe', rubro: 'Jugos naturales', contacto: 'José Pérez', telefono: '+56911000019', ...noConfiable('Paga solo una parte del monto y pide rebajas después del evento.') },
+  veloz: { nombre: 'Zapatillas Veloz', rubro: 'Calzado deportivo', contacto: 'Karen Olivares', telefono: '+56911000018', ...noConfiable('Entregó el canje con 3 semanas de atraso.') },
+  tiopepe: { nombre: 'Súper Jugos Tío Pepe', rubro: 'Jugos naturales', contacto: 'José Pérez', telefono: '+56911000019', ...noConfiable('Pidió rebajas después del evento y finalmente no pagó el aporte comprometido.') },
   golseguro: { nombre: 'Apuestas Gol Seguro', rubro: 'Apuestas deportivas', contacto: 'Matías Quiroz', telefono: '+56911000020', ...noConfiable('Negocio sin permisos claros; el aporte quedó sin pagar y se canceló el acuerdo.') },
   rapidas: { nombre: 'Inversiones Rápidas Ltda.', rubro: 'Préstamos', contacto: 'Mauricio Leiva', telefono: '+56981110003', ...noConfiable('Prometió un aporte en dinero y no pagó en la fecha comprometida.') },
 };

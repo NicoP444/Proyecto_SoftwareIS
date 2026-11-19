@@ -85,10 +85,15 @@ export function evidencia(nombre) {
 //  ctx = lo que crearon los pasos anteriores (usuarios, roles, trabajadores, clientes, kits, equipos, auspiciadores)
 export async function crearEvento(spec, ctx) {
   const realizado = ['REALIZADO', 'CERRADO'].includes(spec.estado);
+  // Día de cierre de la jornada: el último día en que entró plata (pagos del cliente o aportes).
+  // Con la jornada cerrada el sistema ya no acepta pagos, así que nada puede quedar después del cierre.
+  const ingresos = [...(spec.pagos ?? []).map(([, , f]) => f), ...(spec.acuerdos ?? []).filter((a) => a.recibido).map((a) => a.recibido[1])];
+  const diaCierre = [spec.fecha, ...ingresos].sort().at(-1);
   const personal = (spec.personal ?? []).map(([quien, r, pct = null, rendicion, pago = 'POR_PAGAR', fechaPago]) => ({
     quien, r, pct, pago,
     rendicion: rendicion ?? (realizado ? 'SIN_GASTOS' : null),
-    fechaPago: fechaPago ?? masDias(spec.fecha, 3),
+    // Las remuneraciones se pagan después del cierre (el sistema no deja pagar antes)
+    fechaPago: fechaPago ?? [masDias(spec.fecha, 3), masDias(diaCierre, 1)].sort().at(-1),
     monto: pct === null ? null : remuneracion(pct, spec.precio),
   }));
   const evidencias = [evidencia('seed-boleta-1.png'), evidencia('seed-boleta-2.png')];
@@ -211,7 +216,10 @@ export async function crearEvento(spec, ctx) {
       const rem = personal.reduce((s, p) => s + (p.monto ?? 0), 0);
       await tx.evento.update({
         where: { id_evento: evento.id_evento },
-        data: { rentabilidad_final: pagado + aportes - rem - totalGastos - perdidas, fecha_cierre: momento(spec.fecha, '23:59') },
+        data: {
+          rentabilidad_final: pagado + aportes - rem - totalGastos - perdidas,
+          fecha_cierre: momento(diaCierre, diaCierre === spec.fecha ? '23:59' : '18:00'),
+        },
       });
     }
     return evento;
