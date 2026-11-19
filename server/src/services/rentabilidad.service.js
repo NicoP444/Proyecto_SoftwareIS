@@ -5,23 +5,29 @@ const suma = (r, campo) => r._sum[campo] ?? 0;
 
 // RF-P7-09: pagos del cliente + aportes cumplidos − remuneraciones − gastos − pérdidas de inventario.
 // `db` puede ser prisma o una transacción (tx). Las consultas van en serie a propósito.
+// RF-P7-09: precio acordado + aportes cumplidos − remuneraciones − gastos − pérdidas de inventario.
+// `db` puede ser prisma o una transacción (tx). Las consultas van en serie a propósito.
 export const calcularRentabilidad = async (id_evento, db = prisma) => {
+  const evento = await db.evento.findUnique({ where: { id_evento }, select: { precio_acordado: true } });
   const pagos = await db.pagoCliente.aggregate({ _sum: { monto: true }, where: { id_evento } });
   const aportes = await db.cumplimientoAporte.aggregate({ _sum: { monto_recibido: true }, where: { acuerdo: { id_evento } } });
   const remuneraciones = await db.asignacionPersonal.aggregate({ _sum: { remuneracion: true }, where: { id_evento } });
   const gastos = await db.gastoEvento.aggregate({ _sum: { monto: true }, where: { asignacion: { id_evento } } });
   const perdidas = await db.incidente.aggregate({ _sum: { valor: true }, where: { id_evento } });
 
+  const precio_acordado = evento?.precio_acordado ?? 0;
   const pagos_cliente = suma(pagos, 'monto');
   const aportes_auspiciadores = suma(aportes, 'monto_recibido');
-  const ingresos = pagos_cliente + aportes_auspiciadores;
+  const ingresos = precio_acordado + aportes_auspiciadores;
   const total_remuneraciones = suma(remuneraciones, 'remuneracion');
   const total_gastos = suma(gastos, 'monto');
   const perdidas_inventario = suma(perdidas, 'valor');
   const resultado = ingresos - total_remuneraciones - total_gastos - perdidas_inventario;
 
   return {
+    precio_acordado,
     pagos_cliente,
+    saldo_por_cobrar: Math.max(precio_acordado - pagos_cliente, 0),
     aportes_auspiciadores,
     ingresos,
     remuneraciones: total_remuneraciones,
@@ -102,7 +108,6 @@ export const movimientosDeEvento = async (id_evento) => {
   const evento = await prisma.evento.findUnique({ where: { id_evento } });
   if(!evento) throw new NotFoundError('El evento no existe');
 
-  const pagos = await prisma.pagoCliente.findMany({ where: { id_evento } });
   const aportes = await prisma.cumplimientoAporte.findMany({
     where: { acuerdo: { id_evento } },
     include: { acuerdo: { select: { glosa: true, auspiciador: { select: { nombre: true } } } } },
@@ -118,10 +123,11 @@ export const movimientosDeEvento = async (id_evento) => {
   const incidentes = await prisma.incidente.findMany({ where: { id_evento } });
 
   const movimientos = [
-    ...pagos.map((p) => ({
-      fecha: p.fecha, tipo: 'INGRESO', concepto: 'Pago del cliente',
-      detalle: `${p.tipo_pago} · ${p.medio_pago}`, monto: p.monto,
-    })),
+    // El ingreso del evento es el precio acordado: un solo movimiento
+    {
+      fecha: evento.fecha, tipo: 'INGRESO', concepto: 'Precio acordado del evento',
+      detalle: 'Pactado con el cliente', monto: evento.precio_acordado,
+    },
     ...aportes.map((a) => ({
       fecha: a.fecha, tipo: 'INGRESO', concepto: 'Aporte de auspiciador',
       detalle: `${a.acuerdo.auspiciador.nombre} · ${a.acuerdo.glosa}`, monto: a.monto_recibido,

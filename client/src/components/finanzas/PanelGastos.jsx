@@ -10,7 +10,6 @@ import {
 //seccion de gastos
 
 export default function PanelGastos({ idEvento, idContador, puedeEditar }) {
-  
   const [gastos, setGastos] = useState([]);
   const [trabajadores, setTrabajadores] = useState([]);
   const [error, setError] = useState('');
@@ -22,7 +21,7 @@ export default function PanelGastos({ idEvento, idContador, puedeEditar }) {
 
   const recargar = () => setVersion((v) => v + 1); // obligamos a que recargue la pagina
 
-  useEffect(() => { 
+  useEffect(() => {
     Promise.all([listarGastos(idEvento), listarRendiciones(idEvento)]) // ejecutamos en paralelo.
       .then(([g, r]) => {
         setGastos(g);
@@ -34,14 +33,14 @@ export default function PanelGastos({ idEvento, idContador, puedeEditar }) {
 
   async function guardar(formData) {
     formData.append('id_contador', idContador); // agregamos el id del contador que registra o modifica el gasto
-    if (modal.gasto){ // modal tiene un gasto, entonces estamos editando
+    if (modal.gasto) { // modal tiene un gasto, entonces estamos editando
       await modificarGasto(modal.gasto.id_gasto, formData);
-    } else{ // modal no tiene un gasto, entonces estamos creando
+    } else { // modal no tiene un gasto, entonces estamos creando
       formData.append('id_evento', idEvento);
       await crearGasto(formData);
     }
     setModal(null);
-    recargar(); // llamamos a la funcion recargar para que se actualice la lista de gastoss
+    recargar(); // llamamos a la funcion recargar para que se actualice la lista de gastos
   }
 
   async function confirmarEliminar(e) {
@@ -74,10 +73,7 @@ export default function PanelGastos({ idEvento, idContador, puedeEditar }) {
         {/*Lista de gastos, si no hay longitud, mostramos un mensaje*/}
         {gastos.length === 0 ? (
           <p className="fin-vacio">No hay gastos registrados para este evento</p>
-        ) 
-        
-        : (
-          
+        ) : (
           <div className="fin-grid">
             {gastos.map((g) => (
               <article key={g.id_gasto} className="fin-card">

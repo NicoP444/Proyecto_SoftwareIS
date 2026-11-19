@@ -78,7 +78,7 @@ export default function FormularioTrabajador({ inicial = VACIO, textoBoton, onGu
 
       <div className="fila-doble">
         {campo('telefono_whatsapp', 'Teléfono WhatsApp', { type: 'tel', placeholder: '+56 9 1234 5678' })}
-        {campo('correo', 'Correo electrónico', { type: 'email', placeholder: 'nombre@correo.com' })}
+        {campo('correo', 'Correo electrónico (opcional)', { type: 'email', placeholder: 'nombre@correo.com' })}
       </div>
 
       {campo('observaciones', 'Observaciones', { placeholder: 'Opcional' })}
