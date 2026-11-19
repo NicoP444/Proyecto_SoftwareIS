@@ -1,7 +1,12 @@
-import { Router } from 'express';
-import { validarId, validarBody, validarContador, camposObligatorios } from '../middlewares/validate.middleware.js';
-import { autenticar, permitirRoles } from '../middlewares/auth.middleware.js';
-import { listar, registrar } from '../controllers/pagoCliente.controller.js';
+import { Router } from "express";
+import {
+  validarId,
+  validarBody,
+  validarContador,
+  camposObligatorios,
+} from "../middlewares/validate.middleware.js";
+import { autenticar, permitirRoles } from "../middlewares/auth.middleware.js";
+import { listar, registrar } from "../controllers/pagoCliente.controller.js";
 
 const router = Router();
 
@@ -12,18 +17,24 @@ const contadorDeSesion = (req, res, next) => {
 };
 
 // RF-P1-09: pagos del cliente de un evento (con saldo pendiente): Dueño y Contador
-router.get('/evento/:id', autenticar, permitirRoles('DUENO', 'CONTADOR'), validarId, listar);
+router.get(
+  "/evento/:id",
+  autenticar,
+  permitirRoles("DUENO", "CONTADOR"),
+  validarId,
+  listar,
+);
 
 // RF-P1-09 + RF-P1-10: registrar un pago (solo el Contador)
 router.post(
-  '/evento/:id',
+  "/evento/:id",
   autenticar,
-  permitirRoles('CONTADOR'),
+  permitirRoles("CONTADOR"),
   validarId,
   validarBody,
   contadorDeSesion,
   validarContador,
-  camposObligatorios('tipo_pago', 'monto', 'fecha', 'medio_pago'),
+  camposObligatorios("tipo_pago", "monto", "fecha", "medio_pago"),
   registrar,
 );
 

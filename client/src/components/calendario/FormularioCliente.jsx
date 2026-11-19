@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { crearCliente, modificarCliente } from "../../services/cliente.service.js";
+import {
+  crearCliente,
+  modificarCliente,
+} from "../../services/cliente.service.js";
 import { formatearRut, limpiarRut, rutEsValido } from "../../utils/rut.js";
 
 const VACIO = { rut: "", nombre: "", telefono: "", correo: "" };
@@ -11,7 +14,12 @@ const VACIO = { rut: "", nombre: "", telefono: "", correo: "" };
  * - nombreInicial: precarga el nombre (ej: lo que se escribió en el buscador).
  * - onGuardado(cliente): recibe el cliente tal como lo devolvió el back.
  */
-export default function FormularioCliente({ cliente = null, nombreInicial = "", onGuardado, onCancelar }) {
+export default function FormularioCliente({
+  cliente = null,
+  nombreInicial = "",
+  onGuardado,
+  onCancelar,
+}) {
   const [datos, setDatos] = useState(
     cliente
       ? {
@@ -20,12 +28,13 @@ export default function FormularioCliente({ cliente = null, nombreInicial = "", 
           telefono: cliente.telefono,
           correo: cliente.correo ?? "",
         }
-      : { ...VACIO, nombre: nombreInicial }
+      : { ...VACIO, nombre: nombreInicial },
   );
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
 
-  const cambiar = (campo) => (e) => setDatos({ ...datos, [campo]: e.target.value });
+  const cambiar = (campo) => (e) =>
+    setDatos({ ...datos, [campo]: e.target.value });
 
   async function guardar(e) {
     e.preventDefault();
@@ -35,7 +44,8 @@ export default function FormularioCliente({ cliente = null, nombreInicial = "", 
     if (!datos.rut.trim()) return setError("El RUT es obligatorio");
     if (!rutEsValido(datos.rut)) return setError("El RUT no es válido");
     if (!datos.nombre.trim()) return setError("Indica el nombre del cliente");
-    if (!datos.telefono.trim()) return setError("Indica el teléfono del cliente");
+    if (!datos.telefono.trim())
+      return setError("Indica el teléfono del cliente");
 
     const enviar = {
       rut: limpiarRut(datos.rut),
@@ -111,11 +121,23 @@ export default function FormularioCliente({ cliente = null, nombreInicial = "", 
       </div>
 
       <div className="acciones">
-        <button type="button" className="boton boton-secundario" onClick={onCancelar}>
+        <button
+          type="button"
+          className="boton boton-secundario"
+          onClick={onCancelar}
+        >
           Cancelar
         </button>
-        <button type="submit" className="boton boton-principal" disabled={guardando}>
-          {guardando ? "Guardando…" : cliente ? "Guardar cambios" : "Crear cliente"}
+        <button
+          type="submit"
+          className="boton boton-principal"
+          disabled={guardando}
+        >
+          {guardando
+            ? "Guardando…"
+            : cliente
+              ? "Guardar cambios"
+              : "Crear cliente"}
         </button>
       </div>
     </form>

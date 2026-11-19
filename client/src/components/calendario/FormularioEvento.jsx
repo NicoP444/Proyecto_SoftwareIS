@@ -34,7 +34,8 @@ const fechaLegible = (iso) => {
 };
 
 // "250000" -> "250.000" (solo para mostrar; en el estado se guardan solo los dígitos)
-const conPuntos = (digitos) => (digitos ? Number(digitos).toLocaleString("es-CL") : "");
+const conPuntos = (digitos) =>
+  digitos ? Number(digitos).toLocaleString("es-CL") : "";
 
 const DURACION_SUGERIDA = 120; // al elegir la hora de inicio, el término se sugiere 2 h después
 const ULTIMO_MINUTO = 23 * 60 + 55; // los eventos terminan el mismo día
@@ -80,12 +81,21 @@ export default function FormularioEvento({
   function cambiarInicio(valor) {
     setDatos((d) => {
       const nuevo = { ...d, hora_inicio: valor };
-      if (valor && (!d.hora_termino || minutos(d.hora_termino) <= minutos(valor))) {
-        nuevo.hora_termino = aHora(Math.min(minutos(valor) + DURACION_SUGERIDA, ULTIMO_MINUTO));
+      if (
+        valor &&
+        (!d.hora_termino || minutos(d.hora_termino) <= minutos(valor))
+      ) {
+        nuevo.hora_termino = aHora(
+          Math.min(minutos(valor) + DURACION_SUGERIDA, ULTIMO_MINUTO),
+        );
       }
       return nuevo;
     });
-    setErrores((e) => ({ ...e, hora_inicio: undefined, hora_termino: undefined }));
+    setErrores((e) => ({
+      ...e,
+      hora_inicio: undefined,
+      hora_termino: undefined,
+    }));
   }
 
   // Duración y estado que tendrá el evento (5 horas o más = pendiente de adelanto)
@@ -106,13 +116,17 @@ export default function FormularioEvento({
     if (!cliente) e.cliente = "Selecciona o crea un cliente";
     if (!datos.direccion.trim()) e.direccion = "Indica la dirección del evento";
     if (!datos.fecha) e.fecha = "Indica la fecha";
-    else if (!editando && datos.fecha < hoyLocal()) e.fecha = "La fecha no puede ser anterior a hoy";
+    else if (!editando && datos.fecha < hoyLocal())
+      e.fecha = "La fecha no puede ser anterior a hoy";
     if (!datos.hora_inicio) e.hora_inicio = "Indica la hora de inicio";
     if (!datos.hora_termino) e.hora_termino = "Indica la hora de término";
     else if (datos.hora_inicio && !horasValidas)
-      e.hora_termino = "Debe ser posterior al inicio (el evento termina el mismo día)";
-    if (!datos.precio_acordado || precio <= 0) e.precio_acordado = "Indica un precio mayor a cero";
-    else if (precio > 2000000000) e.precio_acordado = "El precio es demasiado alto";
+      e.hora_termino =
+        "Debe ser posterior al inicio (el evento termina el mismo día)";
+    if (!datos.precio_acordado || precio <= 0)
+      e.precio_acordado = "Indica un precio mayor a cero";
+    else if (precio > 2000000000)
+      e.precio_acordado = "El precio es demasiado alto";
     return e;
   }
 
@@ -185,7 +199,9 @@ export default function FormularioEvento({
             setErrores((e) => ({ ...e, cliente: undefined }));
           }}
         />
-        {errores.cliente && <span className="campo-error">{errores.cliente}</span>}
+        {errores.cliente && (
+          <span className="campo-error">{errores.cliente}</span>
+        )}
       </div>
 
       <div className={conError("direccion")}>
@@ -199,7 +215,9 @@ export default function FormularioEvento({
           placeholder="Calle, número, comuna"
           maxLength={120}
         />
-        {errores.direccion && <span className="campo-error">{errores.direccion}</span>}
+        {errores.direccion && (
+          <span className="campo-error">{errores.direccion}</span>
+        )}
       </div>
 
       <div className={conError("fecha")}>
@@ -214,15 +232,23 @@ export default function FormularioEvento({
         {errores.fecha ? (
           <span className="campo-error">{errores.fecha}</span>
         ) : (
-          datos.fecha && <span className="campo-ayuda">{fechaLegible(datos.fecha)}</span>
+          datos.fecha && (
+            <span className="campo-ayuda">{fechaLegible(datos.fecha)}</span>
+          )
         )}
       </div>
 
       <div className="fila-doble">
         <div className={conError("hora_inicio")}>
           <label htmlFor="ev-inicio">Hora de inicio (24 h)</label>
-          <SelectorHora id="ev-inicio" valor={datos.hora_inicio} onCambiar={cambiarInicio} />
-          {errores.hora_inicio && <span className="campo-error">{errores.hora_inicio}</span>}
+          <SelectorHora
+            id="ev-inicio"
+            valor={datos.hora_inicio}
+            onCambiar={cambiarInicio}
+          />
+          {errores.hora_inicio && (
+            <span className="campo-error">{errores.hora_inicio}</span>
+          )}
         </div>
         <div className={conError("hora_termino")}>
           <label htmlFor="ev-termino">Hora de término (24 h)</label>
@@ -231,20 +257,30 @@ export default function FormularioEvento({
             valor={datos.hora_termino}
             onCambiar={(v) => poner("hora_termino", v)}
           />
-          {errores.hora_termino && <span className="campo-error">{errores.hora_termino}</span>}
+          {errores.hora_termino && (
+            <span className="campo-error">{errores.hora_termino}</span>
+          )}
         </div>
       </div>
 
       {/* Duración y estado en que quedará el evento */}
-      {horasValidas && (!editando || ["CONFIRMADO", "PENDIENTE_ADELANTO"].includes(evento.estado)) && (
-        <div className={`ev-duracion ${quedaPendiente ? "pendiente" : "confirmado"}`}>
-          <Clock size={16} />
-          <span>
-            Dura {duracion.toLocaleString("es-CL", { maximumFractionDigits: 1 })} h · quedará{" "}
-            <strong>{quedaPendiente ? "Pendiente de adelanto" : "Confirmado"}</strong>
-          </span>
-        </div>
-      )}
+      {horasValidas &&
+        (!editando ||
+          ["CONFIRMADO", "PENDIENTE_ADELANTO"].includes(evento.estado)) && (
+          <div
+            className={`ev-duracion ${quedaPendiente ? "pendiente" : "confirmado"}`}
+          >
+            <Clock size={16} />
+            <span>
+              Dura{" "}
+              {duracion.toLocaleString("es-CL", { maximumFractionDigits: 1 })} h
+              · quedará{" "}
+              <strong>
+                {quedaPendiente ? "Pendiente de adelanto" : "Confirmado"}
+              </strong>
+            </span>
+          </div>
+        )}
 
       <div className={conError("precio_acordado")}>
         <label htmlFor="ev-precio">Precio acordado (CLP)</label>
@@ -254,12 +290,19 @@ export default function FormularioEvento({
             id="ev-precio"
             inputMode="numeric"
             value={conPuntos(datos.precio_acordado)}
-            onChange={(e) => poner("precio_acordado", e.target.value.replace(/\D/g, "").slice(0, 10))}
+            onChange={(e) =>
+              poner(
+                "precio_acordado",
+                e.target.value.replace(/\D/g, "").slice(0, 10),
+              )
+            }
             placeholder="250.000"
             autoComplete="off"
           />
         </div>
-        {errores.precio_acordado && <span className="campo-error">{errores.precio_acordado}</span>}
+        {errores.precio_acordado && (
+          <span className="campo-error">{errores.precio_acordado}</span>
+        )}
       </div>
 
       <div className="campo">
@@ -289,16 +332,29 @@ export default function FormularioEvento({
 
       {editando && (
         <p className="texto-tenue">
-          Si cambias la fecha, el horario o el lugar, el sistema revisa los kits y el personal ya asignados.
+          Si cambias la fecha, el horario o el lugar, el sistema revisa los kits
+          y el personal ya asignados.
         </p>
       )}
 
       <div className="acciones">
-        <button type="button" className="boton boton-secundario" onClick={onCancelar}>
+        <button
+          type="button"
+          className="boton boton-secundario"
+          onClick={onCancelar}
+        >
           Cancelar
         </button>
-        <button type="submit" className="boton boton-principal" disabled={guardando}>
-          {guardando ? "Guardando…" : editando ? "Guardar cambios" : "Agendar evento"}
+        <button
+          type="submit"
+          className="boton boton-principal"
+          disabled={guardando}
+        >
+          {guardando
+            ? "Guardando…"
+            : editando
+              ? "Guardar cambios"
+              : "Agendar evento"}
         </button>
       </div>
     </form>

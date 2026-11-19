@@ -34,7 +34,12 @@ const FORM_VACIO = () => ({
  * Dueño y Contador ven los pagos y el saldo; solo el Contador registra pagos.
  * Cuando el pago confirma el evento, avisa al calendario con onCambio.
  */
-export default function PagosEvento({ idEvento, puedeRegistrar, onCambio, version }) {
+export default function PagosEvento({
+  idEvento,
+  puedeRegistrar,
+  onCambio,
+  version,
+}) {
   const [datos, setDatos] = useState(null);
   const [form, setForm] = useState(FORM_VACIO());
   const [error, setError] = useState("");

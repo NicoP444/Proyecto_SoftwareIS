@@ -6,12 +6,16 @@ import Modal from "../Modal";
 import FormularioCliente from "./FormularioCliente";
 
 /**
- * Buscador de clientes por nombre o RUT (RF-P1-01).
+ * Buscador de clientes por nombre o RUT
  * No carga todos los clientes: le pregunta al back mientras se escribe
  * y trae máximo 8, así sigue funcionando aunque haya miles de clientes.
  * Si el cliente no existe, se puede crear ahí mismo (puedeCrear) sin cerrar el formulario del evento.
  */
-export default function SelectorCliente({ valor, onCambiar, puedeCrear = true }) {
+export default function SelectorCliente({
+  valor,
+  onCambiar,
+  puedeCrear = true,
+}) {
   const [texto, setTexto] = useState("");
   const [resultados, setResultados] = useState([]);
   const [abierto, setAbierto] = useState(false);
@@ -47,7 +51,8 @@ export default function SelectorCliente({ valor, onCambiar, puedeCrear = true })
   // Cierra la lista al hacer clic fuera
   useEffect(() => {
     const clicFuera = (e) => {
-      if (contenedor.current && !contenedor.current.contains(e.target)) setAbierto(false);
+      if (contenedor.current && !contenedor.current.contains(e.target))
+        setAbierto(false);
     };
     document.addEventListener("mousedown", clicFuera);
     return () => document.removeEventListener("mousedown", clicFuera);
@@ -82,7 +87,12 @@ export default function SelectorCliente({ valor, onCambiar, puedeCrear = true })
 
   // Ventana para crear el cliente (se dibuja encima del formulario del evento)
   const ventanaCrear = (
-    <Modal abierto={creando} onCerrar={() => setCreando(false)} titulo="Nuevo cliente" cerrarConFondo={false}>
+    <Modal
+      abierto={creando}
+      onCerrar={() => setCreando(false)}
+      titulo="Nuevo cliente"
+      cerrarConFondo={false}
+    >
       <FormularioCliente
         nombreInicial={pareceRut ? "" : texto.trim()}
         onGuardado={alCrear}
@@ -126,13 +136,18 @@ export default function SelectorCliente({ valor, onCambiar, puedeCrear = true })
         autoComplete="off"
       />
       {abierto && (
-        <ul className="selector-cliente-lista campo-sugerencias" onMouseDown={(e) => e.preventDefault()}>
+        <ul
+          className="selector-cliente-lista campo-sugerencias"
+          onMouseDown={(e) => e.preventDefault()}
+        >
           {error && <li className="selector-cliente-vacio">{error}</li>}
           {!error && buscando && resultados.length === 0 && (
             <li className="selector-cliente-vacio">Buscando…</li>
           )}
           {!error && !buscando && resultados.length === 0 && (
-            <li className="selector-cliente-vacio">No hay clientes que coincidan.</li>
+            <li className="selector-cliente-vacio">
+              No hay clientes que coincidan.
+            </li>
           )}
           {resultados.map((c) => (
             <li key={c.id_cliente}>
@@ -154,7 +169,9 @@ export default function SelectorCliente({ valor, onCambiar, puedeCrear = true })
                 onClick={abrirCrear}
               >
                 <Plus size={16} />
-                {texto.trim() && !pareceRut ? `Crear cliente «${texto.trim()}»` : "Crear cliente nuevo"}
+                {texto.trim() && !pareceRut
+                  ? `Crear cliente «${texto.trim()}»`
+                  : "Crear cliente nuevo"}
               </button>
             </li>
           )}

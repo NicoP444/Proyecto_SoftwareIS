@@ -1,5 +1,5 @@
-import prisma from '../config/prisma.js';
-import { ValidationError } from '../utils/errores.js';
+import prisma from "../config/prisma.js";
+import { ValidationError } from "../utils/errores.js";
 
 // Validaciones al MODIFICAR un evento (RF-P1-07): agenda, kits y personal.
 // Solo leen la base de datos: si algo no se puede, lanzan un Error; si algo solo hay que revisar, lo devuelven como advertencia.
@@ -13,9 +13,10 @@ export const aFecha = (d) => d.toISOString().slice(0, 10); // "2026-11-10"
 // Hoy como "AAAA-MM-DD" (sin toISOString, para que no se corra el día por la zona horaria)
 export const hoyTexto = () => {
   const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
-const aMinutos = (hhmm) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
+const aMinutos = (hhmm) =>
+  Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
 
 // Dos franjas se traslapan si una empieza antes de que la otra termine (y al revés)
 const seTraslapan = (iniA, finA, iniB, finB) => iniA < finB && finA > iniB;
@@ -23,37 +24,50 @@ const seTraslapan = (iniA, finA, iniB, finB) => iniA < finB && finA > iniB;
 // Deja la dirección sin tildes, mayúsculas, puntuación ni espacios repetidos
 const normalizar = (texto) =>
   texto
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .replace(/[^a-z0-9 ]/g, ' ')
-    .replace(/\s+/g, ' ')
+    .replace(/[^a-z0-9 ]/g, " ")
+    .replace(/\s+/g, " ")
     .trim();
 const mismaDireccion = (a, b) => normalizar(a) === normalizar(b);
 
 // ¿Algún bloque de disponibilidad del trabajador cubre la fecha del evento?
 // La disponibilidad se define solo por rango de fechas, sin horas.
 const cubreFecha = (bloques, fecha) =>
-  bloques.some((b) => aFecha(b.fecha_inicio) <= fecha && aFecha(b.fecha_termino) >= fecha);
+  bloques.some(
+    (b) => aFecha(b.fecha_inicio) <= fecha && aFecha(b.fecha_termino) >= fecha,
+  );
 
 // true si "AAAA-MM-DD" es una fecha que existe. Rechaza "2026-02-31" (JS la pasaría al 3 de marzo)
 // y "2026-13-45" (sin este chequeo, toISOString() lanza un error y el servidor respondía 500)
 export const fechaEsReal = (fecha) => {
-  if (!FECHA.test(fecha ?? '')) return false;
+  if (!FECHA.test(fecha ?? "")) return false;
   const d = new Date(`${fecha}T00:00:00Z`);
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === fecha;
 };
 
 // ---------- Agenda: la fecha y las horas deben existir y tener sentido ----------
 export function validarFormatoAgenda({ fecha, hora_inicio, hora_termino }) {
-  if (!fechaEsReal(fecha)) throw new ValidationError('La fecha no es válida (usa AAAA-MM-DD)');
+  if (!fechaEsReal(fecha))
+    throw new ValidationError("La fecha no es válida (usa AAAA-MM-DD)");
 
-  for (const [nombre, hora] of [['inicio', hora_inicio], ['término', hora_termino]]) {
-    const ok = HORA.test(hora ?? '') && !Number.isNaN(new Date(`2000-01-01T${hora}:00Z`).getTime());
-    if (!ok) throw new ValidationError(`La hora de ${nombre} no es válida (usa HH:MM)`);
+  for (const [nombre, hora] of [
+    ["inicio", hora_inicio],
+    ["término", hora_termino],
+  ]) {
+    const ok =
+      HORA.test(hora ?? "") &&
+      !Number.isNaN(new Date(`2000-01-01T${hora}:00Z`).getTime());
+    if (!ok)
+      throw new ValidationError(
+        `La hora de ${nombre} no es válida (usa HH:MM)`,
+      );
   }
   if (hora_termino <= hora_inicio) {
-    throw new ValidationError('La hora de término debe ser posterior a la de inicio (los eventos terminan el mismo día)');
+    throw new ValidationError(
+      "La hora de término debe ser posterior a la de inicio (los eventos terminan el mismo día)",
+    );
   }
 }
 
@@ -87,7 +101,9 @@ export async function validarAgendaEvento(evento, nueva, id_dueno) {
   const minutosEntre = (otro) => {
     const iniOtro = aMinutos(aHora(otro.hora_inicio));
     const finOtro = aMinutos(aHora(otro.hora_termino));
-    return finOtro <= aMinutos(nueva.hora_inicio) ? aMinutos(nueva.hora_inicio) - finOtro : iniOtro - aMinutos(nueva.hora_termino);
+    return finOtro <= aMinutos(nueva.hora_inicio)
+      ? aMinutos(nueva.hora_inicio) - finOtro
+      : iniOtro - aMinutos(nueva.hora_termino);
   };
 
   // ---------- Kits reservados (RF-P1-05) ----------
@@ -101,7 +117,9 @@ export async function validarAgendaEvento(evento, nueva, id_dueno) {
 
   if (cambioHorario) {
     // Un kit que ya salió a terreno y no ha vuelto no puede quedar atado a otro horario
-    const enTerreno = reservas.find((r) => r.salida && !r.salida.fecha_hora_retorno);
+    const enTerreno = reservas.find(
+      (r) => r.salida && !r.salida.fecha_hora_retorno,
+    );
     if (enTerreno) {
       throw new ValidationError(
         `No se puede cambiar la fecha ni el horario: el kit "${enTerreno.kit.nombre}" ya salió a terreno y aún no vuelve`,
@@ -119,11 +137,23 @@ export async function validarAgendaEvento(evento, nueva, id_dueno) {
       },
       include: {
         kit: { select: { nombre: true } },
-        evento: { select: { tipo: true, hora_inicio: true, hora_termino: true, direccion: true } },
+        evento: {
+          select: {
+            tipo: true,
+            hora_inicio: true,
+            hora_termino: true,
+            direccion: true,
+          },
+        },
       },
     });
     const seTraslapaConNuevo = (o) =>
-      seTraslapan(nueva.hora_inicio, nueva.hora_termino, aHora(o.evento.hora_inicio), aHora(o.evento.hora_termino));
+      seTraslapan(
+        nueva.hora_inicio,
+        nueva.hora_termino,
+        aHora(o.evento.hora_inicio),
+        aHora(o.evento.hora_termino),
+      );
 
     // Ningún kit reservado puede estar en otro evento que se traslape con el nuevo horario
     if (cambioHorario) {
@@ -137,14 +167,18 @@ export async function validarAgendaEvento(evento, nueva, id_dueno) {
 
     // Solo se asignan kits completos: si alguno quedó incompleto, se avisa
     for (const r of reservas) {
-      if (r.kit.estado === 'INCOMPLETO') {
+      if (r.kit.estado === "INCOMPLETO") {
         advertencias.push(`El kit "${r.kit.nombre}" figura incompleto`);
       }
     }
 
     // Margen de traslado de los kits: otro evento ese día en otra dirección con poco tiempo entre ambos
     for (const o of otrasReservas) {
-      if (seTraslapaConNuevo(o) || mismaDireccion(o.evento.direccion, nueva.direccion)) continue;
+      if (
+        seTraslapaConNuevo(o) ||
+        mismaDireccion(o.evento.direccion, nueva.direccion)
+      )
+        continue;
       const espera = minutosEntre(o.evento);
       if (espera < margen_traslado_min) {
         advertencias.push(
@@ -157,7 +191,9 @@ export async function validarAgendaEvento(evento, nueva, id_dueno) {
   // ---------- Personal asignado (RF-P3-01) ----------
   const asignaciones = await prisma.asignacionPersonal.findMany({
     where: { id_evento: evento.id_evento },
-    include: { trabajador: { select: { nombre: true, disponibilidades: true } } },
+    include: {
+      trabajador: { select: { nombre: true, disponibilidades: true } },
+    },
   });
   if (asignaciones.length === 0) return advertencias;
 
@@ -177,7 +213,12 @@ export async function validarAgendaEvento(evento, nueva, id_dueno) {
 
     // No puede quedar en dos eventos al mismo tiempo (esto sí impide guardar)
     const choque = susOtras.find((o) =>
-      seTraslapan(nueva.hora_inicio, nueva.hora_termino, aHora(o.evento.hora_inicio), aHora(o.evento.hora_termino)),
+      seTraslapan(
+        nueva.hora_inicio,
+        nueva.hora_termino,
+        aHora(o.evento.hora_inicio),
+        aHora(o.evento.hora_termino),
+      ),
     );
     if (choque) {
       throw new ValidationError(
@@ -187,7 +228,9 @@ export async function validarAgendaEvento(evento, nueva, id_dueno) {
 
     // Fuera de su disponibilidad registrada (rango de fechas): se permite, pero se avisa
     if (!cubreFecha(a.trabajador.disponibilidades, nueva.fecha)) {
-      advertencias.push(`${nombre} queda fuera de su disponibilidad registrada para esa fecha`);
+      advertencias.push(
+        `${nombre} queda fuera de su disponibilidad registrada para esa fecha`,
+      );
     }
 
     // Margen de traslado: otro evento ese día en otra dirección con poco tiempo entre ambos

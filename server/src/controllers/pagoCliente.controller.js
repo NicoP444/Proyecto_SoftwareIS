@@ -1,10 +1,12 @@
-import { manejarError } from '../utils/errores.js';
-import { listarPagos, registrarPago } from '../services/pagoCliente.service.js';
+import { manejarError } from "../utils/errores.js";
+import { listarPagos, registrarPago } from "../services/pagoCliente.service.js";
 
 export const listar = async (req, res) => {
   try {
     res.json(await listarPagos(Number(req.params.id), req.user.id_dueno));
-  } catch (error) { manejarError(res, error); }
+  } catch (error) {
+    manejarError(res, error);
+  }
 };
 
 export const registrar = async (req, res) => {
@@ -20,5 +22,7 @@ export const registrar = async (req, res) => {
     }
 
     res.status(201).json(resultado);
-  } catch (error) { manejarError(res, error); }
+  } catch (error) {
+    manejarError(res, error);
+  }
 };

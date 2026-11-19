@@ -1,5 +1,8 @@
-import { manejarError } from '../utils/errores.js';
-import { obtenerMargenTraslado, actualizarMargenTraslado } from '../services/configuracion.service.js';
+import { manejarError } from "../utils/errores.js";
+import {
+  obtenerMargenTraslado,
+  actualizarMargenTraslado,
+} from "../services/configuracion.service.js";
 
 // GET /api/configuracion/margen-traslado?id_dueno=1
 export const getMargenTraslado = async (req, res) => {
@@ -13,8 +16,14 @@ export const getMargenTraslado = async (req, res) => {
 // PUT /api/configuracion/margen-traslado   { id_dueno, margen_traslado_min }
 export const putMargenTraslado = async (req, res) => {
   try {
-    const resultado = await actualizarMargenTraslado(req.user.id_dueno, req.body.margen_traslado_min)
-    return res.json({ mensaje: 'Margen de traslado actualizado', ...resultado });
+    const resultado = await actualizarMargenTraslado(
+      req.user.id_dueno,
+      req.body.margen_traslado_min,
+    );
+    return res.json({
+      mensaje: "Margen de traslado actualizado",
+      ...resultado,
+    });
   } catch (error) {
     return manejarError(res, error);
   }

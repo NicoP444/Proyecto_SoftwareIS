@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { UserPlus, X } from "lucide-react";
 import BuscadorPersonal from "./BuscadorPersonal";
-import { listarAsignaciones, quitarAsignacion } from "../../services/asignacion.service.js";
+import {
+  listarAsignaciones,
+  quitarAsignacion,
+} from "../../services/asignacion.service.js";
 
 /**
  * Bloque "Trabajadores" del detalle del evento (RF-P3-01).
@@ -52,7 +55,11 @@ export default function PanelPersonal({ evento, puedeEditar, onCambio }) {
       <div className="personal-cabecera">
         <span className="etiqueta">Trabajadores</span>
         {puedeEditar && !cerrado && (
-          <button type="button" className="boton boton-texto" onClick={() => setAbierto((v) => !v)}>
+          <button
+            type="button"
+            className="boton boton-texto"
+            onClick={() => setAbierto((v) => !v)}
+          >
             <UserPlus /> {abierto ? "Cerrar" : "Asignar"}
           </button>
         )}
@@ -69,10 +76,18 @@ export default function PanelPersonal({ evento, puedeEditar, onCambio }) {
               // Confirmación en la misma fila (como en Clientes), en vez de la ventana del navegador
               <span key={a.id_asignacion} className="chip-confirmar">
                 ¿Quitar a {a.trabajador.nombre}?
-                <button type="button" className="boton boton-peligro" onClick={() => quitar(a)}>
+                <button
+                  type="button"
+                  className="boton boton-peligro"
+                  onClick={() => quitar(a)}
+                >
                   Quitar
                 </button>
-                <button type="button" className="boton boton-secundario" onClick={() => setConfirmando(null)}>
+                <button
+                  type="button"
+                  className="boton boton-secundario"
+                  onClick={() => setConfirmando(null)}
+                >
                   Cancelar
                 </button>
               </span>

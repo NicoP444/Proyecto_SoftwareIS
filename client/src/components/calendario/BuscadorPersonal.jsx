@@ -1,28 +1,61 @@
 import { useEffect, useState } from "react";
 import { Phone, UserPlus } from "lucide-react";
 import { listarRoles } from "../../services/personalServicio.js";
-import { listarPersonalConEstado, listarAsignaciones, asignarTrabajador } from "../../services/asignacion.service.js";
+import {
+  listarPersonalConEstado,
+  listarAsignaciones,
+  asignarTrabajador,
+} from "../../services/asignacion.service.js";
 
 // Cómo se muestra cada estado y si se puede asignar (las reglas son las mismas del back):
 //  - Disponible: se asigna sin avisos.
 //  - Sin disponibilidad: se permite, pero el back avisa que queda fuera de su disponibilidad.
 //  - Ocupado, en licencia o inactivo: el back lo rechaza, así que se muestra bloqueado.
 const ESTADOS = {
-  DISPONIBLE: { texto: "Disponible", color: "var(--verde)", orden: 0, asignable: true },
-  SIN_DISPONIBILIDAD: { texto: "Sin disponibilidad", color: "var(--naranjo)", orden: 1, asignable: true },
-  OCUPADO: { texto: "Ocupado", color: "var(--rojo)", orden: 2, asignable: false },
-  LICENCIA: { texto: "En licencia", color: "var(--texto-tenue)", orden: 3, asignable: false },
-  INACTIVO: { texto: "Inactivo", color: "var(--texto-tenue)", orden: 4, asignable: false },
+  DISPONIBLE: {
+    texto: "Disponible",
+    color: "var(--verde)",
+    orden: 0,
+    asignable: true,
+  },
+  SIN_DISPONIBILIDAD: {
+    texto: "Sin disponibilidad",
+    color: "var(--naranjo)",
+    orden: 1,
+    asignable: true,
+  },
+  OCUPADO: {
+    texto: "Ocupado",
+    color: "var(--rojo)",
+    orden: 2,
+    asignable: false,
+  },
+  LICENCIA: {
+    texto: "En licencia",
+    color: "var(--texto-tenue)",
+    orden: 3,
+    asignable: false,
+  },
+  INACTIVO: {
+    texto: "Inactivo",
+    color: "var(--texto-tenue)",
+    orden: 4,
+    asignable: false,
+  },
 };
 
 // Estado de una persona: primero su cuenta (licencia/inactivo) y luego la franja del evento
-const estadoDe = (t) => (t.estado_cuenta !== "ACTIVO" ? t.estado_cuenta : (t.estado_franja ?? "DISPONIBLE"));
+const estadoDe = (t) =>
+  t.estado_cuenta !== "ACTIVO"
+    ? t.estado_cuenta
+    : (t.estado_franja ?? "DISPONIBLE");
 
 // Por qué no se puede (o qué conviene saber) al lado de su nombre
 function motivoDe(t, estado) {
   if (estado === "OCUPADO")
     return `Ocupado ${t.detalle ? t.detalle.replace(/^En /, "en ") : "en otro evento a esa hora"}`;
-  if (estado === "SIN_DISPONIBILIDAD") return "No registró disponibilidad para esa fecha: se puede asignar, con aviso";
+  if (estado === "SIN_DISPONIBILIDAD")
+    return "No registró disponibilidad para esa fecha: se puede asignar, con aviso";
   if (estado === "LICENCIA") return "Está con licencia";
   if (estado === "INACTIVO") return "Su cuenta está inactiva";
   if (t.roles.length === 0) return "No tiene roles asignados";
@@ -31,7 +64,11 @@ function motivoDe(t, estado) {
 
 // Para buscar sin importar tildes ni mayúsculas ("matias" encuentra a "Matías")
 const normalizar = (texto) =>
-  texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  texto
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
 
 /**
  * Asignación de personal a un evento (RF-P1-03 y RF-P3-01).
@@ -87,18 +124,36 @@ export default function BuscadorPersonal({ evento, onAsignado, refresco = 0 }) {
     return () => {
       vigente = false;
     };
-  }, [evento.id_evento, evento.fecha, evento.hora_inicio, evento.hora_termino, version, refresco]);
+  }, [
+    evento.id_evento,
+    evento.fecha,
+    evento.hora_inicio,
+    evento.hora_termino,
+    version,
+    refresco,
+  ]);
 
   // Filtro por rol y orden: primero los que se pueden asignar
   const filas = personal
     .filter((t) => !idRol || t.roles.some((r) => r.id_rol === Number(idRol)))
-    .filter((t) => !busqueda || normalizar(t.nombre).includes(normalizar(busqueda)))
+    .filter(
+      (t) => !busqueda || normalizar(t.nombre).includes(normalizar(busqueda)),
+    )
     .map((t) => {
       const estado = estadoDe(t);
       const info = ESTADOS[estado] ?? ESTADOS.DISPONIBLE;
-      return { ...t, estado, info, motivo: motivoDe(t, estado), asignable: info.asignable && t.roles.length > 0 };
+      return {
+        ...t,
+        estado,
+        info,
+        motivo: motivoDe(t, estado),
+        asignable: info.asignable && t.roles.length > 0,
+      };
     })
-    .sort((a, b) => a.info.orden - b.info.orden || a.nombre.localeCompare(b.nombre, "es"));
+    .sort(
+      (a, b) =>
+        a.info.orden - b.info.orden || a.nombre.localeCompare(b.nombre, "es"),
+    );
 
   const libres = filas.filter((t) => t.estado === "DISPONIBLE").length;
 
@@ -114,11 +169,18 @@ export default function BuscadorPersonal({ evento, onAsignado, refresco = 0 }) {
     setError("");
     setAviso(null);
     try {
-      const res = await asignarTrabajador(evento.id_evento, t.id_trabajador, rolDe(t));
+      const res = await asignarTrabajador(
+        evento.id_evento,
+        t.id_trabajador,
+        rolDe(t),
+      );
       setAviso(
         res.advertencias?.length
           ? { advertencia: true, textos: res.advertencias }
-          : { advertencia: false, textos: [`${t.nombre} fue asignado al evento`] },
+          : {
+              advertencia: false,
+              textos: [`${t.nombre} fue asignado al evento`],
+            },
       );
       setVersion((v) => v + 1);
       onAsignado?.();
@@ -144,7 +206,11 @@ export default function BuscadorPersonal({ evento, onAsignado, refresco = 0 }) {
         </div>
         <div className="campo">
           <label htmlFor="pd-rol">Filtrar por rol</label>
-          <select id="pd-rol" value={idRol} onChange={(e) => setIdRol(e.target.value)}>
+          <select
+            id="pd-rol"
+            value={idRol}
+            onChange={(e) => setIdRol(e.target.value)}
+          >
             <option value="">Todos los roles</option>
             {roles.map((r) => (
               <option key={r.id_rol} value={r.id_rol}>
@@ -157,13 +223,17 @@ export default function BuscadorPersonal({ evento, onAsignado, refresco = 0 }) {
 
       {error && <div className="mensaje mensaje-error">{error}</div>}
       {aviso && (
-        <div className={`mensaje ${aviso.advertencia ? "mensaje-aviso" : "mensaje-exito"}`}>
+        <div
+          className={`mensaje ${aviso.advertencia ? "mensaje-aviso" : "mensaje-exito"}`}
+        >
           {aviso.advertencia && <strong>Asignado, pero revisa: </strong>}
           {aviso.textos.join(". ")}
         </div>
       )}
 
-      {cargando && personal.length === 0 && <p className="texto-tenue">Buscando…</p>}
+      {cargando && personal.length === 0 && (
+        <p className="texto-tenue">Buscando…</p>
+      )}
       {!cargando && filas.length === 0 && !error && (
         <p className="texto-tenue">
           {busqueda || idRol
@@ -175,16 +245,23 @@ export default function BuscadorPersonal({ evento, onAsignado, refresco = 0 }) {
       {filas.length > 0 && (
         <>
           <p className="texto-tenue">
-            {libres} {libres === 1 ? "persona disponible" : "personas disponibles"} de {filas.length}. Los bloqueados
-            muestran el motivo.
+            {libres}{" "}
+            {libres === 1 ? "persona disponible" : "personas disponibles"} de{" "}
+            {filas.length}. Los bloqueados muestran el motivo.
           </p>
           <ul className="personal-lista">
             {filas.map((t) => (
-              <li key={t.id_trabajador} className={`personal-fila${t.asignable ? "" : " personal-bloqueado"}`}>
+              <li
+                key={t.id_trabajador}
+                className={`personal-fila${t.asignable ? "" : " personal-bloqueado"}`}
+              >
                 <div className="personal-datos">
                   <div className="personal-nombre">
                     <strong>{t.nombre}</strong>
-                    <span className="chip-cal" style={{ "--color": t.info.color }}>
+                    <span
+                      className="chip-cal"
+                      style={{ "--color": t.info.color }}
+                    >
                       {t.info.texto}
                     </span>
                   </div>
@@ -198,7 +275,13 @@ export default function BuscadorPersonal({ evento, onAsignado, refresco = 0 }) {
                       </span>
                     ))}
                   </div>
-                  {t.motivo && <span className={`personal-motivo${t.asignable ? " aviso" : ""}`}>{t.motivo}</span>}
+                  {t.motivo && (
+                    <span
+                      className={`personal-motivo${t.asignable ? " aviso" : ""}`}
+                    >
+                      {t.motivo}
+                    </span>
+                  )}
                 </div>
                 {t.asignable && (
                   <div className="personal-accion">
@@ -207,7 +290,10 @@ export default function BuscadorPersonal({ evento, onAsignado, refresco = 0 }) {
                         aria-label={`Rol de ${t.nombre}`}
                         value={rolDe(t)}
                         onChange={(e) =>
-                          setRolElegido((prev) => ({ ...prev, [t.id_trabajador]: Number(e.target.value) }))
+                          setRolElegido((prev) => ({
+                            ...prev,
+                            [t.id_trabajador]: Number(e.target.value),
+                          }))
                         }
                       >
                         {t.roles.map((r) => (

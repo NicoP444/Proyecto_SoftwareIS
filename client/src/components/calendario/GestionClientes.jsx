@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { ArrowLeft, MessageCircle, Pencil, Plus, Trash2 } from "lucide-react";
-import { listarClientes, eliminarCliente } from "../../services/cliente.service.js";
+import {
+  listarClientes,
+  eliminarCliente,
+} from "../../services/cliente.service.js";
 import { formatearRut } from "../../utils/rut.js";
 import FormularioCliente from "./FormularioCliente";
 
@@ -62,7 +65,7 @@ export default function GestionClientes({ onCambio }) {
     setAviso(
       formulario === "nuevo"
         ? `Cliente ${cliente?.nombre ?? ""} creado`
-        : `Cliente ${cliente?.nombre ?? ""} actualizado`
+        : `Cliente ${cliente?.nombre ?? ""} actualizado`,
     );
     setFormulario(null);
     setRecarga((n) => n + 1);
@@ -97,10 +100,18 @@ export default function GestionClientes({ onCambio }) {
     return (
       <div className="cli-gestion">
         <div className="cli-form-cabecera">
-          <button type="button" className="boton boton-texto" onClick={() => setFormulario(null)}>
+          <button
+            type="button"
+            className="boton boton-texto"
+            onClick={() => setFormulario(null)}
+          >
             <ArrowLeft /> Volver a la lista
           </button>
-          <h3>{formulario === "nuevo" ? "Nuevo cliente" : `Editar a ${formulario.nombre}`}</h3>
+          <h3>
+            {formulario === "nuevo"
+              ? "Nuevo cliente"
+              : `Editar a ${formulario.nombre}`}
+          </h3>
         </div>
         <FormularioCliente
           key={formulario === "nuevo" ? "nuevo" : formulario.id_cliente}
@@ -126,7 +137,11 @@ export default function GestionClientes({ onCambio }) {
             autoComplete="off"
           />
         </div>
-        <button type="button" className="boton boton-principal" onClick={() => abrirFormulario("nuevo")}>
+        <button
+          type="button"
+          className="boton boton-principal"
+          onClick={() => abrirFormulario("nuevo")}
+        >
           <Plus size={18} /> Nuevo cliente
         </button>
       </div>
@@ -136,7 +151,9 @@ export default function GestionClientes({ onCambio }) {
       {cargando && <p className="vacio">Cargando clientes…</p>}
       {!cargando && !error && clientes.length === 0 && (
         <p className="vacio">
-          {buscar ? "No hay clientes que coincidan." : "Aún no hay clientes registrados."}
+          {buscar
+            ? "No hay clientes que coincidan."
+            : "Aún no hay clientes registrados."}
         </p>
       )}
 
@@ -158,12 +175,19 @@ export default function GestionClientes({ onCambio }) {
                 const nEventos = c._count?.eventos ?? 0;
                 const preguntando = confirmando === c.id_cliente;
                 return (
-                  <tr key={c.id_cliente} className={preguntando ? "cli-fila-peligro" : ""}>
+                  <tr
+                    key={c.id_cliente}
+                    className={preguntando ? "cli-fila-peligro" : ""}
+                  >
                     <td className="cli-rut">{formatearRut(c.rut)}</td>
-                    <td><strong>{c.nombre}</strong></td>
+                    <td>
+                      <strong>{c.nombre}</strong>
+                    </td>
                     <td>
                       <div className="cli-telefono">
-                        <a href={`tel:+${soloDigitos(c.telefono)}`}>{formatearTelefono(c.telefono)}</a>
+                        <a href={`tel:+${soloDigitos(c.telefono)}`}>
+                          {formatearTelefono(c.telefono)}
+                        </a>
                         <a
                           href={`https://wa.me/${soloDigitos(c.telefono)}`}
                           target="_blank"
@@ -177,10 +201,18 @@ export default function GestionClientes({ onCambio }) {
                       </div>
                     </td>
                     <td>
-                      {c.correo ? <a href={`mailto:${c.correo}`}>{c.correo}</a> : <span className="texto-tenue">—</span>}
+                      {c.correo ? (
+                        <a href={`mailto:${c.correo}`}>{c.correo}</a>
+                      ) : (
+                        <span className="texto-tenue">—</span>
+                      )}
                     </td>
                     <td className="cli-centro">
-                      <span className={`cli-eventos ${nEventos === 0 ? "cero" : ""}`}>{nEventos}</span>
+                      <span
+                        className={`cli-eventos ${nEventos === 0 ? "cero" : ""}`}
+                      >
+                        {nEventos}
+                      </span>
                     </td>
                     <td>
                       {preguntando ? (
@@ -244,7 +276,10 @@ export default function GestionClientes({ onCambio }) {
       )}
 
       {clientes.length === LIMITE && (
-        <p className="texto-tenue">Mostrando los primeros {LIMITE}. Usa el buscador para encontrar a otros.</p>
+        <p className="texto-tenue">
+          Mostrando los primeros {LIMITE}. Usa el buscador para encontrar a
+          otros.
+        </p>
       )}
     </div>
   );

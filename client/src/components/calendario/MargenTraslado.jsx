@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { Save } from "lucide-react";
-import { obtenerMargenTraslado, guardarMargenTraslado } from "../../services/configuracion.service.js";
+import {
+  obtenerMargenTraslado,
+  guardarMargenTraslado,
+} from "../../services/configuracion.service.js";
 
 const ATAJOS = [0, 30, 60, 90, 120];
 
@@ -28,7 +31,8 @@ export default function MargenTraslado({ onGuardado }) {
   }, []);
 
   const valor = Number(minutos);
-  const valido = minutos !== "" && Number.isInteger(valor) && valor >= 0 && valor <= 300;
+  const valido =
+    minutos !== "" && Number.isInteger(valor) && valor >= 0 && valor <= 300;
   const hayCambio = valido && valor !== guardado;
 
   function cambiar(nuevo) {
@@ -59,8 +63,9 @@ export default function MargenTraslado({ onGuardado }) {
   return (
     <form className="formulario margen-form" onSubmit={guardar} noValidate>
       <p className="texto-tenue">
-        Tiempo mínimo que debe haber entre dos eventos en lugares distintos para una misma persona o kit.
-        Si no alcanza, el sistema avisa al asignar personal o kits.
+        Tiempo mínimo que debe haber entre dos eventos en lugares distintos para
+        una misma persona o kit. Si no alcanza, el sistema avisa al asignar
+        personal o kits.
       </p>
 
       {error && <div className="mensaje mensaje-error">{error}</div>}
@@ -108,8 +113,14 @@ export default function MargenTraslado({ onGuardado }) {
 
       <div className="margen-acciones">
         {/* Sin esto parece que el botón no funciona: está desactivado porque no hay nada nuevo que guardar */}
-        {valido && !hayCambio && !ok && <span className="texto-tenue">Sin cambios por guardar</span>}
-        <button type="submit" className="boton boton-principal" disabled={!hayCambio || guardando}>
+        {valido && !hayCambio && !ok && (
+          <span className="texto-tenue">Sin cambios por guardar</span>
+        )}
+        <button
+          type="submit"
+          className="boton boton-principal"
+          disabled={!hayCambio || guardando}
+        >
           <Save /> {guardando ? "Guardando…" : "Guardar"}
         </button>
       </div>

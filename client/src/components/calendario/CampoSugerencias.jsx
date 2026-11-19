@@ -11,7 +11,13 @@ const normalizar = (texto) =>
  *  - Se puede escribir cualquier texto: las sugerencias solo ayudan a no repetir con otra forma.
  *  - Flechas ↑ ↓ para moverse, Enter para elegir, Escape para cerrar la lista.
  */
-export default function CampoSugerencias({ id, valor, onCambiar, sugerencias = [], ...resto }) {
+export default function CampoSugerencias({
+  id,
+  valor,
+  onCambiar,
+  sugerencias = [],
+  ...resto
+}) {
   const [abierto, setAbierto] = useState(false);
   const [marcada, setMarcada] = useState(-1); // sugerencia resaltada con el teclado
   const contenedor = useRef(null);
@@ -20,7 +26,8 @@ export default function CampoSugerencias({ id, valor, onCambiar, sugerencias = [
   useEffect(() => {
     if (!abierto) return;
     const alClic = (e) => {
-      if (contenedor.current && !contenedor.current.contains(e.target)) setAbierto(false);
+      if (contenedor.current && !contenedor.current.contains(e.target))
+        setAbierto(false);
     };
     document.addEventListener("mousedown", alClic);
     return () => document.removeEventListener("mousedown", alClic);
@@ -77,7 +84,11 @@ export default function CampoSugerencias({ id, valor, onCambiar, sugerencias = [
         {...resto}
       />
       {mostrar && (
-        <ul className="selector-cliente-lista campo-sugerencias" role="listbox" onMouseDown={(e) => e.preventDefault()}>
+        <ul
+          className="selector-cliente-lista campo-sugerencias"
+          role="listbox"
+          onMouseDown={(e) => e.preventDefault()}
+        >
           {opciones.map((s, i) => (
             <li key={s}>
               <button

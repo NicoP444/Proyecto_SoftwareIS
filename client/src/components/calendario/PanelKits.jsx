@@ -7,7 +7,11 @@ import {
   quitarKit,
 } from "../../services/kitEvento.service.js";
 
-const NIVELES = { BASICO: "Básico", ESTANDAR: "Estándar", ALTA_GAMA: "Alta gama" };
+const NIVELES = {
+  BASICO: "Básico",
+  ESTANDAR: "Estándar",
+  ALTA_GAMA: "Alta gama",
+};
 
 // Igual que en el personal: color por estado y si se puede asignar (mismas reglas del back)
 //  - Disponible: se asigna sin avisos.
@@ -77,7 +81,10 @@ export default function PanelKits({ evento, puedeEditar, onCambio }) {
       setAviso(
         respuesta.advertencias?.length
           ? { advertencia: true, textos: respuesta.advertencias }
-          : { advertencia: false, textos: [`${k.nombre} fue asignado al evento`] },
+          : {
+              advertencia: false,
+              textos: [`${k.nombre} fue asignado al evento`],
+            },
       );
       await cargar(true);
       onCambio?.();
@@ -103,8 +110,14 @@ export default function PanelKits({ evento, puedeEditar, onCambio }) {
 
   // Primero los que se pueden asignar
   const filas = opciones
-    .map((k) => ({ ...k, info: ESTADOS[k.estado_franja] ?? ESTADOS.DISPONIBLE }))
-    .sort((a, b) => a.info.orden - b.info.orden || a.nombre.localeCompare(b.nombre, "es"));
+    .map((k) => ({
+      ...k,
+      info: ESTADOS[k.estado_franja] ?? ESTADOS.DISPONIBLE,
+    }))
+    .sort(
+      (a, b) =>
+        a.info.orden - b.info.orden || a.nombre.localeCompare(b.nombre, "es"),
+    );
   const libres = filas.filter((k) => k.estado_franja === "DISPONIBLE").length;
 
   return (
@@ -112,7 +125,11 @@ export default function PanelKits({ evento, puedeEditar, onCambio }) {
       <div className="personal-cabecera">
         <span className="etiqueta">Kits</span>
         {puedeEditar && !cerrado && (
-          <button type="button" className="boton boton-texto" onClick={alternar}>
+          <button
+            type="button"
+            className="boton boton-texto"
+            onClick={alternar}
+          >
             <Package /> {abierto ? "Cerrar" : "Asignar"}
           </button>
         )}
@@ -127,10 +144,18 @@ export default function PanelKits({ evento, puedeEditar, onCambio }) {
               // Confirmación en la misma fila (como en Clientes), en vez de la ventana del navegador
               <span key={k.id_reserva} className="chip-confirmar">
                 ¿Quitar {k.kit.nombre}?
-                <button type="button" className="boton boton-peligro" onClick={() => quitar(k)}>
+                <button
+                  type="button"
+                  className="boton boton-peligro"
+                  onClick={() => quitar(k)}
+                >
                   Quitar
                 </button>
-                <button type="button" className="boton boton-secundario" onClick={() => setConfirmando(null)}>
+                <button
+                  type="button"
+                  className="boton boton-secundario"
+                  onClick={() => setConfirmando(null)}
+                >
                   Cancelar
                 </button>
               </span>
@@ -157,41 +182,59 @@ export default function PanelKits({ evento, puedeEditar, onCambio }) {
         <div className="personal-buscador">
           {error && <div className="mensaje mensaje-error">{error}</div>}
           {aviso && (
-            <div className={`mensaje ${aviso.advertencia ? "mensaje-aviso" : "mensaje-exito"}`}>
+            <div
+              className={`mensaje ${aviso.advertencia ? "mensaje-aviso" : "mensaje-exito"}`}
+            >
               {aviso.advertencia && <strong>Asignado, pero revisa: </strong>}
               {aviso.textos.join(". ")}
             </div>
           )}
 
-          {cargando && filas.length === 0 && <p className="texto-tenue">Buscando…</p>}
+          {cargando && filas.length === 0 && (
+            <p className="texto-tenue">Buscando…</p>
+          )}
           {!cargando && filas.length === 0 && !error && (
-            <p className="texto-tenue">Todos los kits ya están en este evento.</p>
+            <p className="texto-tenue">
+              Todos los kits ya están en este evento.
+            </p>
           )}
 
           {filas.length > 0 && (
             <>
               <p className="texto-tenue">
-                {libres} {libres === 1 ? "kit disponible" : "kits disponibles"} de {filas.length}. Los bloqueados
-                muestran el motivo.
+                {libres} {libres === 1 ? "kit disponible" : "kits disponibles"}{" "}
+                de {filas.length}. Los bloqueados muestran el motivo.
               </p>
               <ul className="personal-lista">
                 {filas.map((k) => (
-                  <li key={k.id_kit} className={`personal-fila${k.disponible ? "" : " personal-bloqueado"}`}>
+                  <li
+                    key={k.id_kit}
+                    className={`personal-fila${k.disponible ? "" : " personal-bloqueado"}`}
+                  >
                     <div className="personal-datos">
                       <div className="personal-nombre">
                         <strong>{k.nombre}</strong>
-                        <span className="chip-cal" style={{ "--color": k.info.color }}>
+                        <span
+                          className="chip-cal"
+                          style={{ "--color": k.info.color }}
+                        >
                           {k.info.texto}
                         </span>
                       </div>
-                      <span className="texto-pequeno">{NIVELES[k.nivel] ?? k.nivel}</span>
+                      <span className="texto-pequeno">
+                        {NIVELES[k.nivel] ?? k.nivel}
+                      </span>
                       {k.equipos?.length > 0 && (
                         <div className="lista-roles">
                           {k.equipos.map((e) => (
                             <span
                               key={e.codigo}
                               className={`chip-rol${e.estado === "OPERATIVO" ? "" : " chip-equipo-malo"}`}
-                              title={e.estado === "OPERATIVO" ? undefined : `Estado: ${e.estado}`}
+                              title={
+                                e.estado === "OPERATIVO"
+                                  ? undefined
+                                  : `Estado: ${e.estado}`
+                              }
                             >
                               {e.codigo}
                             </span>
@@ -199,7 +242,11 @@ export default function PanelKits({ evento, puedeEditar, onCambio }) {
                         </div>
                       )}
                       {k.motivo && (
-                        <span className={`personal-motivo${k.disponible ? " aviso" : ""}`}>{k.motivo}</span>
+                        <span
+                          className={`personal-motivo${k.disponible ? " aviso" : ""}`}
+                        >
+                          {k.motivo}
+                        </span>
                       )}
                     </div>
                     {k.disponible && (
@@ -227,7 +274,9 @@ export default function PanelKits({ evento, puedeEditar, onCambio }) {
         </div>
       )}
 
-      {!abierto && error && <div className="mensaje mensaje-error">{error}</div>}
+      {!abierto && error && (
+        <div className="mensaje mensaje-error">{error}</div>
+      )}
     </div>
   );
 }

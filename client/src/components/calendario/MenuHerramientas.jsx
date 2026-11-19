@@ -13,7 +13,8 @@ export default function MenuHerramientas({ onClientes, onPersonal, onMargen }) {
   useEffect(() => {
     if (!abierto) return;
     const clicFuera = (e) => {
-      if (contenedor.current && !contenedor.current.contains(e.target)) setAbierto(false);
+      if (contenedor.current && !contenedor.current.contains(e.target))
+        setAbierto(false);
     };
     const tecla = (e) => e.key === "Escape" && setAbierto(false);
     document.addEventListener("mousedown", clicFuera);

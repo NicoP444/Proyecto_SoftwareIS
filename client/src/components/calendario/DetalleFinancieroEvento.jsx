@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { TrendingDown, TrendingUp } from "lucide-react";
-import { verRentabilidad, verMovimientos } from "../../services/rentabilidad.service.js";
+import {
+  verRentabilidad,
+  verMovimientos,
+} from "../../services/rentabilidad.service.js";
 
 const plata = (n) => "$" + Number(n ?? 0).toLocaleString("es-CL");
 
@@ -36,7 +39,9 @@ export default function DetalleFinancieroEvento({ idEvento, version }) {
     return error ? <div className="mensaje mensaje-error">{error}</div> : null;
   }
 
-  const remuneraciones = movimientos.filter((m) => m.concepto === "Remuneración");
+  const remuneraciones = movimientos.filter(
+    (m) => m.concepto === "Remuneración",
+  );
   const gastos = movimientos.filter((m) => m.concepto === "Gasto del evento");
   const ganancia = rentabilidad.tipo === "GANANCIA";
   const Icono = ganancia ? TrendingUp : TrendingDown;
@@ -84,8 +89,10 @@ export default function DetalleFinancieroEvento({ idEvento, version }) {
       <div className={`viab-resultado ${ganancia ? "positivo" : "negativo"}`}>
         <span>
           <Icono size={18} />
-          {rentabilidad.definitiva ? "Resultado final" : "Resultado a la fecha"} ·{" "}
-          {ganancia ? "ganancia" : "pérdida"}
+          {rentabilidad.definitiva
+            ? "Resultado final"
+            : "Resultado a la fecha"}{" "}
+          · {ganancia ? "ganancia" : "pérdida"}
         </span>
         <strong>{plata(rentabilidad.resultado)}</strong>
       </div>

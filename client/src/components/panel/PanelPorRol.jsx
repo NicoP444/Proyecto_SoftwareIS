@@ -2,14 +2,24 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { obtenerPanel } from "../../services/panel.service.js";
 
-const plata = (n) => (Number(n) < 0 ? "-$" : "$") + Math.abs(Number(n ?? 0)).toLocaleString("es-CL");
+const plata = (n) =>
+  (Number(n) < 0 ? "-$" : "$") +
+  Math.abs(Number(n ?? 0)).toLocaleString("es-CL");
 const horaDe = (valor) => (valor ? String(valor).slice(11, 16) : "");
 // "2026-11-05T00:00:00.000Z" -> "05/11"
-const fechaCorta = (f) => String(f).slice(0, 10).split("-").reverse().slice(0, 2).join("/");
+const fechaCorta = (f) =>
+  String(f).slice(0, 10).split("-").reverse().slice(0, 2).join("/");
 
 const Vacio = ({ texto }) => (
   <div className="empty">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <circle cx="12" cy="12" r="9" />
       <path d="M12 8v4M12 16h.01" />
     </svg>
@@ -40,7 +50,11 @@ function Panel({ titulo, enlace, ruta, children }) {
       <div className="panel-head">
         <h3>{titulo}</h3>
         {enlace && (
-          <button type="button" className="panel-link" onClick={() => navigate(ruta)}>
+          <button
+            type="button"
+            className="panel-link"
+            onClick={() => navigate(ruta)}
+          >
             {enlace} →
           </button>
         )}
@@ -51,7 +65,8 @@ function Panel({ titulo, enlace, ruta, children }) {
 }
 
 function ListaEventos({ eventos, conKits = false }) {
-  if (eventos.length === 0) return <Vacio texto="No hay transmisiones próximas" />;
+  if (eventos.length === 0)
+    return <Vacio texto="No hay transmisiones próximas" />;
   return (
     <div className="lista-panel">
       {eventos.map((e) => (
@@ -64,7 +79,9 @@ function ListaEventos({ eventos, conKits = false }) {
             {conKits && (
               <small>
                 Kits:{" "}
-                {e.reservas_kit?.length > 0 ? e.reservas_kit.map((r) => r.kit.nombre).join(", ") : "sin kits asignados"}
+                {e.reservas_kit?.length > 0
+                  ? e.reservas_kit.map((r) => r.kit.nombre).join(", ")
+                  : "sin kits asignados"}
               </small>
             )}
           </div>
@@ -86,23 +103,46 @@ function VistaDueno({ datos }) {
   const r = datos.resultado_mes;
   const color = r.resultado === "PERDIDA" ? "rojo" : "verde";
   const clase = r.resultado === "PERDIDA" ? "valor-negativo" : "valor-positivo";
-  const nombreResultado = { GANANCIA: "Ganancia", PERDIDA: "Pérdida", EQUILIBRIO: "Equilibrio" }[r.resultado];
+  const nombreResultado = {
+    GANANCIA: "Ganancia",
+    PERDIDA: "Pérdida",
+    EQUILIBRIO: "Equilibrio",
+  }[r.resultado];
 
   return (
     <>
       <section className="kpis">
-        <Kpi titulo="Resultado del mes" valor={plata(r.utilidad_neta)} nota={nombreResultado} color={color} claseValor={clase} ruta="/finanzas" />
-        <Kpi titulo="Próximos eventos" valor={datos.total_proximos ?? datos.proximos_eventos.length} nota="Ver calendario" color="azul" ruta="/calendario" />
+        <Kpi
+          titulo="Resultado del mes"
+          valor={plata(r.utilidad_neta)}
+          nota={nombreResultado}
+          color={color}
+          claseValor={clase}
+          ruta="/finanzas"
+        />
+        <Kpi
+          titulo="Próximos eventos"
+          valor={datos.total_proximos ?? datos.proximos_eventos.length}
+          nota="Ver calendario"
+          color="azul"
+          ruta="/calendario"
+        />
         <Kpi
           titulo="Alertas"
           valor={datos.alertas.length}
-          nota={datos.alertas.length === 0 ? "Todo al día" : "Requieren tu atención"}
+          nota={
+            datos.alertas.length === 0 ? "Todo al día" : "Requieren tu atención"
+          }
           color={datos.alertas.length === 0 ? "verde" : "naranja"}
         />
       </section>
 
       <section className="panels-row">
-        <Panel titulo="Próximos eventos" enlace="Ver calendario" ruta="/calendario">
+        <Panel
+          titulo="Próximos eventos"
+          enlace="Ver calendario"
+          ruta="/calendario"
+        >
           <ListaEventos eventos={datos.proximos_eventos} />
         </Panel>
         <Panel titulo="Alertas" enlace="Ver reportes" ruta="/finanzas">
@@ -111,7 +151,11 @@ function VistaDueno({ datos }) {
           ) : (
             <div className="lista-panel">
               {datos.alertas.map((a) => (
-                <div key={a.clave} className="fila-panel fila-alerta" onClick={() => navigate(a.ruta)}>
+                <div
+                  key={a.clave}
+                  className="fila-panel fila-alerta"
+                  onClick={() => navigate(a.ruta)}
+                >
                   <span>{a.texto}</span>
                   <span className="badge-alerta">{a.cantidad}</span>
                 </div>
@@ -133,9 +177,27 @@ function VistaContador({ datos }) {
   return (
     <>
       <section className="kpis">
-        <Kpi titulo="Rendiciones pendientes" valor={datos.rendiciones_pendientes} nota="Trabajadores por rendir" color="naranja" ruta="/finanzas" />
-        <Kpi titulo="Saldos por cobrar" valor={plata(saldos.total)} nota={`${saldos.cantidad} evento(s)`} color="azul" ruta="/calendario" />
-        <Kpi titulo="Remuneraciones por pagar" valor={plata(rem.total)} nota={`${rem.cantidad} trabajador(es)`} color="naranja" ruta="/finanzas" />
+        <Kpi
+          titulo="Rendiciones pendientes"
+          valor={datos.rendiciones_pendientes}
+          nota="Trabajadores por rendir"
+          color="naranja"
+          ruta="/finanzas"
+        />
+        <Kpi
+          titulo="Saldos por cobrar"
+          valor={plata(saldos.total)}
+          nota={`${saldos.cantidad} evento(s)`}
+          color="azul"
+          ruta="/calendario"
+        />
+        <Kpi
+          titulo="Remuneraciones por pagar"
+          valor={plata(rem.total)}
+          nota={`${rem.cantidad} trabajador(es)`}
+          color="naranja"
+          ruta="/finanzas"
+        />
         <Kpi
           titulo="Acuerdos vencidos"
           valor={acuerdos.cantidad}
@@ -146,7 +208,11 @@ function VistaContador({ datos }) {
       </section>
 
       <section className="panels-row">
-        <Panel titulo="Saldos por cobrar" enlace="Ver calendario" ruta="/calendario">
+        <Panel
+          titulo="Saldos por cobrar"
+          enlace="Ver calendario"
+          ruta="/calendario"
+        >
           {saldos.eventos.length === 0 ? (
             <Vacio texto="No hay saldos pendientes" />
           ) : (
@@ -165,7 +231,11 @@ function VistaContador({ datos }) {
             </div>
           )}
         </Panel>
-        <Panel titulo="Acuerdos vencidos" enlace="Ver auspiciadores" ruta="/auspiciadores">
+        <Panel
+          titulo="Acuerdos vencidos"
+          enlace="Ver auspiciadores"
+          ruta="/auspiciadores"
+        >
           {acuerdos.lista.length === 0 ? (
             <Vacio texto="No hay acuerdos vencidos" />
           ) : (
@@ -194,8 +264,20 @@ function VistaJefe({ datos }) {
   return (
     <>
       <section className="kpis">
-        <Kpi titulo="Próximos eventos" valor={datos.total_proximos ?? datos.proximos_eventos.length} nota="Ver calendario" color="azul" ruta="/calendario" />
-        <Kpi titulo="Kits en terreno" valor={datos.kits_en_terreno.length} nota="Aún sin retorno registrado" color="naranja" ruta="/salida-kits" />
+        <Kpi
+          titulo="Próximos eventos"
+          valor={datos.total_proximos ?? datos.proximos_eventos.length}
+          nota="Ver calendario"
+          color="azul"
+          ruta="/calendario"
+        />
+        <Kpi
+          titulo="Kits en terreno"
+          valor={datos.kits_en_terreno.length}
+          nota="Aún sin retorno registrado"
+          color="naranja"
+          ruta="/salida-kits"
+        />
         <Kpi
           titulo="Kits sin retorno"
           valor={datos.kits_sin_retorno}
@@ -206,10 +288,18 @@ function VistaJefe({ datos }) {
       </section>
 
       <section className="panels-row">
-        <Panel titulo="Próximos eventos y sus kits" enlace="Ver calendario" ruta="/calendario">
+        <Panel
+          titulo="Próximos eventos y sus kits"
+          enlace="Ver calendario"
+          ruta="/calendario"
+        >
           <ListaEventos eventos={datos.proximos_eventos} conKits />
         </Panel>
-        <Panel titulo="Kits en terreno" enlace="Ver salidas" ruta="/salida-kits">
+        <Panel
+          titulo="Kits en terreno"
+          enlace="Ver salidas"
+          ruta="/salida-kits"
+        >
           {datos.kits_en_terreno.length === 0 ? (
             <Vacio texto="No hay kits en terreno" />
           ) : (
@@ -219,7 +309,8 @@ function VistaJefe({ datos }) {
                   <div>
                     <strong>{s.reserva.kit.nombre}</strong>
                     <small>
-                      {s.reserva.evento.tipo} · {fechaCorta(s.reserva.evento.fecha)}
+                      {s.reserva.evento.tipo} ·{" "}
+                      {fechaCorta(s.reserva.evento.fecha)}
                     </small>
                   </div>
                   <small>{s.responsable?.trabajador?.nombre}</small>
@@ -257,7 +348,9 @@ export default function PanelPorRol({ rol }) {
 
   const titulo = (
     <div className="section-heading">
-      <h2>Resumen de {new Date().toLocaleString("es-CL", { month: "long" })}</h2>
+      <h2>
+        Resumen de {new Date().toLocaleString("es-CL", { month: "long" })}
+      </h2>
       <span className="section-line" />
     </div>
   );

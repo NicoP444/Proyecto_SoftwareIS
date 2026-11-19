@@ -64,10 +64,30 @@ const ESTADOS = {
 
 // Tarjetas de arriba: al hacer clic filtran por estado
 const RESUMEN = [
-  { estado: "", texto: "Todos los eventos", icono: CalendarDays, color: "azul" },
-  { estado: "CONFIRMADO", texto: "Confirmados", icono: CalendarCheck, color: "verde" },
-  { estado: "PENDIENTE_ADELANTO", texto: "Pendientes de adelanto", icono: CalendarClock, color: "naranjo" },
-  { estado: "REALIZADO", texto: "Realizados", icono: CheckCircle2, color: "morado" },
+  {
+    estado: "",
+    texto: "Todos los eventos",
+    icono: CalendarDays,
+    color: "azul",
+  },
+  {
+    estado: "CONFIRMADO",
+    texto: "Confirmados",
+    icono: CalendarCheck,
+    color: "verde",
+  },
+  {
+    estado: "PENDIENTE_ADELANTO",
+    texto: "Pendientes de adelanto",
+    icono: CalendarClock,
+    color: "naranjo",
+  },
+  {
+    estado: "REALIZADO",
+    texto: "Realizados",
+    icono: CheckCircle2,
+    color: "morado",
+  },
   { estado: "CERRADO", texto: "Cerrados", icono: Lock, color: "gris" },
 ];
 
@@ -336,9 +356,15 @@ export default function Calendario() {
             key={texto}
             type="button"
             className={`indicador ${color} clickeable ${filtroEstado === estado ? "seleccionado" : ""}`}
-            onClick={() => setFiltroEstado(filtroEstado === estado ? "" : estado)}
+            onClick={() =>
+              setFiltroEstado(filtroEstado === estado ? "" : estado)
+            }
             aria-pressed={filtroEstado === estado}
-            title={estado ? `Mostrar solo ${texto.toLowerCase()}` : "Mostrar todos los eventos"}
+            title={
+              estado
+                ? `Mostrar solo ${texto.toLowerCase()}`
+                : "Mostrar todos los eventos"
+            }
           >
             <span className="indicador-titulo">
               <Icono size={16} /> {texto}
@@ -364,7 +390,9 @@ export default function Calendario() {
                 type="button"
                 className="boton-icono"
                 onClick={() => mover(-1)}
-                aria-label={vista === "mes" ? "Mes anterior" : "Semana anterior"}
+                aria-label={
+                  vista === "mes" ? "Mes anterior" : "Semana anterior"
+                }
               >
                 <ChevronLeft size={20} />
               </button>
@@ -372,7 +400,9 @@ export default function Calendario() {
                 type="button"
                 className="boton-icono"
                 onClick={() => mover(1)}
-                aria-label={vista === "mes" ? "Mes siguiente" : "Semana siguiente"}
+                aria-label={
+                  vista === "mes" ? "Mes siguiente" : "Semana siguiente"
+                }
               >
                 <ChevronRight size={20} />
               </button>
@@ -440,12 +470,14 @@ export default function Calendario() {
                   key={k}
                   className={`cal-celda ${vista === "semana" ? "alta" : ""} ${fuera ? "fuera" : ""} ${k === claveHoy ? "hoy" : ""} ${pasado ? "pasado" : ""} ${creable ? "creable" : ""}`}
                   onClick={creable ? () => abrirCrear(k) : undefined}
-                  title={creable ? "Clic para agendar un evento este día" : undefined}
+                  title={
+                    creable ? "Clic para agendar un evento este día" : undefined
+                  }
                 >
                   <span className="cal-numero">{fecha.getDate()}</span>
                   {!fuera &&
                     lista.slice(0, limite).map((c) => (
-                                            <button
+                      <button
                         key={c.id_evento}
                         type="button"
                         className={`cal-evento ${ESTADOS[c.estado]?.clase ?? "cerrado"}`}
@@ -461,7 +493,7 @@ export default function Calendario() {
                         {vista === "semana" && <small>{c.direccion}</small>}
                       </button>
                     ))}
-                    {!fuera && lista.length > limite && (
+                  {!fuera && lista.length > limite && (
                     <button
                       type="button"
                       className="cal-mas"
@@ -564,7 +596,9 @@ export default function Calendario() {
                     </span>
                     <div>
                       <small>Fecha</small>
-                      <strong>{claveDe(e).split("-").reverse().join("/")}</strong>
+                      <strong>
+                        {claveDe(e).split("-").reverse().join("/")}
+                      </strong>
                     </div>
                   </div>
                   <div className="cal-dato">
@@ -609,7 +643,9 @@ export default function Calendario() {
                   )}
                 </div>
 
-                {e.observaciones && <p className="cal-nota">{e.observaciones}</p>}
+                {e.observaciones && (
+                  <p className="cal-nota">{e.observaciones}</p>
+                )}
 
                 {e.acuerdos?.length > 0 && (
                   <section className="cal-bloque">
@@ -696,7 +732,9 @@ export default function Calendario() {
                   <section className="cal-bloque">
                     <PagosEvento
                       idEvento={e.id_evento}
-                      puedeRegistrar={rol === "CONTADOR" && e.estado !== "CERRADO"}
+                      puedeRegistrar={
+                        rol === "CONTADOR" && e.estado !== "CERRADO"
+                      }
                       onCambio={refrescarDetalle}
                       version={versionFin}
                     />
@@ -841,7 +879,7 @@ export default function Calendario() {
       >
         <MargenTraslado />
       </Modal>
-            {/* Todos los eventos de un día (cuando no caben en la celda del mes) */}
+      {/* Todos los eventos de un día (cuando no caben en la celda del mes) */}
       <Modal
         abierto={Boolean(diaAbierto)}
         onCerrar={() => setDiaAbierto(null)}

@@ -8,7 +8,11 @@ import SelectorHora from "./SelectorHora";
 const ESTADOS_FRANJA = {
   DISPONIBLE: { texto: "Disponible", color: "var(--verde)", orden: 0 },
   OCUPADO: { texto: "Ocupado", color: "var(--naranjo)", orden: 1 },
-  SIN_DISPONIBILIDAD: { texto: "Sin disponibilidad", color: "var(--texto-tenue)", orden: 2 },
+  SIN_DISPONIBILIDAD: {
+    texto: "Sin disponibilidad",
+    color: "var(--texto-tenue)",
+    orden: 2,
+  },
 };
 // Estado de la cuenta (solo se muestra si no está activa)
 const ESTADOS_CUENTA = {
@@ -31,7 +35,10 @@ const sumarDosHoras = (hora) => {
 
 // Para buscar sin importar tildes ni mayúsculas
 const normalizar = (texto) =>
-  texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  texto
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
 
 /**
  * Ventana "Personal disponible" (RF-P1-03): lista a todo el personal y deja
@@ -49,13 +56,23 @@ export default function ConsultaPersonal() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
 
-  const franjaValida = Boolean(fecha && horaInicio && horaTermino && horaTermino > horaInicio);
-  const hayFiltros = Boolean(buscar || idRol || estado || fecha !== hoyLocal() || horaInicio || horaTermino);
+  const franjaValida = Boolean(
+    fecha && horaInicio && horaTermino && horaTermino > horaInicio,
+  );
+  const hayFiltros = Boolean(
+    buscar ||
+    idRol ||
+    estado ||
+    fecha !== hoyLocal() ||
+    horaInicio ||
+    horaTermino,
+  );
 
   // Al elegir "Desde", si "Hasta" está vacío o quedó antes, se sugiere 2 h después
   function cambiarInicio(valor) {
     setHoraInicio(valor);
-    if (valor && (!horaTermino || horaTermino <= valor)) setHoraTermino(sumarDosHoras(valor));
+    if (valor && (!horaTermino || horaTermino <= valor))
+      setHoraTermino(sumarDosHoras(valor));
   }
 
   // Roles para el filtro (solo los activos)
@@ -69,7 +86,11 @@ export default function ConsultaPersonal() {
   useEffect(() => {
     let vigente = true;
     setCargando(true);
-    listarPersonalConEstado(franjaValida ? { fecha, hora_inicio: horaInicio, hora_termino: horaTermino } : {})
+    listarPersonalConEstado(
+      franjaValida
+        ? { fecha, hora_inicio: horaInicio, hora_termino: horaTermino }
+        : {},
+    )
       .then((lista) => {
         if (!vigente) return;
         setPersonal(lista);
@@ -93,16 +114,23 @@ export default function ConsultaPersonal() {
         (!estado || t.estado_franja === estado),
     );
     if (!franjaValida) return lista;
-    return [...lista].sort((a, b) => ordenDe(a) - ordenDe(b) || a.nombre.localeCompare(b.nombre));
+    return [...lista].sort(
+      (a, b) => ordenDe(a) - ordenDe(b) || a.nombre.localeCompare(b.nombre),
+    );
   }, [personal, buscar, idRol, estado, franjaValida]);
 
   function ordenDe(t) {
-    return (ESTADOS_CUENTA[t.estado_cuenta] ?? ESTADOS_FRANJA[t.estado_franja])?.orden ?? 5;
+    return (
+      (ESTADOS_CUENTA[t.estado_cuenta] ?? ESTADOS_FRANJA[t.estado_franja])
+        ?.orden ?? 5
+    );
   }
 
   // Etiqueta que se muestra a la derecha de cada persona
   function etiquetaDe(t) {
-    return ESTADOS_CUENTA[t.estado_cuenta] ?? ESTADOS_FRANJA[t.estado_franja] ?? null;
+    return (
+      ESTADOS_CUENTA[t.estado_cuenta] ?? ESTADOS_FRANJA[t.estado_franja] ?? null
+    );
   }
 
   function limpiar() {
@@ -114,29 +142,49 @@ export default function ConsultaPersonal() {
     setHoraTermino("");
   }
 
-  const disponibles = personal.filter((t) => t.estado_franja === "DISPONIBLE").length;
+  const disponibles = personal.filter(
+    (t) => t.estado_franja === "DISPONIBLE",
+  ).length;
 
   return (
     <div className="personal-consulta">
       {/* Primero: ¿en qué fecha y horario? (es lo que más se consulta) */}
       <div className="personal-franja">
-        <span className="etiqueta">¿Quién está libre? Elige fecha y horario</span>
+        <span className="etiqueta">
+          ¿Quién está libre? Elige fecha y horario
+        </span>
         <div className="personal-filtros">
           <div className="campo">
             <label htmlFor="pc-fecha">Fecha</label>
-            <input id="pc-fecha" type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+            <input
+              id="pc-fecha"
+              type="date"
+              value={fecha}
+              onChange={(e) => setFecha(e.target.value)}
+            />
           </div>
           <div className="campo">
             <label htmlFor="pc-inicio">Desde</label>
-            <SelectorHora id="pc-inicio" valor={horaInicio} onCambiar={cambiarInicio} />
+            <SelectorHora
+              id="pc-inicio"
+              valor={horaInicio}
+              onCambiar={cambiarInicio}
+            />
           </div>
           <div className="campo">
             <label htmlFor="pc-termino">Hasta</label>
-            <SelectorHora id="pc-termino" valor={horaTermino} onCambiar={setHoraTermino} />
+            <SelectorHora
+              id="pc-termino"
+              valor={horaTermino}
+              onCambiar={setHoraTermino}
+            />
           </div>
         </div>
         {(horaInicio || horaTermino) && !franjaValida && (
-          <p className="texto-tenue">Completa la fecha y un horario válido (la hora final debe ser posterior a la inicial).</p>
+          <p className="texto-tenue">
+            Completa la fecha y un horario válido (la hora final debe ser
+            posterior a la inicial).
+          </p>
         )}
       </div>
 
@@ -155,7 +203,11 @@ export default function ConsultaPersonal() {
         </div>
         <div className="campo">
           <label htmlFor="pc-rol">Rol</label>
-          <select id="pc-rol" value={idRol} onChange={(e) => setIdRol(e.target.value)}>
+          <select
+            id="pc-rol"
+            value={idRol}
+            onChange={(e) => setIdRol(e.target.value)}
+          >
             <option value="">Todos los roles</option>
             {roles.map((r) => (
               <option key={r.id_rol} value={r.id_rol}>
@@ -167,7 +219,11 @@ export default function ConsultaPersonal() {
         {franjaValida && (
           <div className="campo">
             <label htmlFor="pc-estado">Estado en ese horario</label>
-            <select id="pc-estado" value={estado} onChange={(e) => setEstado(e.target.value)}>
+            <select
+              id="pc-estado"
+              value={estado}
+              onChange={(e) => setEstado(e.target.value)}
+            >
               <option value="">Todos</option>
               <option value="DISPONIBLE">Disponibles</option>
               <option value="OCUPADO">Ocupados</option>
@@ -183,23 +239,32 @@ export default function ConsultaPersonal() {
       {!error && !cargando && (
         <div className="personal-resumen">
           <p className="texto-tenue">
-            {visibles.length} de {personal.length} {personal.length === 1 ? "persona" : "personas"}
+            {visibles.length} de {personal.length}{" "}
+            {personal.length === 1 ? "persona" : "personas"}
             {franjaValida && ` · ${disponibles} disponibles en ese horario`}
           </p>
           {hayFiltros && (
-            <button type="button" className="boton boton-texto" onClick={limpiar}>
+            <button
+              type="button"
+              className="boton boton-texto"
+              onClick={limpiar}
+            >
               Limpiar filtros
             </button>
           )}
         </div>
       )}
 
-      {cargando && personal.length === 0 && <p className="texto-tenue">Cargando personal…</p>}
+      {cargando && personal.length === 0 && (
+        <p className="texto-tenue">Cargando personal…</p>
+      )}
       {!cargando && !error && personal.length === 0 && (
         <p className="texto-tenue">Aún no hay trabajadores registrados.</p>
       )}
       {!cargando && personal.length > 0 && visibles.length === 0 && (
-        <p className="texto-tenue">Ningún trabajador coincide con los filtros.</p>
+        <p className="texto-tenue">
+          Ningún trabajador coincide con los filtros.
+        </p>
       )}
 
       {visibles.length > 0 && (
@@ -211,7 +276,10 @@ export default function ConsultaPersonal() {
                 <div className="personal-datos">
                   <strong>{t.nombre}</strong>
                   <span className="texto-pequeno">
-                    <Phone /> <a href={`tel:${t.telefono_whatsapp}`}>{t.telefono_whatsapp}</a>
+                    <Phone />{" "}
+                    <a href={`tel:${t.telefono_whatsapp}`}>
+                      {t.telefono_whatsapp}
+                    </a>
                   </span>
                   <div className="lista-roles">
                     {t.roles.length === 0 ? (
@@ -224,10 +292,15 @@ export default function ConsultaPersonal() {
                       ))
                     )}
                   </div>
-                  {t.detalle && <span className="texto-tenue">{t.detalle}</span>}
+                  {t.detalle && (
+                    <span className="texto-tenue">{t.detalle}</span>
+                  )}
                 </div>
                 {etiqueta && (
-                  <span className="chip-cal" style={{ "--color": etiqueta.color }}>
+                  <span
+                    className="chip-cal"
+                    style={{ "--color": etiqueta.color }}
+                  >
                     {etiqueta.texto}
                   </span>
                 )}
