@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, Search, Tags, Users, UserCheck, UserMinus, UserX } from 'lucide-react';
 import Modal from '../components/Modal';
+import HistorialTrabajador from '../components/HistorialTrabajador';
 import TarjetaTrabajador from '../components/trabajadores/TarjetaTrabajador';
 import FichaTrabajador from '../components/trabajadores/FichaTrabajador';
 import FormularioTrabajador from '../components/trabajadores/FormularioTrabajador';
@@ -32,7 +33,7 @@ export default function Trabajadores() {
   // Ventanas abiertas
   const [idAbierto, setIdAbierto] = useState(null); // ficha del trabajador
   const [creandoTrabajador, setCreandoTrabajador] = useState(false);
-  const [rolEditando, setRolEditando] = useState(undefined); // undefined = cerrado, null = crear, objeto = modificar
+  const [rolEditando, setRolEditando] = useState(undefined); // undefined = cerrado, null = abre en "crear", objeto = abre modificando ese rol
 
   // Cambia cada vez que se guarda algo, para que las tarjetas se actualicen
   const [version, setVersion] = useState(0);
@@ -66,14 +67,14 @@ export default function Trabajadores() {
     setIdAbierto(nuevo.id_trabajador); // se abre su ficha para asignarle roles y disponibilidad
   }
 
-  async function guardarRol(datos) {
-    if (rolEditando) {
-      await actualizarRol(rolEditando.id_rol, datos);
+  // El formulario de rol decide si crea o modifica: `rol` viene con el rol elegido, o null si es nuevo
+  async function guardarRol(datos, rol) {
+    if (rol) {
+      await actualizarRol(rol.id_rol, datos);
     } else {
       await crearRol(datos);
     }
-    setRolEditando(undefined);
-    cargarDatos();
+    await cargarDatos(); // refresca la lista de roles y las tarjetas; la ventana queda abierta
   }
 
   // Aplicar filtros
@@ -101,7 +102,7 @@ export default function Trabajadores() {
         </div>
         <div className="encabezado-botones">
           <button type="button" className="boton boton-secundario" onClick={() => setRolEditando(null)}>
-            <Tags size={18} /> Nuevo rol
+            <Tags size={18} /> Gestionar rol
           </button>
           <button type="button" className="boton boton-principal" onClick={() => setCreandoTrabajador(true)}>
             <Plus size={18} /> Añadir trabajador
@@ -186,13 +187,20 @@ export default function Trabajadores() {
       {/* Ventanas */}
       <Modal abierto={Boolean(trabajadorAbierto)} onCerrar={() => setIdAbierto(null)} titulo="Ficha del trabajador" ancho="amplio">
         {trabajadorAbierto && (
-          <FichaTrabajador
-            trabajador={trabajadorAbierto}
-            roles={roles}
-            onCambio={alCambiar}
-            onCrearRol={() => setRolEditando(null)}
-            onEditarRol={setRolEditando}
-          />
+          <>
+            {/* RF-P7-11: historial de eventos, remuneración y pagos (solo lo ven Dueño y Contador) */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+              <HistorialTrabajador trabajador={trabajadorAbierto} />
+            </div>
+
+            <FichaTrabajador
+              trabajador={trabajadorAbierto}
+              roles={roles}
+              onCambio={alCambiar}
+              onCrearRol={() => setRolEditando(null)}
+              onEditarRol={setRolEditando}
+            />
+          </>
         )}
       </Modal>
 
@@ -200,8 +208,9 @@ export default function Trabajadores() {
         <FormularioTrabajador textoBoton="Crear trabajador" onGuardar={guardarTrabajadorNuevo} onCancelar={() => setCreandoTrabajador(false)} />
       </Modal>
 
-      <Modal abierto={rolEditando !== undefined} onCerrar={() => setRolEditando(undefined)} titulo={rolEditando ? 'Modificar rol' : 'Crear rol'}>
-        <FormularioRol key={rolEditando?.id_rol ?? 'nuevo'} rol={rolEditando} onGuardar={guardarRol} onCancelar={() => setRolEditando(undefined)} />
+      {/* Crear y modificar roles en un solo formulario */}
+      <Modal abierto={rolEditando !== undefined} onCerrar={() => setRolEditando(undefined)} titulo="Roles de trabajo">
+        <FormularioRol roles={roles} rolInicial={rolEditando} onGuardar={guardarRol} onCancelar={() => setRolEditando(undefined)} />
       </Modal>
     </div>
   );

@@ -3,19 +3,16 @@ import {
   obtenerKitsYPersonalPorEventoService,
   obtenerEventosConReservasService,
 } from '../services/salidaKit.service.js';
+import { manejarError } from '../utils/errores.js';
 
 export const registrarSalidaKit = async (req, res) => {
   try {
-    const { id_reserva, id_asignacion, id_jefe, fecha_hora_salida } = req.body;
+    const { id_reserva, id_asignacion, fecha_hora_salida } = req.body;
+    const jefeId = req.usuario?.id_jefe || req.user?.id_jefe;
 
-    if (!id_reserva || !id_asignacion) {
-      return res.status(400).json({
-        message: 'id_reserva e id_asignacion son campos obligatorios',
-      });
+    if (!jefeId) {
+      return res.status(401).json({ mensaje: 'No se pudo identificar al Jefe de área técnica desde la sesión.' });
     }
-
-    // Si tu middleware guarda el usuario en req.user usa ese id, sino el enviado en body o 1 por defecto
-    const jefeId = req.user?.id_jefe || id_jefe || 1;
 
     const salida = await registrarSalidaKitService({
       id_reserva,
@@ -29,7 +26,7 @@ export const registrarSalidaKit = async (req, res) => {
       data: salida,
     });
   } catch (error) {
-    return res.status(400).json({ message: error.message });
+    return manejarError(res, error);
   }
 };
 
@@ -44,7 +41,7 @@ export const obtenerKitsPorEvento = async (req, res) => {
     const data = await obtenerKitsYPersonalPorEventoService(id_evento);
     return res.status(200).json(data);
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    return manejarError(res, error);
   }
 };
 

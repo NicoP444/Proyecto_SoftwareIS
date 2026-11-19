@@ -1,18 +1,20 @@
 import { Router } from 'express';
 import { auspiciadorController } from '../controllers/auspiciador.controller.js';
+import { auspiciadorSchema } from '../schemas/auspiciador.schema.js';
+import { validarCampos, validarId } from '../middlewares/validate.middleware.js';
+import { autenticar, permitirRoles } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
-// GET /api/auspiciadores -> Obtiene la lista de auspiciadores
-router.get('/', auspiciadorController.obtenerTodos);
+// Todas las rutas exigen sesión iniciada
+router.use(autenticar);
 
-// POST /api/auspiciadores -> Registra un nuevo auspiciador
-router.post('/', auspiciadorController.crear);
+// Ver auspiciadores: Dueño y Contador 
+router.get('/', permitirRoles('DUENO', 'CONTADOR'), auspiciadorController.obtenerTodos);
 
-// PUT /api/auspiciadores/:id -> Modifica un auspiciador existente
-router.put('/:id', auspiciadorController.modificar);
-
-// DELETE /api/auspiciadores/:id -> Elimina un auspiciador
-router.delete('/:id', auspiciadorController.eliminar);
+// Registrar, modificar/clasificar y eliminar: solo Dueño 
+router.post('/', permitirRoles('DUENO'), auspiciadorSchema, validarCampos, auspiciadorController.crear);
+router.put('/:id', permitirRoles('DUENO'), validarId, auspiciadorSchema, validarCampos, auspiciadorController.modificar);
+router.delete('/:id', permitirRoles('DUENO'), validarId, auspiciadorController.eliminar);
 
 export default router;

@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { obtenerKitsEnTerreno, registrarRetornoKit } from '../services/retornoKit.service.js';
+import '../styles/RetornoKits.css';
+
+const TIENE_LETRAS_REGEX = /[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]/;
 
 export default function RetornoKits() {
   const [salidas, setSalidas] = useState([]);
@@ -8,6 +11,7 @@ export default function RetornoKits() {
   const [revisiones, setRevisiones] = useState({});
   const [enviando, setEnviando] = useState(false);
   const [mensaje, setMensaje] = useState(null);
+  const [errorModal, setErrorModal] = useState('');
 
   const cargarSalidasEnTerreno = async () => {
     try {
@@ -26,6 +30,8 @@ export default function RetornoKits() {
   }, []);
 
   const abrirModalRevision = (salida) => {
+    setMensaje(null);
+    setErrorModal('');
     setSalidaSeleccionada(salida);
     const estadoInicial = {};
     const equipos = salida.reserva?.kit?.equipos || [];
@@ -44,9 +50,11 @@ export default function RetornoKits() {
   const cerrarModal = () => {
     setSalidaSeleccionada(null);
     setRevisiones({});
+    setErrorModal('');
   };
 
   const handleEstadoChange = (codigo, campo, valor) => {
+    if (errorModal) setErrorModal('');
     setRevisiones((prev) => ({
       ...prev,
       [codigo]: {
@@ -58,25 +66,41 @@ export default function RetornoKits() {
 
   const handleGuardarRetorno = async (e) => {
     e.preventDefault();
+    setErrorModal('');
+
+    const listaRevisiones = Object.values(revisiones);
+    for (const r of listaRevisiones) {
+      const obs = (r.observacion || '').trim();
+      if (obs !== '' && !TIENE_LETRAS_REGEX.test(obs)) {
+        setErrorModal(
+          `La observación de ${r.nombre} (${r.codigo}) debe incluir texto explicativo (no puede contener solo números o símbolos).`
+        );
+        return;
+      }
+    }
+
     try {
       setEnviando(true);
-      const listaRevisiones = Object.values(revisiones).map((r) => ({
+      const payloadRevisiones = listaRevisiones.map((r) => ({
         codigo: r.codigo,
         estado_retorno: r.estado_retorno,
-        observacion: r.observacion,
+        observacion: r.observacion.trim(),
         costo_reparacion: r.costo_reparacion ? Number(r.costo_reparacion) : null,
       }));
 
       const res = await registrarRetornoKit({
         id_salida: salidaSeleccionada.id_salida,
-        id_jefe: 1,
-        revisiones: listaRevisiones,
+        revisiones: payloadRevisiones,
       });
 
-      setMensaje({ tipo: 'exito', texto: res.mensaje || 'Retorno y revisión guardados exitosamente.' });
+      setMensaje({
+        tipo: 'exito',
+        texto: res.mensaje || 'Retorno y revisión guardados exitosamente.',
+      });
       cerrarModal();
       await cargarSalidasEnTerreno();
     } catch (error) {
+      cerrarModal();
       setMensaje({
         tipo: 'error',
         texto: error.response?.data?.mensaje || error.message || 'Error al guardar retorno',
@@ -88,64 +112,43 @@ export default function RetornoKits() {
 
   return (
     <div>
-      <div style={{ marginBottom: '1.25rem' }}>
-        <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '700', color: '#0f172a' }}>
-          Kits en Terreno Pendientes de Recepción
-        </h3>
+      <div className="ret-cabecera">
+        <h3>Kits en Terreno Pendientes de Recepción</h3>
       </div>
 
       {mensaje && (
         <div
-          style={{
-            padding: '0.85rem 1rem',
-            marginBottom: '1.25rem',
-            borderRadius: '8px',
-            fontSize: '0.88rem',
-            fontWeight: '500',
-            backgroundColor: mensaje.tipo === 'exito' ? '#dcfce7' : '#fee2e2',
-            color: mensaje.tipo === 'exito' ? '#15803d' : '#991b1b',
-            border: mensaje.tipo === 'exito' ? '1px solid #bbf7d0' : '1px solid #fecaca',
-          }}
+          className={`ret-mensaje ${
+            mensaje.tipo === 'exito' ? 'ret-mensaje-exito' : 'ret-mensaje-error'
+          }`}
         >
           {mensaje.texto}
         </div>
       )}
 
       {cargando ? (
-        <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b', fontSize: '0.92rem' }}>
-          Cargando kits en terreno...
-        </div>
+        <div className="ret-cargando">Cargando kits en terreno...</div>
       ) : salidas.length === 0 ? (
-        <div style={{ padding: '2rem', textAlign: 'center', backgroundColor: '#f8fafc', borderRadius: '10px', color: '#94a3b8', fontSize: '0.9rem', border: '1px solid #e2e8f0' }}>
+        <div className="ret-vacio">
           No hay kits en terreno pendientes de retorno en este momento.
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', maxHeight: '460px', overflowY: 'auto' }}>
+        <div className="ret-lista">
           {salidas.map((salida) => (
-            <div
-              key={salida.id_salida}
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '1.1rem 1.25rem',
-                border: '1px solid #e2e8f0',
-                borderRadius: '10px',
-                backgroundColor: '#ffffff',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-              }}
-            >
+            <div key={salida.id_salida} className="ret-card">
               <div>
-                <strong style={{ fontSize: '1rem', color: '#0f172a' }}>
+                <strong className="ret-kit-titulo">
                   {salida.reserva?.kit?.nombre}
                 </strong>
-                <div style={{ fontSize: '0.85rem', color: '#475569', marginTop: '4px' }}>
-                  <strong>Evento:</strong> {salida.reserva?.evento?.nombre_evento || `#${salida.reserva?.id_evento}`}
+                <div className="ret-detalle-evento">
+                  <strong>Evento:</strong>{' '}
+                  {salida.reserva?.evento?.tipo || `#${salida.reserva?.id_evento}`}
                 </div>
-                <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                  <strong>Responsable:</strong> {salida.responsable?.trabajador?.nombre || 'No asignado'}
+                <div className="ret-detalle-resp">
+                  <strong>Responsable:</strong>{' '}
+                  {salida.responsable?.trabajador?.nombre || 'No asignado'}
                 </div>
-                <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: '2px' }}>
+                <div className="ret-detalle-fecha">
                   Salida: {new Date(salida.fecha_hora_salida).toLocaleString('es-CL')}
                 </div>
               </div>
@@ -153,19 +156,7 @@ export default function RetornoKits() {
               <button
                 type="button"
                 onClick={() => abrirModalRevision(salida)}
-                style={{
-                  padding: '0.55rem 1.1rem',
-                  backgroundColor: '#333c87',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontWeight: '600',
-                  fontSize: '0.85rem',
-                  transition: 'background-color 0.15s ease',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#272e6b')}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#333c87')}
+                className="ret-btn-revisar"
               >
                 Revisar Retorno
               </button>
@@ -176,79 +167,44 @@ export default function RetornoKits() {
 
       {/* MODAL DE REVISIÓN INDIVIDUAL */}
       {salidaSeleccionada && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(15, 23, 42, 0.65)',
-            backdropFilter: 'blur(2px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '1rem',
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: '#ffffff',
-              borderRadius: '14px',
-              maxWidth: '750px',
-              width: '100%',
-              maxHeight: '88vh',
-              overflowY: 'auto',
-              padding: '1.75rem',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem', marginBottom: '1.25rem' }}>
+        <div className="ret-modal-fondo">
+          <div className="ret-modal-caja">
+            <div className="ret-modal-cab">
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '800', color: '#0f172a' }}>
-                  Revisión Técnica: {salidaSeleccionada.reserva?.kit?.nombre}
-                </h3>
-                <span style={{ fontSize: '0.82rem', color: '#64748b' }}>
+                <h3>Revisión Técnica: {salidaSeleccionada.reserva?.kit?.nombre}</h3>
+                <span className="ret-modal-sub">
                   Inspección de estado operativo individual para el reintegro a bodega.
                 </span>
               </div>
             </div>
 
+            {errorModal && (
+              <div className="ret-mensaje ret-mensaje-error" style={{ marginBottom: '0.9rem' }}>
+                {errorModal}
+              </div>
+            )}
+
             <form onSubmit={handleGuardarRetorno}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginBottom: '1.5rem' }}>
+              <div className="ret-equipos-lista">
                 {Object.values(revisiones).map((eq) => {
                   const noOperativo = eq.estado_retorno !== 'OPERATIVO';
                   return (
                     <div
                       key={eq.codigo}
-                      style={{
-                        padding: '1rem',
-                        border: noOperativo ? '1px solid #fecaca' : '1px solid #e2e8f0',
-                        borderRadius: '8px',
-                        backgroundColor: noOperativo ? '#fef2f2' : '#f8fafc',
-                      }}
+                      className={`ret-equipo-item ${noOperativo ? 'alerta' : ''}`}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+                      <div className="ret-equipo-cab">
                         <div>
-                          <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>{eq.nombre}</strong>
-                          <span style={{ color: '#64748b', fontSize: '0.8rem', marginLeft: '6px' }}>({eq.codigo})</span>
+                          <strong className="ret-equipo-nombre">{eq.nombre}</strong>
+                          <span className="ret-equipo-codigo">({eq.codigo})</span>
                         </div>
-                        
+
                         <select
                           value={eq.estado_retorno}
-                          onChange={(e) => handleEstadoChange(eq.codigo, 'estado_retorno', e.target.value)}
-                          style={{
-                            padding: '0.4rem 0.65rem',
-                            borderRadius: '6px',
-                            border: noOperativo ? '1.5px solid #ef4444' : '1px solid #cbd5e1',
-                            fontWeight: '700',
-                            fontSize: '0.82rem',
-                            color: noOperativo ? '#dc2626' : '#15803d',
-                            backgroundColor: '#ffffff',
-                            cursor: 'pointer',
-                            outline: 'none',
-                          }}
+                          onChange={(e) =>
+                            handleEstadoChange(eq.codigo, 'estado_retorno', e.target.value)
+                          }
+                          className={`ret-select-estado ${noOperativo ? 'alerta' : ''}`}
                         >
                           <option value="OPERATIVO">Operativo</option>
                           <option value="DANO">Dañado</option>
@@ -257,28 +213,21 @@ export default function RetornoKits() {
                         </select>
                       </div>
 
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <div className="ret-equipo-campos">
                         <input
                           type="text"
+                          maxLength={255}
                           placeholder="Observación técnica del estado o entrega..."
                           value={eq.observacion}
-                          onChange={(e) => handleEstadoChange(eq.codigo, 'observacion', e.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '0.5rem 0.75rem',
-                            borderRadius: '6px',
-                            border: '1px solid #e2e8f0',
-                            fontSize: '0.85rem',
-                            backgroundColor: '#ffffff',
-                            color: '#0f172a',
-                            boxSizing: 'border-box',
-                            outline: 'none',
-                          }}
+                          onChange={(e) =>
+                            handleEstadoChange(eq.codigo, 'observacion', e.target.value)
+                          }
+                          className="ret-input-obs"
                         />
 
                         {eq.estado_retorno === 'DANO' && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginTop: '0.2rem' }}>
-                            <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#b91c1c' }}>
+                          <div className="ret-costo-fila">
+                            <span className="ret-costo-label">
                               Costo estimado reparación ($):
                             </span>
                             <input
@@ -287,15 +236,10 @@ export default function RetornoKits() {
                               required
                               placeholder="Ej: 45000"
                               value={eq.costo_reparacion}
-                              onChange={(e) => handleEstadoChange(eq.codigo, 'costo_reparacion', e.target.value)}
-                              style={{
-                                padding: '0.45rem 0.65rem',
-                                borderRadius: '6px',
-                                border: '1.5px solid #ef4444',
-                                width: '150px',
-                                fontSize: '0.85rem',
-                                outline: 'none',
-                              }}
+                              onChange={(e) =>
+                                handleEstadoChange(eq.codigo, 'costo_reparacion', e.target.value)
+                              }
+                              className="ret-input-costo"
                             />
                           </div>
                         )}
@@ -305,38 +249,19 @@ export default function RetornoKits() {
                 })}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', borderTop: '1px solid #f1f5f9', paddingTop: '1rem' }}>
+              <div className="ret-modal-pie">
                 <button
                   type="button"
                   onClick={cerrarModal}
                   disabled={enviando}
-                  style={{
-                    padding: '0.55rem 1.1rem',
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '6px',
-                    color: '#475569',
-                    fontSize: '0.88rem',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                  }}
+                  className="ret-btn-cancelar"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={enviando}
-                  style={{
-                    padding: '0.55rem 1.25rem',
-                    backgroundColor: '#16a34a',
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontWeight: '700',
-                    fontSize: '0.88rem',
-                    cursor: 'pointer',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                  }}
+                  className="ret-btn-confirmar"
                 >
                   {enviando ? 'Guardando...' : 'Confirmar Retorno'}
                 </button>

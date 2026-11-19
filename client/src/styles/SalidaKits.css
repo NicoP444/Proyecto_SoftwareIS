@@ -1,0 +1,315 @@
+/* Estilos exclusivos de SalidaKits (RF-P6-01) */
+
+.sal-panel {
+  background-color: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #eef2f6;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+  min-height: 540px;
+}
+
+.sal-tabs {
+  display: flex;
+  border-bottom: 1px solid #f1f5f9;
+  padding: 0 1.5rem;
+  background-color: #ffffff;
+  overflow-x: auto;
+}
+
+.sal-tab {
+  padding: 1.1rem 1.3rem;
+  border: none;
+  border-bottom: 2.5px solid transparent;
+  background: none;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.92rem;
+  color: #64748b;
+  margin-bottom: -1px;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.sal-tab.activa {
+  font-weight: 700;
+  color: var(--primario, #1E3A8A);
+  border-bottom-color: var(--primario, #1E3A8A);
+}
+
+.sal-cuerpo {
+  padding: 1.5rem;
+}
+
+/* ---------- Mensajes y carga ---------- */
+.sal-mensaje {
+  padding: 0.85rem 1rem;
+  margin-bottom: 1.25rem;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+.sal-mensaje-exito {
+  background-color: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.sal-mensaje-error {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.sal-cargando {
+  text-align: center;
+  padding: 3rem;
+  color: #64748b;
+  font-size: 0.92rem;
+}
+
+/* ---------- Filtros de selección de evento ---------- */
+.sal-filtros-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.sal-label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sal-input,
+.sal-select {
+  width: 100%;
+  padding: 0.6rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  font-size: 0.88rem;
+  color: #0f172a;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.sal-input {
+  background-color: #f8fafc;
+}
+
+.sal-select {
+  background-color: #ffffff;
+  cursor: pointer;
+}
+
+/* ---------- Listado de kits asignados ---------- */
+.sal-subtitulo {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 0.85rem 0;
+}
+
+.sal-vacio {
+  padding: 1.5rem;
+  text-align: center;
+  background-color: #f8fafc;
+  border-radius: 10px;
+  color: #94a3b8;
+  font-size: 0.88rem;
+}
+
+.sal-reservas-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 340px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.sal-reserva-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background-color: #ffffff;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.sal-reserva-card.incompleto {
+  background-color: #fff1f2;
+}
+
+.sal-kit-nombre {
+  font-size: 0.98rem;
+  color: #0f172a;
+  display: block;
+}
+
+.sal-kit-meta {
+  font-size: 0.82rem;
+  color: #64748b;
+  margin-top: 3px;
+  display: block;
+}
+
+.sal-reserva-acciones {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.sal-estado-fila {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sal-estado-fila-terreno {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.sal-despacho-fila {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.sal-txt-incompleto {
+  font-size: 0.82rem;
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.sal-txt-resp {
+  font-size: 0.82rem;
+  color: #475569;
+}
+
+.sal-txt-retornado {
+  font-size: 0.82rem;
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.sal-select-resp {
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  font-size: 0.85rem;
+  background-color: #f8fafc;
+  color: #0f172a;
+  outline: none;
+}
+
+.sal-btn-despachar {
+  background-color: var(--primario, #1E3A8A);
+  color: #ffffff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: background-color 0.15s ease;
+}
+
+.sal-btn-despachar:hover {
+  background-color: #272e6b;
+}
+
+/* ---------- Badges ---------- */
+.sal-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 110px;
+  min-width: 110px;
+  max-width: 110px;
+  height: 24px;
+  padding: 0 8px;
+  box-sizing: border-box;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+.sal-badge-punto {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+  flex-shrink: 0;
+}
+
+.sal-badge-verde { background-color: #dcfce7; color: #15803d; }
+.sal-badge-azul { background-color: #dbeafe; color: #1d4ed8; }
+.sal-badge-rojo { background-color: #fee2e2; color: #dc2626; }
+
+/* ---------- Historial de eventos despachados ---------- */
+.sal-historial-bloque {
+  margin-top: 2.5rem;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 1.25rem;
+}
+
+.sal-historial-toggle {
+  background: none;
+  border: none;
+  color: #64748b;
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0;
+}
+
+.sal-historial-lista {
+  margin-top: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.sal-historial-item {
+  padding: 0.75rem 1rem;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sal-historial-titulo {
+  color: #0f172a;
+}
+
+.sal-historial-fecha {
+  color: #64748b;
+}

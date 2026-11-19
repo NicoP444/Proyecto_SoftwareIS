@@ -8,7 +8,6 @@ import acuerdoRoutes from './acuerdo.routes.js';
 import disponibilidadRoutes from './disponibilidad.routes.js';//nico
 import salidaKitRoutes from './salidaKit.routes.js';
 import retornoKitRoutes from './retornoKit.routes.js';
-import historialCambioRoutes from './historialCambio.routes.js'; // nico
 import historialEquipoRoutes from './historialEquipo.routes.js';
 import alertaKitsRoutes from './alertaKits.routes.js';
 import equipoRoutes from './equipo.routes.js';
@@ -19,6 +18,19 @@ import rendicionRoutes from './rendicion.routes.js';// nico
 import remuneracionRoutes from './remumeracion.routes.js'; // nico
 import marcarEventoRoutes from './marcarEvento.routes.js';
 import inventarioRoutes from './consultarInventario.routes.js';
+import cierreRoutes from './cierre.routes.js'; // nico
+import gastosFijosRoutes from './gastosFijos.routes.js';
+import perdidasInventarioRoutes from './perdidasInventario.routes.js';
+import resumenInventarioRoutes from './resumenInventario.routes.js';
+import resumenMensualRoutes from './resumenMensual.routes.js';
+import cierreMesRoutes from './cierreMes.routes.js';
+import corregirMesCerradoRoutes from './corregirMesCerrado.routes.js';
+
+import rentabilidadRoutes from './rentabilidad.routes.js'; // nico
+import pagoRemuneracionRoutes from './pagoRemuneracion.routes.js'// nico
+import historialTrabajadorRoutes from './historialTrabajador.routes.js'; // nico
+import kitRoutes from './kit.routes.js';
+import usuarioRoutes from './usuario.routes.js';
 const router = Router();
 
 // Aquí le decimos al servidor que use tus rutas
@@ -30,11 +42,12 @@ router.use('/trabajadores',trabajadorRoutes);//nico
 router.use('/gastosEvento', gastosEventosRoutes); // nico
 router.use('/acuerdos', acuerdoRoutes);
 router.use('/salidas-kits', salidaKitRoutes);
-router.use('/retornos-kits', retornoKitRoutes);
-router.use('/historial-cambios', historialCambioRoutes)//nico
+router.use('/retornos-kits', retornoKitRoutes); 
 router.use('/equipos-historial', historialEquipoRoutes);
 router.use('/alertas', alertaKitsRoutes);
-
+router.use('/rentabilidad', rentabilidadRoutes);//nico
+router.use('/pagos-remuneracion', pagoRemuneracionRoutes);// nico
+router.use('/historial-trabajador', historialTrabajadorRoutes);//nico
 router.use('/', desempenaRoutes);// nico
 router.use('/eventos', eventoRoutes);
 router.use('/rendiciones', rendicionRoutes);// nico
@@ -42,5 +55,14 @@ router.use('/remuneraciones', remuneracionRoutes);// nico
 router.use('/equipos', equipoRoutes);
 router.use('/eventos-realizados', marcarEventoRoutes);
 router.use('/inventario', inventarioRoutes);
+router.use('/cierre-jornada', cierreRoutes);//nico
+router.use('/gastos-fijos', gastosFijosRoutes);
+router.use('/perdidas-inventario', perdidasInventarioRoutes);
+router.use('/resumen-inventario', resumenInventarioRoutes);
+router.use('/resumen-mensual', resumenMensualRoutes);
+router.use('/cierre-mes', cierreMesRoutes);
+router.use('/corregir-mes', corregirMesCerradoRoutes);
+router.use('/kits', kitRoutes);
+router.use('/usuarios', usuarioRoutes);
 
 export default router;

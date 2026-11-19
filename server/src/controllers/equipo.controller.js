@@ -6,7 +6,10 @@ export const obtenerEquipos = async (req, res) => {
     res.json(equipos);
   } catch (error) {
     console.error('Error al obtener equipos:', error);
-    res.status(500).json({ error: error.message || 'Error al obtener equipos' });
+    res.status(500).json({
+      mensaje: error.message || 'Error al obtener equipos',
+      error: error.message || 'Error al obtener equipos'
+    });
   }
 };
 
@@ -16,7 +19,10 @@ export const crearEquipo = async (req, res) => {
     res.status(201).json(nuevoEquipo);
   } catch (error) {
     console.error('Error al registrar equipo:', error);
-    res.status(400).json({ error: error.message || 'Error al registrar equipo' });
+    res.status(400).json({
+      mensaje: error.message || 'Error al registrar equipo',
+      error: error.message || 'Error al registrar equipo'
+    });
   }
 };
 
@@ -27,9 +33,13 @@ export const modificarEquipo = async (req, res) => {
     res.json(equipoModificado);
   } catch (error) {
     console.error('Error al modificar equipo:', error);
-    res.status(400).json({ error: error.message || 'Error al modificar equipo' });
+    res.status(400).json({
+      mensaje: error.message || 'Error al modificar equipo',
+      error: error.message || 'Error al modificar equipo'
+    });
   }
 };
+
 export const darDeBajaEquipo = async (req, res) => {
   try {
     const { codigo } = req.params;
@@ -38,7 +48,10 @@ export const darDeBajaEquipo = async (req, res) => {
     res.json(resultado);
   } catch (error) {
     console.error('Error al dar de baja equipo:', error);
-    res.status(400).json({ error: error.message || 'Error al dar de baja equipo' });
+    res.status(400).json({
+      mensaje: error.message || 'Error al dar de baja equipo',
+      error: error.message || 'Error al dar de baja equipo'
+    });
   }
 };
 
@@ -49,6 +62,9 @@ export const eliminarEquipo = async (req, res) => {
     res.json({ mensaje: 'Equipo eliminado definitivamente' });
   } catch (error) {
     console.error('Error al eliminar equipo:', error);
-    res.status(400).json({ error: error.message || 'Error al eliminar equipo' });
+    res.status(400).json({
+      mensaje: error.message || 'Error al eliminar equipo',
+      error: error.message || 'Error al eliminar equipo'
+    });
   }
 };

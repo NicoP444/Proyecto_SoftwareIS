@@ -1,4 +1,6 @@
-.layout {
+/* Variables y estilos base: sirven al layout antiguo (.layout) y al Home dentro de la plantilla (.panel-principal) */
+.layout,
+.panel-principal {
   --primary: #01107a;
   --primary-soft: rgba(1, 16, 122, 0.08);
   --bg: #f6f7fb;
@@ -8,14 +10,17 @@
   --muted: #6b7280;
   --topbar-h: 56px;
   --sidebar-w: 260px;
+}
 
+.layout {
   min-height: 100vh;
   background: var(--bg);
   color: var(--text);
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
-.layout svg {
+.layout svg,
+.panel-principal svg {
   width: 20px;
   height: 20px;
   flex-shrink: 0;
@@ -420,4 +425,107 @@
   .panels-row {
     grid-template-columns: 1fr;
   }
+}
+
+/* ---------- Panel por rol (RF-T-07) ---------- */
+.kpi.clickeable {
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+
+.kpi.clickeable:hover {
+  box-shadow: 0 4px 12px rgba(17, 24, 39, 0.1);
+}
+
+.kpi-value.dato {
+  color: var(--text);
+}
+
+.kpi-value.valor-positivo {
+  color: #2f8f5b;
+}
+
+.kpi-value.valor-negativo {
+  color: #e5484d;
+}
+
+.lista-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.fila-panel {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.fila-panel > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.fila-panel small {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.fila-panel-der {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.fila-alerta {
+  cursor: pointer;
+}
+
+.fila-alerta:hover {
+  background: #eef2ff;
+}
+
+.badge-alerta {
+  background: #fee2e2;
+  color: #991b1b;
+  font-weight: 700;
+  font-size: 0.8rem;
+  border-radius: 10px;
+  padding: 2px 10px;
+}
+
+.texto-carga {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.badge-estado-cobro {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.badge-estado-pendiente {
+  background-color: #e2e8f0;
+  color: #475569;
+}
+
+.badge-estado-parcial {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.badge-estado-vencido {
+  background-color: #fee2e2;
+  color: #991b1b;
 }

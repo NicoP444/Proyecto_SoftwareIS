@@ -1,22 +1,43 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  registrarIncidente, 
-  obtenerIncidentes, 
-  obtenerEquipos, 
-  obtenerEventos, 
-  obtenerTrabajadores 
+import {
+  registrarIncidente,
+  obtenerIncidentes,
+  obtenerEventos,
 } from '../services/incidente.service.js';
+import { consultarInventario } from '../services/consultarInventario.service.js';
+import { obtenerKitsPorEvento } from '../services/salidaKit.service.js';
+import '../styles/Incidentes.css';
+
+const TIENE_LETRAS_REGEX = /[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]/;
+
+const obtenerFechaLocalHoy = () => {
+  const hoy = new Date();
+  const anio = hoy.getFullYear();
+  const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+  const dia = String(hoy.getDate()).padStart(2, '0');
+  return `${anio}-${mes}-${dia}`;
+};
 
 export default function Incidentes() {
   const [incidentes, setIncidentes] = useState([]);
   const [equipos, setEquipos] = useState([]);
   const [eventos, setEventos] = useState([]);
-  const [trabajadores, setTrabajadores] = useState([]);
+
+  const [equiposDelEvento, setEquiposDelEvento] = useState([]);
+  const [nombreResponsable, setNombreResponsable] = useState('');
+
+  // Estados para buscar y filtrar Eventos
+  const [busquedaEvento, setBusquedaEvento] = useState('');
+  const [mostrarListaEventos, setMostrarListaEventos] = useState(false);
+
+  // Estados para buscar y filtrar Equipos en tiempo real
+  const [busquedaEquipo, setBusquedaEquipo] = useState('');
+  const [mostrarListaEquipos, setMostrarListaEquipos] = useState(false);
 
   const [formData, setFormData] = useState({
     codigo: '',
     tipo: 'DANO',
-    fecha: new Date().toISOString().split('T')[0],
+    fecha: obtenerFechaLocalHoy(),
     descripcion: '',
     id_evento: '',
     id_trabajador: '',
@@ -38,193 +59,266 @@ export default function Incidentes() {
       setIncidentes(Array.isArray(listaInc) ? listaInc : []);
 
       try {
-        const resEquipos = await obtenerEquipos();
-        const listaEq = resEquipos?.data || resEquipos || [];
-        setEquipos(Array.isArray(listaEq) ? listaEq : []);
+        const resInv = await consultarInventario();
+        const payloadInv = resInv?.data || resInv || {};
+        const todos = payloadInv.todosLosEquipos || [];
+        // Solo equipos OPERATIVOS (excluye DANADO, PERDIDO, ROBADO y DADO_DE_BAJA)
+        const operativos = todos.filter((eq) => eq.estado === 'OPERATIVO');
+        setEquipos(operativos);
       } catch (e) {
-        console.warn('Endpoint /equipos pendiente');
+        console.warn('No se pudo cargar inventario de equipos:', e.message);
       }
 
       try {
         const resEventos = await obtenerEventos();
         const listaEv = resEventos?.data || resEventos || [];
-        setEventos(Array.isArray(listaEv) ? listaEv : []);
+        // Solo eventos CONFIRMADOS o REALIZADOS
+        const eventosValidos = (Array.isArray(listaEv) ? listaEv : []).filter((ev) =>
+          ['CONFIRMADO', 'REALIZADO'].includes(ev.estado)
+        );
+        setEventos(eventosValidos);
       } catch (e) {
-        console.warn('Endpoint /eventos pendiente');
-      }
-
-      try {
-        const resTrabajadores = await obtenerTrabajadores();
-        const listaTrab = resTrabajadores?.data || resTrabajadores || [];
-        setTrabajadores(Array.isArray(listaTrab) ? listaTrab : []);
-      } catch (e) {
-        console.warn('Endpoint /trabajadores pendiente');
+        console.warn('No se pudo cargar lista de eventos:', e.message);
       }
     } catch (err) {
       console.error(err);
     }
   };
 
-  const handleEquipoChange = (codigo) => {
-    const eq = equipos.find((e) => e.codigo === codigo);
-    setEquipoSeleccionado(eq || null);
-    setFormData((prev) => ({ ...prev, codigo }));
+  const handleEventoChange = async (idEvento, etiquetaEvento = '') => {
+    setFormData((prev) => ({ ...prev, id_evento: idEvento, codigo: '', id_trabajador: '' }));
+    setBusquedaEvento(etiquetaEvento);
+    setMostrarListaEventos(false);
+    setBusquedaEquipo('');
+    setMostrarListaEquipos(false);
+    setEquipoSeleccionado(null);
+    setNombreResponsable('');
+
+    if (!idEvento) {
+      setEquiposDelEvento([]);
+      return;
+    }
+
+    try {
+      const res = await obtenerKitsPorEvento(idEvento);
+      const data = res?.data || res;
+      const reservas = data?.reservas || [];
+
+      const listaFiltrada = [];
+      reservas.forEach((r) => {
+        const respTrabajador = r.salida?.responsable?.trabajador || null;
+        const nombreKit = r.kit?.nombre || 'Kit';
+        (r.kit?.equipos || []).forEach((eq) => {
+          if (eq.estado === 'OPERATIVO') {
+            listaFiltrada.push({
+              ...eq,
+              nombreKit,
+              trabajadorResponsable: respTrabajador,
+            });
+          }
+        });
+      });
+
+      setEquiposDelEvento(listaFiltrada);
+    } catch (error) {
+      console.error('Error al filtrar equipos del evento:', error);
+      setEquiposDelEvento([]);
+    }
+  };
+
+  const handleSeleccionarEquipo = (eq) => {
+    if (!eq) {
+      setFormData((prev) => ({ ...prev, codigo: '', id_trabajador: '' }));
+      setBusquedaEquipo('');
+      setEquipoSeleccionado(null);
+      setNombreResponsable('');
+      setMostrarListaEquipos(false);
+      return;
+    }
+
+    const etiqueta = `${eq.codigo} - ${eq.nombre}${eq.nombreKit ? ` (${eq.nombreKit})` : ''}`;
+    setBusquedaEquipo(etiqueta);
+    setMostrarListaEquipos(false);
+    setEquipoSeleccionado(eq);
+
+    if (formData.id_evento && eq.trabajadorResponsable) {
+      setFormData((prev) => ({
+        ...prev,
+        codigo: eq.codigo,
+        id_trabajador: String(eq.trabajadorResponsable.id_trabajador),
+      }));
+      setNombreResponsable(eq.trabajadorResponsable.nombre || '');
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        codigo: eq.codigo,
+        id_trabajador: '',
+      }));
+      setNombreResponsable('');
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setCargando(true);
     setMensaje(null);
+
+    if (busquedaEvento.trim() !== '' && !formData.id_evento) {
+      setMensaje({
+        tipo: 'error',
+        texto: 'El evento ingresado no es válido. Selecciónalo de la lista o déjalo vacío para Bodega.',
+      });
+      return;
+    }
+
+    if (!formData.codigo) {
+      setMensaje({
+        tipo: 'error',
+        texto: 'Debes seleccionar un equipo válido de la lista desplegable.',
+      });
+      return;
+    }
+
+    if (!TIENE_LETRAS_REGEX.test(formData.descripcion.trim())) {
+      setMensaje({
+        tipo: 'error',
+        texto: 'La descripción del incidente debe incluir texto explicativo (no puede contener solo números o símbolos).',
+      });
+      return;
+    }
+
+    setCargando(true);
 
     try {
       const payload = {
         ...formData,
+        descripcion: formData.descripcion.trim(),
         id_evento: formData.id_evento ? Number(formData.id_evento) : null,
-        id_trabajador: formData.id_trabajador ? Number(formData.id_trabajador) : null,
+        id_trabajador:
+          formData.id_evento && formData.id_trabajador ? Number(formData.id_trabajador) : null,
         costo_reparacion: formData.tipo === 'DANO' ? Number(formData.costo_reparacion) : undefined,
       };
 
       await registrarIncidente(payload);
-      
-      setMensaje({ 
-        tipo: 'exito', 
-        texto: 'Incidente registrado correctamente. El estado del equipo ha sido actualizado.' 
+
+      setMensaje({
+        tipo: 'exito',
+        texto: 'Incidente registrado correctamente. El estado del equipo ha sido actualizado.',
       });
-      
+
       setFormData({
         codigo: '',
         tipo: 'DANO',
-        fecha: new Date().toISOString().split('T')[0],
+        fecha: obtenerFechaLocalHoy(),
         descripcion: '',
         id_evento: '',
         id_trabajador: '',
         costo_reparacion: '',
       });
+      setBusquedaEvento('');
+      setMostrarListaEventos(false);
+      setBusquedaEquipo('');
+      setMostrarListaEquipos(false);
       setEquipoSeleccionado(null);
+      setEquiposDelEvento([]);
+      setNombreResponsable('');
 
       cargarDatos();
     } catch (error) {
       setMensaje({
         tipo: 'error',
-        texto: error.response?.data?.message || 'Error al intentar registrar el incidente en el sistema.',
+        texto:
+          error.response?.data?.message ||
+          error.message ||
+          'Error al intentar registrar el incidente en el sistema.',
       });
     } finally {
       setCargando(false);
     }
   };
 
-  // Badge institucional para incidentes (110px de ancho fijo)
   const renderBadgeIncidente = (tipo) => {
-    let bg = '#fee2e2';
-    let text = '#dc2626';
+    let claseVariante = '';
     let label = tipo;
 
     switch (tipo) {
       case 'DANO':
         label = 'Dañado';
-        bg = '#fef3c7';
-        text = '#b45309';
+        claseVariante = 'inc-badge-dano';
         break;
       case 'PERDIDA':
         label = 'Perdido';
-        bg = '#fee2e2';
-        text = '#dc2626';
+        claseVariante = 'inc-badge-perdida';
         break;
       case 'ROBO':
         label = 'Robado';
-        bg = '#fee2e2';
-        text = '#991b1b';
+        claseVariante = 'inc-badge-robo';
         break;
       default:
         break;
     }
 
     return (
-      <span
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '6px',
-          width: '110px',
-          minWidth: '110px',
-          maxWidth: '110px',
-          height: '24px',
-          padding: '0 8px',
-          boxSizing: 'border-box',
-          borderRadius: '9999px',
-          fontSize: '0.72rem',
-          fontWeight: '700',
-          lineHeight: '1',
-          whiteSpace: 'nowrap',
-          backgroundColor: bg,
-          color: text,
-          letterSpacing: '0.02em',
-          flexShrink: 0,
-        }}
-      >
-        <span
-          style={{
-            width: '6px',
-            height: '6px',
-            borderRadius: '50%',
-            backgroundColor: text,
-            flexShrink: 0,
-          }}
-        />
+      <span className={`inc-badge ${claseVariante}`}>
+        <span className="inc-badge-punto" />
         <span>{label}</span>
       </span>
     );
   };
 
+  const listaEquiposBase = formData.id_evento ? equiposDelEvento : equipos;
+  const hayEvento = Boolean(formData.id_evento);
+
+  const equiposFiltrados = listaEquiposBase.filter((eq) => {
+    // Si ya hay un equipo seleccionado y no está escribiendo una búsqueda nueva, mostrar toda la lista disponible
+    if (formData.codigo) return true;
+    const q = busquedaEquipo.trim().toLowerCase();
+    if (!q) return true;
+    const texto = `${eq.codigo} - ${eq.nombre} ${eq.nombreKit || ''} ${eq.kit?.nombre || ''}`.toLowerCase();
+    return texto.includes(q);
+  });
+
+  const textoResponsable = !hayEvento
+    ? 'No aplica (Incidente en Bodega)'
+    : nombreResponsable
+      ? nombreResponsable
+      : formData.codigo
+        ? 'Sin salida de kit registrada (en bodega)'
+        : 'Se asigna automáticamente al elegir equipo';
+
+  const eventosFiltrados = eventos.filter((ev) => {
+    if (formData.id_evento) return true;
+    const q = busquedaEvento.trim().toLowerCase();
+    if (!q) return true;
+    const textoCompleto = `evento #${ev.id_evento} - ${ev.tipo || 'transmisión'}`.toLowerCase();
+    return textoCompleto.includes(q) || String(ev.id_evento) === q.replace('#', '');
+  });
+
   return (
     <div>
-      <div style={{ marginBottom: '1.25rem' }}>
-        <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '700', color: '#0f172a' }}>
-          Registro de Incidentes
-        </h3>
+      <div className="inc-cabecera">
+        <h3>Registro de Incidentes</h3>
       </div>
 
       {mensaje && (
         <div
-          style={{
-            padding: '0.85rem 1rem',
-            marginBottom: '1.25rem',
-            borderRadius: '8px',
-            fontSize: '0.88rem',
-            fontWeight: '500',
-            backgroundColor: mensaje.tipo === 'exito' ? '#dcfce7' : '#fee2e2',
-            color: mensaje.tipo === 'exito' ? '#15803d' : '#991b1b',
-            border: mensaje.tipo === 'exito' ? '1px solid #bbf7d0' : '1px solid #fecaca',
-          }}
+          className={`inc-mensaje ${
+            mensaje.tipo === 'exito' ? 'inc-mensaje-exito' : 'inc-mensaje-error'
+          }`}
         >
           {mensaje.texto}
         </div>
       )}
 
       {/* Formulario de registro */}
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', backgroundColor: '#ffffff', padding: '1.25rem', border: '1px solid #e2e8f0', borderRadius: '10px', marginBottom: '2rem' }}>
+      <form onSubmit={handleSubmit} className="inc-form">
         {/* Fila 1: Tipo y Evento */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+        <div className="inc-fila-grid">
           <div>
-            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Tipo de Incidente
-            </label>
+            <label className="inc-label">Tipo de Incidente</label>
             <select
               value={formData.tipo}
               onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
-              style={{
-                width: '100%',
-                padding: '0.6rem 0.85rem',
-                borderRadius: '8px',
-                border: '1px solid #e2e8f0',
-                backgroundColor: '#ffffff',
-                fontSize: '0.88rem',
-                color: '#0f172a',
-                boxSizing: 'border-box',
-                outline: 'none',
-                cursor: 'pointer',
-              }}
+              className="inc-select"
             >
               <option value="DANO">Dañado</option>
               <option value="PERDIDA">Perdido</option>
@@ -232,155 +326,172 @@ export default function Incidentes() {
             </select>
           </div>
 
-          <div>
-            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Evento Asociado
-            </label>
-            {eventos.length > 0 ? (
-              <select
-                value={formData.id_evento}
-                onChange={(e) => setFormData({ ...formData, id_evento: e.target.value })}
-                style={{
-                  width: '100%',
-                  padding: '0.6rem 0.85rem',
-                  borderRadius: '8px',
-                  border: '1px solid #e2e8f0',
-                  backgroundColor: '#ffffff',
-                  fontSize: '0.88rem',
-                  color: '#0f172a',
-                  boxSizing: 'border-box',
-                  outline: 'none',
-                  cursor: 'pointer',
-                }}
-              >
-                <option value="">-- Sin evento / Incidente en Bodega --</option>
-                {eventos.map((ev) => (
-                  <option key={ev.id_evento} value={ev.id_evento}>
-                    Evento #{ev.id_evento} - {ev.tipo || ev.nombre || 'Transmisión'}
-                  </option>
-                ))}
-              </select>
-            ) : (
+          {/* Buscador con scroll interno para Evento Asociado */}
+          <div className="inc-evento-wrap">
+            <label className="inc-label">Evento Asociado</label>
+            <div className="inc-evento-input-box">
               <input
-                type="number"
-                placeholder="ID del Evento (opcional)"
-                value={formData.id_evento}
-                onChange={(e) => setFormData({ ...formData, id_evento: e.target.value })}
-                style={{
-                  width: '100%',
-                  padding: '0.6rem 0.85rem',
-                  borderRadius: '8px',
-                  border: '1px solid #e2e8f0',
-                  backgroundColor: '#f8fafc',
-                  fontSize: '0.88rem',
-                  color: '#0f172a',
-                  boxSizing: 'border-box',
-                  outline: 'none',
+                type="text"
+                value={busquedaEvento}
+                onFocus={() => setMostrarListaEventos(true)}
+                onBlur={() => setTimeout(() => setMostrarListaEventos(false), 150)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setBusquedaEvento(val);
+                  if (formData.id_evento) {
+                    setFormData((prev) => ({
+                      ...prev,
+                      id_evento: '',
+                      codigo: '',
+                      id_trabajador: '',
+                    }));
+                    setBusquedaEquipo('');
+                    setEquipoSeleccionado(null);
+                    setEquiposDelEvento([]);
+                    setNombreResponsable('');
+                  }
+                  setMostrarListaEventos(true);
                 }}
+                placeholder="-- Sin evento / Incidente en Bodega (Buscar...) --"
+                className={`inc-evento-input ${
+                  busquedaEvento.trim() && !formData.id_evento ? 'aviso' : ''
+                }`}
               />
+              {busquedaEvento && (
+                <button
+                  type="button"
+                  onClick={() => handleEventoChange('', '')}
+                  title="Volver a Incidente en Bodega"
+                  className="inc-evento-limpiar"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {mostrarListaEventos && (
+              <div className="inc-evento-dropdown">
+                <div
+                  onMouseDown={() => handleEventoChange('', '')}
+                  className={`inc-evento-opcion-bodega ${
+                    !formData.id_evento ? 'activo' : ''
+                  }`}
+                >
+                  -- Sin evento / Incidente en Bodega --
+                </div>
+
+                {eventosFiltrados.length === 0 ? (
+                  <div className="inc-evento-vacio">
+                    No se encontraron eventos con "{busquedaEvento}"
+                  </div>
+                ) : (
+                  eventosFiltrados.map((ev) => {
+                    const etiqueta = `Evento #${ev.id_evento} - ${ev.tipo || 'Transmisión'}`;
+                    const seleccionado = String(formData.id_evento) === String(ev.id_evento);
+                    return (
+                      <div
+                        key={ev.id_evento}
+                        onMouseDown={() => handleEventoChange(String(ev.id_evento), etiqueta)}
+                        className={`inc-evento-opcion ${seleccionado ? 'seleccionado' : ''}`}
+                      >
+                        <span>{etiqueta}</span>
+                        {ev.fecha && (
+                          <span className="inc-evento-opcion-fecha">
+                            {new Date(ev.fecha).toLocaleDateString('es-CL', { timeZone: 'UTC' })}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             )}
           </div>
         </div>
 
-        {/* Fila 2: Equipo y Responsable */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Equipo Afectado
-            </label>
-            {equipos.length > 0 ? (
-              <select
-                value={formData.codigo}
-                onChange={(e) => handleEquipoChange(e.target.value)}
-                required
-                style={{
-                  width: '100%',
-                  padding: '0.6rem 0.85rem',
-                  borderRadius: '8px',
-                  border: '1px solid #e2e8f0',
-                  backgroundColor: '#ffffff',
-                  fontSize: '0.88rem',
-                  color: '#0f172a',
-                  boxSizing: 'border-box',
-                  outline: 'none',
-                  cursor: 'pointer',
-                }}
-              >
-                <option value="">-- Selecciona un equipo --</option>
-                {equipos.map((eq) => (
-                  <option key={eq.codigo} value={eq.codigo}>
-                    {eq.codigo} - {eq.nombre}
-                  </option>
-                ))}
-              </select>
-            ) : (
+        {/* Fila 2: Equipo (Buscador filtrable) y Responsable */}
+        <div className="inc-fila-grid">
+          <div className="inc-evento-wrap">
+            <label className="inc-label">Equipo Afectado</label>
+            <div className="inc-evento-input-box">
               <input
                 type="text"
-                placeholder="Ej: CAM-001..."
-                value={formData.codigo}
-                onChange={(e) => setFormData({ ...formData, codigo: e.target.value })}
-                required
-                style={{
-                  width: '100%',
-                  padding: '0.6rem 0.85rem',
-                  borderRadius: '8px',
-                  border: '1px solid #e2e8f0',
-                  backgroundColor: '#f8fafc',
-                  fontSize: '0.88rem',
-                  color: '#0f172a',
-                  boxSizing: 'border-box',
-                  outline: 'none',
+                value={busquedaEquipo}
+                onFocus={() => setMostrarListaEquipos(true)}
+                onBlur={() => setTimeout(() => setMostrarListaEquipos(false), 150)}
+                onChange={(e) => {
+                  setBusquedaEquipo(e.target.value);
+                  if (formData.codigo) {
+                    setFormData((prev) => ({ ...prev, codigo: '', id_trabajador: '' }));
+                    setEquipoSeleccionado(null);
+                    setNombreResponsable('');
+                  }
+                  setMostrarListaEquipos(true);
                 }}
+                placeholder={
+                  hayEvento
+                    ? 'Buscar equipo del evento por código o nombre...'
+                    : 'Buscar equipo en inventario (Ej: CAM-001)...'
+                }
+                className={`inc-evento-input ${
+                  busquedaEquipo.trim() && !formData.codigo ? 'aviso' : ''
+                }`}
               />
+              {busquedaEquipo && (
+                <button
+                  type="button"
+                  onClick={() => handleSeleccionarEquipo(null)}
+                  title="Limpiar equipo"
+                  className="inc-evento-limpiar"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {mostrarListaEquipos && (
+              <div className="inc-evento-dropdown">
+                {equiposFiltrados.length === 0 ? (
+                  <div className="inc-evento-vacio">
+                    {hayEvento && listaEquiposBase.length === 0
+                      ? 'Este evento no tiene equipos operativos disponibles en kits reservados'
+                      : `No se encontraron equipos operativos con "${busquedaEquipo}"`}
+                  </div>
+                ) : (
+                  equiposFiltrados.map((eq) => {
+                    const seleccionado = formData.codigo === eq.codigo;
+                    const subtitulo = eq.nombreKit || eq.kit?.nombre || 'Repuesto / Bodega';
+                    return (
+                      <div
+                        key={eq.codigo}
+                        onMouseDown={() => handleSeleccionarEquipo(eq)}
+                        className={`inc-evento-opcion ${seleccionado ? 'seleccionado' : ''}`}
+                      >
+                        <span>
+                          <strong>{eq.codigo}</strong> - {eq.nombre}
+                        </span>
+                        <span className="inc-evento-opcion-fecha">{subtitulo}</span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             )}
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Trabajador Responsable
-            </label>
-            {trabajadores.length > 0 ? (
-              <select
-                value={formData.id_trabajador}
-                onChange={(e) => setFormData({ ...formData, id_trabajador: e.target.value })}
-                style={{
-                  width: '100%',
-                  padding: '0.6rem 0.85rem',
-                  borderRadius: '8px',
-                  border: '1px solid #e2e8f0',
-                  backgroundColor: '#ffffff',
-                  fontSize: '0.88rem',
-                  color: '#0f172a',
-                  boxSizing: 'border-box',
-                  outline: 'none',
-                  cursor: 'pointer',
-                }}
-              >
-                <option value="">-- Ninguno / Bodega / No identificado --</option>
-                {trabajadores.map((t) => (
-                  <option key={t.id_trabajador} value={t.id_trabajador}>
-                    {t.nombre}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <input
-                type="text"
-                placeholder="Nombre del trabajador..."
-                value={formData.id_trabajador}
-                onChange={(e) => setFormData({ ...formData, id_trabajador: e.target.value })}
-                style={{
-                  width: '100%',
-                  padding: '0.6rem 0.85rem',
-                  borderRadius: '8px',
-                  border: '1px solid #e2e8f0',
-                  backgroundColor: '#f8fafc',
-                  fontSize: '0.88rem',
-                  color: '#0f172a',
-                  boxSizing: 'border-box',
-                  outline: 'none',
-                }}
-              />
+            <label className="inc-label">Trabajador Responsable</label>
+            <input
+              type="text"
+              disabled
+              readOnly
+              value={textoResponsable}
+              className={`inc-input-resp ${nombreResponsable ? 'asignado' : ''}`}
+            />
+            {nombreResponsable && (
+              <span className="inc-nota-resp">
+                ✓ Asignado automáticamente según salida de {equipoSeleccionado?.nombreKit}
+              </span>
             )}
           </div>
         </div>
@@ -388,9 +499,7 @@ export default function Incidentes() {
         {/* Fila 3: Costo o valorización */}
         {formData.tipo === 'DANO' ? (
           <div>
-            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Costo Estimado de Reparación ($)
-            </label>
+            <label className="inc-label">Costo Estimado de Reparación ($)</label>
             <input
               type="number"
               min="0"
@@ -398,73 +507,38 @@ export default function Incidentes() {
               value={formData.costo_reparacion}
               onChange={(e) => setFormData({ ...formData, costo_reparacion: e.target.value })}
               required
-              style={{
-                width: '100%',
-                padding: '0.6rem 0.85rem',
-                borderRadius: '8px',
-                border: '1px solid #e2e8f0',
-                backgroundColor: '#ffffff',
-                fontSize: '0.88rem',
-                color: '#0f172a',
-                boxSizing: 'border-box',
-                outline: 'none',
-              }}
+              className="inc-input"
             />
           </div>
         ) : (
-          <div style={{ backgroundColor: '#f8fafc', padding: '0.85rem 1rem', borderRadius: '8px', borderLeft: '4px solid #333c87', borderTop: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: '0.85rem', color: '#475569' }}>
-              La pérdida o robo se valorizará automáticamente según el <strong>valor de compra</strong> registrado en inventario.
-              {equipoSeleccionado && ` (Valor activo: $${Number(equipoSeleccionado.valor_compra || 0).toLocaleString('es-CL')})`}
-            </span>
+          <div className="inc-aviso-valor">
+            La pérdida o robo se valorizará automáticamente según el{' '}
+            <strong>valor de compra</strong> registrado en inventario.
+            {equipoSeleccionado &&
+              ` (Valor activo: $${Number(equipoSeleccionado.valor_compra || 0).toLocaleString('es-CL')})`}
           </div>
         )}
 
         {/* Fila 4: Descripción */}
         <div>
-          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            Descripción del Incidente
-          </label>
+          <label className="inc-label">Descripción del Incidente</label>
           <textarea
             rows="3"
+            maxLength={255}
             placeholder="Detalla qué sucedió con el equipo..."
             value={formData.descripcion}
             onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
             required
-            style={{
-              width: '100%',
-              padding: '0.6rem 0.85rem',
-              borderRadius: '8px',
-              border: '1px solid #e2e8f0',
-              backgroundColor: '#ffffff',
-              fontSize: '0.88rem',
-              color: '#0f172a',
-              boxSizing: 'border-box',
-              outline: 'none',
-              fontFamily: 'inherit',
-            }}
+            className="inc-textarea"
           />
         </div>
 
         {/* Botón de envío */}
-        <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '0.25rem' }}>
+        <div className="inc-form-acciones">
           <button
             type="submit"
             disabled={cargando}
-            style={{
-              padding: '0.65rem 1.4rem',
-              backgroundColor: '#333c87',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '0.88rem',
-              fontWeight: '600',
-              cursor: cargando ? 'not-allowed' : 'pointer',
-              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-              transition: 'background-color 0.15s ease',
-            }}
-            onMouseEnter={(e) => !cargando && (e.currentTarget.style.backgroundColor = '#272e6b')}
-            onMouseLeave={(e) => !cargando && (e.currentTarget.style.backgroundColor = '#333c87')}
+            className="inc-btn-registrar"
           >
             {cargando ? 'Registrando...' : 'Registrar Incidente'}
           </button>
@@ -473,57 +547,49 @@ export default function Incidentes() {
 
       {/* Historial de Incidentes Registrados */}
       <div>
-        <div style={{ marginBottom: '0.75rem' }}>
-          <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '700', color: '#0f172a' }}>
-            Historial de Incidentes Registrados
-          </h3>
+        <div className="inc-historial-cab">
+          <h3>Historial de Incidentes Registrados</h3>
         </div>
 
-        <div style={{ overflowX: 'auto', maxHeight: '460px', overflowY: 'auto', border: '1px solid #f1f5f9', borderRadius: '10px' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
+        <div className="inc-tabla-scroll">
+          <table className="inc-tabla">
             <thead>
-              <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.75rem', fontWeight: '700', letterSpacing: '0.05em', position: 'sticky', top: 0, backgroundColor: '#ffffff', zIndex: 1 }}>
-                <th style={{ padding: '0.75rem 0.5rem' }}>FECHA</th>
-                <th style={{ padding: '0.75rem 0.5rem' }}>EQUIPO</th>
-                <th style={{ padding: '0.75rem 0.5rem' }}>TIPO</th>
-                <th style={{ padding: '0.75rem 0.5rem' }}>VALOR / COSTO</th>
-                <th style={{ padding: '0.75rem 0.5rem' }}>RESPONSABLE</th>
-                <th style={{ padding: '0.75rem 0.5rem' }}>DESCRIPCIÓN</th>
+              <tr>
+                <th>FECHA</th>
+                <th>EQUIPO</th>
+                <th>TIPO</th>
+                <th>VALOR / COSTO</th>
+                <th>RESPONSABLE</th>
+                <th>DESCRIPCIÓN</th>
               </tr>
             </thead>
             <tbody>
               {incidentes.length === 0 ? (
                 <tr>
-                  <td colSpan="6" style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
+                  <td colSpan="6" className="inc-tabla-vacio">
                     No hay incidentes registrados en el sistema.
                   </td>
                 </tr>
               ) : (
                 incidentes.map((inc) => (
-                  <tr key={inc.id_incidente} style={{ borderBottom: '1px solid #f8fafc' }}>
-                    <td style={{ padding: '0.85rem 0.5rem', color: '#64748b', whiteSpace: 'nowrap' }}>
+                  <tr key={inc.id_incidente}>
+                    <td className="inc-td-fecha">
                       {new Date(inc.fecha).toLocaleDateString('es-CL')}
                     </td>
-                    <td style={{ padding: '0.85rem 0.5rem', color: '#0f172a' }}>
+                    <td className="inc-td-equipo">
                       <strong>{inc.codigo}</strong>
                       {inc.equipo?.nombre && (
-                        <span style={{ color: '#64748b', fontSize: '0.82rem', marginLeft: '6px' }}>
-                          ({inc.equipo.nombre})
-                        </span>
+                        <span className="inc-td-equipo-nombre">({inc.equipo.nombre})</span>
                       )}
                     </td>
-                    <td style={{ padding: '0.85rem 0.5rem' }}>
-                      {renderBadgeIncidente(inc.tipo)}
-                    </td>
-                    <td style={{ padding: '0.85rem 0.5rem', fontWeight: '700', color: '#0f172a' }}>
+                    <td>{renderBadgeIncidente(inc.tipo)}</td>
+                    <td className="inc-td-valor">
                       ${Number(inc.valor || 0).toLocaleString('es-CL')}
                     </td>
-                    <td style={{ padding: '0.85rem 0.5rem', color: '#334155' }}>
+                    <td className="inc-td-resp">
                       {inc.trabajador?.nombre || 'Bodega / General'}
                     </td>
-                    <td style={{ padding: '0.85rem 0.5rem', color: '#64748b' }}>
-                      {inc.descripcion}
-                    </td>
+                    <td className="inc-td-desc">{inc.descripcion}</td>
                   </tr>
                 ))
               )}

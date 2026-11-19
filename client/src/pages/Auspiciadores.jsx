@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { FaCheckCircle } from 'react-icons/fa';
+import { AlertTriangle, ChevronDown, Plus, X } from 'lucide-react';
 import {
   registrarAuspiciador,
   obtenerAuspiciadores,
@@ -8,40 +9,133 @@ import {
 } from '../services/auspiciadorService';
 import {
   obtenerAcuerdos,
+  registrarAcuerdo,
   registrarCumplimiento,
   declararIncobrable,
   modificarAcuerdo,
   eliminarAcuerdo
 } from '../services/acuerdoService';
+import { listarEventos } from '../services/evento.service.js';
+import '../styles/Auspiciadores.css';
+
+const obtenerFechaHoyLocal = () => {
+  const hoy = new Date();
+  const anio = hoy.getFullYear();
+  const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+  const dia = String(hoy.getDate()).padStart(2, '0');
+  return `${anio}-${mes}-${dia}`;
+};
+
+const formatearFechaEvento = (valorFecha) => {
+  if (!valorFecha) return '';
+  const iso = String(valorFecha).slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso) || iso.startsWith('1969') || iso.startsWith('1970')) {
+    return '';
+  }
+  const [a, m, d] = iso.split('-');
+  return `${d}-${m}-${a}`;
+};
+
+const bloquearNegativosTeclado = (e) => {
+  if (['-', '+', 'e', 'E', '.', ','].includes(e.key)) {
+    e.preventDefault();
+  }
+};
+
+const tieneMinimoLetras = (texto, minLetras = 3) => {
+  const limpio = String(texto || '').trim();
+  const coincidencias = limpio.match(/[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]/g) || [];
+  return coincidencias.length >= minLetras;
+};
+
+const calcularTotalRecibido = (acuerdo) => {
+  const cumplimientos = Array.isArray(acuerdo?.cumplimientos) ? acuerdo.cumplimientos : [];
+  if (cumplimientos.length > 0) {
+    return cumplimientos.reduce((acc, c) => acc + Number(c.monto_recibido || 0), 0);
+  }
+  if (acuerdo?.estado === 'CUMPLIDO') {
+    return Number(acuerdo?.monto_comprometido || 0);
+  }
+  return 0;
+};
 
 export default function Auspiciadores() {
-  const navigate = useNavigate();
+  const fechaHoyLocal = obtenerFechaHoyLocal();
+
+  const usuarioActual = useMemo(() => {
+    try {
+      const claves = ['usuario', 'sesion', 'user', 'auth'];
+      for (const clave of claves) {
+        const guardado = localStorage.getItem(clave);
+        if (guardado) {
+          const parseado = JSON.parse(guardado);
+          const u = parseado?.usuario || parseado?.user || parseado;
+          if (u && (u.rol || u.id || u.id_dueno || u.id_contador)) {
+            return u;
+          }
+        }
+      }
+      const token = localStorage.getItem('token');
+      if (token && token.includes('.')) {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        return payload?.usuario || payload || { rol: 'DUENO', id: 1 };
+      }
+      return { rol: 'DUENO', id: 1 };
+    } catch {
+      return { rol: 'DUENO', id: 1 };
+    }
+  }, []);
+
+  const rolUsuario = String(usuarioActual.rol || 'DUENO').toUpperCase();
+  const esDueno = rolUsuario === 'DUENO';
+  const esContador = rolUsuario === 'CONTADOR';
+  const idDuenoActual =
+    esDueno && (usuarioActual.id_dueno || usuarioActual.id)
+      ? Number(usuarioActual.id_dueno || usuarioActual.id)
+      : 1;
+  const idContadorActual =
+    esContador && (usuarioActual.id_contador || usuarioActual.id)
+      ? Number(usuarioActual.id_contador || usuarioActual.id)
+      : undefined;
 
   const [formData, setFormData] = useState({
     nombre: '',
     rubro: '',
     contacto: '',
     telefono: '',
-    id_dueno: 1
+    id_dueno: idDuenoActual
   });
 
   const [idEditando, setIdEditando] = useState(null);
-  const [mensaje, setMensaje] = useState('');
+  const [mensajeExitoModal, setMensajeExitoModal] = useState('');
+  const [errorModal, setErrorModal] = useState('');
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
 
-  // Pestaña activa: 'acuerdos' (gestión) o 'reporte' (RF-P4-08 solo lectura)
+  const [mostrarModalAcuerdo, setMostrarModalAcuerdo] = useState(false);
+  const [formAcuerdo, setFormAcuerdo] = useState({
+    id_auspiciador: '',
+    id_evento: '',
+    tipo_aporte: 'DINERO',
+    monto_comprometido: '',
+    descripcion_canje: '',
+    cant_menciones: '',
+    fecha_comprometida: fechaHoyLocal,
+    glosa: ''
+  });
+
   const [pestanaActiva, setPestanaActiva] = useState('acuerdos');
 
-  // Filtros de mes y año para el reporte (por defecto mes y año actual)
   const fechaActual = new Date();
   const [filtroMes, setFiltroMes] = useState(String(fechaActual.getMonth() + 1));
   const [filtroAnio, setFiltroAnio] = useState(String(fechaActual.getFullYear()));
+  const [busquedaAcuerdo, setBusquedaAcuerdo] = useState('');
+  const [busquedaAuspiciador, setBusquedaAuspiciador] = useState('');
 
   const [listaAcuerdos, setListaAcuerdos] = useState([]);
   const [cargandoAcuerdos, setCargandoAcuerdos] = useState(true);
   const [listaAuspiciadores, setListaAuspiciadores] = useState([]);
+  const [listaEventos, setListaEventos] = useState([]);
 
-  // Estado para el menú desplegable de acciones
   const [menuAccionesAbierto, setMenuAccionesAbierto] = useState(null);
 
   const [modalClasificacion, setModalClasificacion] = useState({
@@ -55,24 +149,21 @@ export default function Auspiciadores() {
     abierto: false,
     acuerdo: null,
     monto_recibido: '',
-    fecha_recibida: new Date().toISOString().split('T')[0]
+    fecha_recibida: fechaHoyLocal
   });
 
-  // Estado para el modal de Declarar Incobrable (RF-P4-06)
   const [modalIncobrable, setModalIncobrable] = useState({
     abierto: false,
     acuerdo: null,
     motivo: ''
   });
 
-  // Estado para la burbuja/modal de ver motivo
   const [modalVerMotivo, setModalVerMotivo] = useState({
     abierto: false,
     auspiciador: '',
     motivo: ''
   });
 
-  // Estado para el modal de Modificar Acuerdo
   const [modalEditarAcuerdo, setModalEditarAcuerdo] = useState({
     abierto: false,
     id_acuerdo: null,
@@ -81,8 +172,39 @@ export default function Auspiciadores() {
     monto_comprometido: '',
     descripcion_canje: '',
     cant_menciones: '',
-    fecha_comprometida: ''
+    fecha_comprometida: fechaHoyLocal
   });
+
+  const mostrarExitoTemporal = (mensaje) => {
+    setMensajeExitoModal(mensaje);
+    setTimeout(() => {
+      setMensajeExitoModal('');
+    }, 1300);
+  };
+
+  const extraerMensajeError = (error, mensajePorDefecto) => {
+    return (
+      error?.errores?.[0]?.msg ||
+      error?.response?.data?.errores?.[0]?.msg ||
+      error?.mensaje ||
+      error?.error ||
+      error?.message ||
+      mensajePorDefecto
+    );
+  };
+
+  const obtenerResumenHistorialAuspiciador = (idAuspiciador) => {
+    const acuerdosDeAusp = listaAcuerdos.filter(
+      (a) => String(a.id_auspiciador || a.auspiciador?.id_auspiciador) === String(idAuspiciador)
+    );
+    return {
+      total: acuerdosDeAusp.length,
+      cumplidos: acuerdosDeAusp.filter((a) => a.estado === 'CUMPLIDO').length,
+      parciales: acuerdosDeAusp.filter((a) => a.estado === 'PARCIAL').length,
+      vencidos: acuerdosDeAusp.filter((a) => a.estado === 'VENCIDO').length,
+      incobrables: acuerdosDeAusp.filter((a) => a.estado === 'INCOBRABLE').length
+    };
+  };
 
   const cargarAcuerdos = async () => {
     try {
@@ -107,17 +229,116 @@ export default function Auspiciadores() {
     }
   };
 
+  const cargarEventos = async () => {
+    try {
+      const data = await listarEventos();
+      setListaEventos(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.warn('Aviso al cargar eventos:', error.message);
+      setListaEventos([]);
+    }
+  };
+
   useEffect(() => {
     cargarAcuerdos();
     cargarAuspiciadores();
+    cargarEventos();
   }, []);
 
   const manejarCambio = (e) => {
     const { name, value } = e.target;
+    setErrorModal('');
+
+    if (name === 'rubro' || name === 'contacto') {
+      const soloLetras = value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s.,'-]/g, '');
+      setFormData({ ...formData, [name]: soloLetras });
+      return;
+    }
+
+    if (name === 'telefono') {
+      const limpio = value.replace(/(?!^\+)[^\d]/g, '');
+      setFormData({ ...formData, telefono: limpio });
+      return;
+    }
+
     setFormData({ ...formData, [name]: value });
   };
 
+  const manejarCambioNuevoAcuerdo = (e) => {
+    const { name, value } = e.target;
+    setErrorModal('');
+    setFormAcuerdo({ ...formAcuerdo, [name]: value });
+  };
+
+  const auspiciadorElegidoAcuerdo = useMemo(() => {
+    if (!formAcuerdo.id_auspiciador) return null;
+    return listaAuspiciadores.find(
+      (a) => String(a.id_auspiciador || a.id) === String(formAcuerdo.id_auspiciador)
+    );
+  }, [formAcuerdo.id_auspiciador, listaAuspiciadores]);
+
+  const historialAuspiciadorElegido = useMemo(() => {
+    if (!auspiciadorElegidoAcuerdo) return null;
+    const id = auspiciadorElegidoAcuerdo.id_auspiciador || auspiciadorElegidoAcuerdo.id;
+    return obtenerResumenHistorialAuspiciador(id);
+  }, [auspiciadorElegidoAcuerdo, listaAcuerdos]);
+
+  const historialModalClasificacion = useMemo(() => {
+    if (!modalClasificacion.auspiciador) return null;
+    const id = modalClasificacion.auspiciador.id_auspiciador || modalClasificacion.auspiciador.id;
+    return obtenerResumenHistorialAuspiciador(id);
+  }, [modalClasificacion.auspiciador, listaAcuerdos]);
+
+  const eventosAbiertos = useMemo(() => {
+    return listaEventos.filter((ev) => {
+      if (ev.estado === 'CERRADO' || ev.estado === 'REALIZADO') return false;
+      if (!ev.fecha) return false;
+      const fechaIso = String(ev.fecha).slice(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaIso) || fechaIso.startsWith('1969') || fechaIso.startsWith('1970')) {
+        return false;
+      }
+      return fechaIso >= fechaHoyLocal;
+    });
+  }, [listaEventos, fechaHoyLocal]);
+
+  const acuerdosFiltradosBusqueda = useMemo(() => {
+    const q = busquedaAcuerdo.trim().toLowerCase();
+    if (!q) return listaAcuerdos;
+    return listaAcuerdos.filter((item) => {
+      const auspiciador = (item.auspiciador?.nombre || '').toLowerCase();
+      const evento = (item.evento?.tipo || item.evento?.nombre || '').toLowerCase();
+      const tipo = (item.tipo_aporte || item.tipo_pago || '').toLowerCase();
+      const glosa = (item.glosa || '').toLowerCase();
+      const estado = (item.estado || '').toLowerCase();
+      return (
+        auspiciador.includes(q) ||
+        evento.includes(q) ||
+        tipo.includes(q) ||
+        glosa.includes(q) ||
+        estado.includes(q)
+      );
+    });
+  }, [listaAcuerdos, busquedaAcuerdo]);
+
+  const auspiciadoresFiltradosBusqueda = useMemo(() => {
+    const q = busquedaAuspiciador.trim().toLowerCase();
+    if (!q) return listaAuspiciadores;
+    return listaAuspiciadores.filter((item) => {
+      const nombre = (item.nombre || '').toLowerCase();
+      const rubro = (item.rubro || '').toLowerCase();
+      const contacto = (item.contacto || '').toLowerCase();
+      const telefono = (item.telefono || '').toLowerCase();
+      return (
+        nombre.includes(q) ||
+        rubro.includes(q) ||
+        contacto.includes(q) ||
+        telefono.includes(q)
+      );
+    });
+  }, [listaAuspiciadores, busquedaAuspiciador]);
+
   const iniciarEdicion = (item) => {
+    setErrorModal('');
     setMostrarFormulario(true);
     setIdEditando(item.id_auspiciador || item.id);
     setFormData({
@@ -125,60 +346,165 @@ export default function Auspiciadores() {
       rubro: item.rubro || '',
       contacto: item.contacto || '',
       telefono: item.telefono || '',
-      id_dueno: item.id_dueno || 1
+      id_dueno: item.id_dueno || idDuenoActual
     });
-    setMensaje('');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const cancelarEdicion = () => {
+    setErrorModal('');
     setIdEditando(null);
     setFormData({
       nombre: '',
       rubro: '',
       contacto: '',
       telefono: '',
-      id_dueno: 1
+      id_dueno: idDuenoActual
     });
-    setMensaje('');
+    setMostrarFormulario(false);
   };
 
   const manejarEnvio = async (e) => {
     e.preventDefault();
-    setMensaje("Guardando...");
+    setErrorModal('');
+
+    if (!tieneMinimoLetras(formData.nombre, 2)) {
+      setErrorModal('El nombre del auspiciador debe contener al menos 2 letras y no puede ser solo números.');
+      return;
+    }
+
+    if (!tieneMinimoLetras(formData.rubro, 3)) {
+      setErrorModal('El rubro debe contener al menos 3 letras válidas.');
+      return;
+    }
+
+    if (!tieneMinimoLetras(formData.contacto, 3)) {
+      setErrorModal('El nombre del contacto debe contener al menos 3 letras válidas.');
+      return;
+    }
+
+    if (!/^\+?\d{7,15}$/.test(formData.telefono.trim())) {
+      setErrorModal('El teléfono debe tener entre 7 y 15 dígitos numéricos (opcionalmente "+" al inicio).');
+      return;
+    }
 
     try {
+      const datosLimpios = {
+        ...formData,
+        nombre: formData.nombre.trim(),
+        rubro: formData.rubro.trim(),
+        contacto: formData.contacto.trim(),
+        telefono: formData.telefono.trim(),
+        id_dueno: idDuenoActual
+      };
+
       if (idEditando) {
-        await modificarAuspiciador(idEditando, formData);
-        setMensaje("Auspiciador actualizado con éxito!");
+        await modificarAuspiciador(idEditando, datosLimpios);
       } else {
-        await registrarAuspiciador(formData);
-        setMensaje("Auspiciador registrado con éxito!");
+        await registrarAuspiciador(datosLimpios);
+        mostrarExitoTemporal('Auspiciador registrado con éxito en el sistema');
       }
 
+      setMostrarFormulario(false);
       cancelarEdicion();
       cargarAuspiciadores();
     } catch (error) {
-      console.error(error);
-      setMensaje(error.message || "Hubo un error al guardar.");
+      setErrorModal(extraerMensajeError(error, 'Hubo un error al guardar el auspiciador.'));
+    }
+  };
+
+  const abrirModalNuevoAcuerdo = () => {
+    setErrorModal('');
+    setFormAcuerdo({
+      id_auspiciador: '',
+      id_evento: '',
+      tipo_aporte: 'DINERO',
+      monto_comprometido: '',
+      descripcion_canje: '',
+      cant_menciones: '',
+      fecha_comprometida: fechaHoyLocal,
+      glosa: ''
+    });
+    setMostrarModalAcuerdo(true);
+  };
+
+  const cancelarNuevoAcuerdo = () => {
+    setErrorModal('');
+    setMostrarModalAcuerdo(false);
+  };
+
+  const manejarEnvioNuevoAcuerdo = async (e) => {
+    e.preventDefault();
+    setErrorModal('');
+
+    const monto = Number(formAcuerdo.monto_comprometido);
+    if (!Number.isInteger(monto) || monto <= 0 || monto > 500000000) {
+      setErrorModal('El monto comprometido debe ser un número entero entre $1 y $500.000.000.');
+      return;
+    }
+
+    if (formAcuerdo.tipo_aporte === 'CANJE' && !tieneMinimoLetras(formAcuerdo.descripcion_canje, 3)) {
+      setErrorModal('La descripción del canje debe explicar el producto o servicio con palabras (no puede ser solo números).');
+      return;
+    }
+
+    if (formAcuerdo.cant_menciones !== '' && (Number(formAcuerdo.cant_menciones) < 0 || Number(formAcuerdo.cant_menciones) > 50)) {
+      setErrorModal('La cantidad de menciones debe estar entre 0 y 50.');
+      return;
+    }
+
+    const fechaElegida = formAcuerdo.fecha_comprometida || fechaHoyLocal;
+    if (fechaElegida < fechaHoyLocal) {
+      setErrorModal('La fecha límite de pago debe ser desde hoy en adelante.');
+      return;
+    }
+
+    if (!tieneMinimoLetras(formAcuerdo.glosa, 3)) {
+      setErrorModal('La glosa debe describir el acuerdo con palabras (no se permiten solo números).');
+      return;
+    }
+
+    try {
+      await registrarAcuerdo({
+        id_auspiciador: Number(formAcuerdo.id_auspiciador),
+        id_evento: Number(formAcuerdo.id_evento),
+        tipo_aporte: formAcuerdo.tipo_aporte,
+        tipo_pago: formAcuerdo.tipo_aporte,
+        monto_comprometido: monto,
+        monto: monto,
+        descripcion_canje:
+          formAcuerdo.tipo_aporte === 'CANJE' ? formAcuerdo.descripcion_canje.trim() : null,
+        cant_menciones: formAcuerdo.cant_menciones !== ''
+          ? Number(formAcuerdo.cant_menciones)
+          : null,
+        fecha_comprometida: fechaElegida,
+        fecha_limite: fechaElegida,
+        glosa: formAcuerdo.glosa.trim(),
+        id_dueno: idDuenoActual
+      });
+
+      setMostrarModalAcuerdo(false);
+      cargarAcuerdos();
+      mostrarExitoTemporal('Acuerdo registrado con éxito en el sistema');
+    } catch (error) {
+      setErrorModal(extraerMensajeError(error, 'Hubo un error al registrar el acuerdo.'));
     }
   };
 
   const manejarEliminar = async (id) => {
-    const confirmar = window.confirm("¿Seguro que deseas eliminar este auspiciador?");
+    const confirmar = window.confirm('¿Seguro que deseas eliminar este auspiciador?');
     if (!confirmar) return;
 
     try {
       await eliminarAuspiciador(id);
-      setMensaje("Auspiciador eliminado con éxito.");
       cargarAuspiciadores();
     } catch (error) {
-      console.error(error);
-      alert(error.message || "No se puede eliminar el auspiciador.");
+      alert(extraerMensajeError(error, 'No se puede eliminar el auspiciador.'));
     }
   };
 
   const abrirModalCambio = (item) => {
+    if (!esDueno) return;
+    setErrorModal('');
     const esNoConfiable = item.clasificacion === 'NO_CONFIABLE';
     setModalClasificacion({
       abierto: true,
@@ -188,61 +514,97 @@ export default function Auspiciadores() {
     });
   };
 
-  // Corrección aquí: se reemplazó el fetch con localhost:3000 por modificarAuspiciador
   const confirmarCambioClasificacion = async (e) => {
     e.preventDefault();
+    setErrorModal('');
     const { auspiciador, nuevoEstado, motivo } = modalClasificacion;
     const id = auspiciador.id_auspiciador || auspiciador.id;
+
+    if (!tieneMinimoLetras(motivo, 3)) {
+      setErrorModal('El motivo del cambio debe ser una explicación real con palabras (no solo números).');
+      return;
+    }
 
     try {
       await modificarAuspiciador(id, {
         ...auspiciador,
         clasificacion: nuevoEstado,
-        motivo_clasificacion: motivo
+        motivo_clasificacion: motivo.trim()
       });
 
-      setMensaje(`Clasificación de ${auspiciador.nombre} cambiada a ${nuevoEstado}.`);
       setModalClasificacion({ abierto: false, auspiciador: null, nuevoEstado: '', motivo: '' });
       cargarAuspiciadores();
     } catch (error) {
-      alert('Error al actualizar: ' + error.message);
+      setErrorModal(extraerMensajeError(error, 'Error al actualizar clasificación.'));
     }
   };
 
   const abrirModalCumplimiento = (acuerdo) => {
-    const totalPagado = (acuerdo.cumplimientos || []).reduce(
-      (acc, c) => acc + Number(c.monto_recibido || 0),
-      0
-    );
+    setErrorModal('');
+    const montoTotal = Number(acuerdo?.monto_comprometido || 0);
+    const yaRecibido = calcularTotalRecibido(acuerdo);
+    const saldoRestante = Math.max(0, montoTotal - yaRecibido);
 
     setModalCumplimiento({
       abierto: true,
       acuerdo,
-      monto_recibido: totalPagado || acuerdo.monto_comprometido || '',
-      fecha_recibida: new Date().toISOString().split('T')[0]
+      monto_recibido: saldoRestante > 0 ? String(saldoRestante) : '',
+      fecha_recibida: fechaHoyLocal
     });
   };
 
   const confirmarCumplimiento = async (e) => {
     e.preventDefault();
+    setErrorModal('');
     const { acuerdo, monto_recibido, fecha_recibida } = modalCumplimiento;
     const id = acuerdo.id_acuerdo || acuerdo.id;
+    const valorNum = Number(monto_recibido);
+    const montoComprometido = Number(acuerdo?.monto_comprometido || 0);
+    const yaRecibido = calcularTotalRecibido(acuerdo);
+    const saldoPendiente = Math.max(0, montoComprometido - yaRecibido);
+
+    if (!Number.isInteger(valorNum) || valorNum <= 0 || valorNum > 500000000) {
+      setErrorModal('El monto recibido debe ser un número entero mayor a $0.');
+      return;
+    }
+
+    if (valorNum > saldoPendiente) {
+      setErrorModal(
+        `El abono ($${valorNum.toLocaleString('es-CL')}) no puede superar el saldo pendiente ($${saldoPendiente.toLocaleString('es-CL')}) ni el monto acordado ($${montoComprometido.toLocaleString('es-CL')}).`
+      );
+      return;
+    }
+
+    if (fecha_recibida > fechaHoyLocal) {
+      setErrorModal('La fecha de recepción no puede ser posterior al día de hoy.');
+      return;
+    }
+
+    const quedaraParcial = yaRecibido + valorNum < montoComprometido;
 
     try {
       await registrarCumplimiento(id, {
-        monto_recibido: Number(monto_recibido),
-        fecha_recibida
+        monto_recibido: valorNum,
+        fecha_recibida,
+        fecha: fecha_recibida,
+        id_contador: idContadorActual
       });
 
       setModalCumplimiento({ abierto: false, acuerdo: null, monto_recibido: '', fecha_recibida: '' });
       cargarAcuerdos();
+
+      mostrarExitoTemporal(
+        quedaraParcial
+          ? 'Abono parcial registrado con éxito (queda saldo pendiente)'
+          : 'Cumplimiento de aporte registrado con éxito'
+      );
     } catch (error) {
-      alert('Error al registrar cumplimiento: ' + error.message);
+      setErrorModal(extraerMensajeError(error, 'Error al registrar cumplimiento.'));
     }
   };
 
-  // Funciones para RF-P4-06 (Declarar Incobrable)
   const abrirModalIncobrable = (acuerdo) => {
+    setErrorModal('');
     setModalIncobrable({
       abierto: true,
       acuerdo,
@@ -252,23 +614,29 @@ export default function Auspiciadores() {
 
   const confirmarIncobrable = async (e) => {
     e.preventDefault();
+    setErrorModal('');
     const { acuerdo, motivo } = modalIncobrable;
     const id = acuerdo.id_acuerdo || acuerdo.id;
 
+    if (!tieneMinimoLetras(motivo, 3)) {
+      setErrorModal('Debes describir el motivo de incobrabilidad con palabras (no se permiten solo números).');
+      return;
+    }
+
     try {
-      await declararIncobrable(id, motivo);
+      await declararIncobrable(id, motivo.trim());
       setModalIncobrable({ abierto: false, acuerdo: null, motivo: '' });
       cargarAcuerdos();
     } catch (error) {
-      alert('Error al declarar incobrable: ' + error.message);
+      setErrorModal(extraerMensajeError(error, 'Error al declarar incobrable.'));
     }
   };
 
-  // Funciones para Editar y Eliminar Acuerdo
   const abrirModalEditarAcuerdo = (acuerdo) => {
-    const fechaFormat = acuerdo.fecha_comprometida
-      ? new Date(acuerdo.fecha_comprometida).toISOString().split('T')[0]
-      : '';
+    setErrorModal('');
+    const fechaIso = acuerdo.fecha_comprometida
+      ? String(acuerdo.fecha_comprometida).slice(0, 10)
+      : fechaHoyLocal;
 
     setModalEditarAcuerdo({
       abierto: true,
@@ -277,21 +645,62 @@ export default function Auspiciadores() {
       tipo_aporte: acuerdo.tipo_aporte || 'DINERO',
       monto_comprometido: acuerdo.monto_comprometido || '',
       descripcion_canje: acuerdo.descripcion_canje || '',
-      cant_menciones: acuerdo.cant_menciones || '',
-      fecha_comprometida: fechaFormat
+      cant_menciones: acuerdo.cant_menciones ?? '',
+      fecha_comprometida: fechaIso < fechaHoyLocal ? fechaHoyLocal : fechaIso
     });
   };
 
   const confirmarEdicionAcuerdo = async (e) => {
     e.preventDefault();
+    setErrorModal('');
+
+    const monto = Number(modalEditarAcuerdo.monto_comprometido);
+    if (!Number.isInteger(monto) || monto <= 0 || monto > 500000000) {
+      setErrorModal('El monto comprometido debe ser un número entero entre $1 y $500.000.000.');
+      return;
+    }
+
+    if (
+      modalEditarAcuerdo.tipo_aporte === 'CANJE' &&
+      !tieneMinimoLetras(modalEditarAcuerdo.descripcion_canje, 3)
+    ) {
+      setErrorModal('La descripción del canje debe contener palabras válidas (no solo números).');
+      return;
+    }
+
+    if (
+      modalEditarAcuerdo.cant_menciones !== '' &&
+      (Number(modalEditarAcuerdo.cant_menciones) < 0 || Number(modalEditarAcuerdo.cant_menciones) > 50)
+    ) {
+      setErrorModal('La cantidad de menciones debe estar entre 0 y 50.');
+      return;
+    }
+
+    if (modalEditarAcuerdo.fecha_comprometida < fechaHoyLocal) {
+      setErrorModal('La fecha comprometida debe ser desde hoy en adelante.');
+      return;
+    }
+
+    if (!tieneMinimoLetras(modalEditarAcuerdo.glosa, 3)) {
+      setErrorModal('La glosa debe describir el compromiso con palabras (no se permiten solo números).');
+      return;
+    }
+
     try {
       await modificarAcuerdo(modalEditarAcuerdo.id_acuerdo, {
-        glosa: modalEditarAcuerdo.glosa,
+        glosa: modalEditarAcuerdo.glosa.trim(),
         tipo_aporte: modalEditarAcuerdo.tipo_aporte,
-        monto_comprometido: Number(modalEditarAcuerdo.monto_comprometido),
-        descripcion_canje: modalEditarAcuerdo.descripcion_canje,
-        cant_menciones: modalEditarAcuerdo.cant_menciones ? Number(modalEditarAcuerdo.cant_menciones) : null,
-        fecha_comprometida: modalEditarAcuerdo.fecha_comprometida
+        monto_comprometido: monto,
+        descripcion_canje:
+          modalEditarAcuerdo.tipo_aporte === 'CANJE'
+            ? modalEditarAcuerdo.descripcion_canje.trim()
+            : null,
+        cant_menciones:
+          modalEditarAcuerdo.cant_menciones !== ''
+            ? Number(modalEditarAcuerdo.cant_menciones)
+            : null,
+        fecha_comprometida: modalEditarAcuerdo.fecha_comprometida,
+        fecha_limite: modalEditarAcuerdo.fecha_comprometida
       });
 
       setModalEditarAcuerdo({
@@ -302,32 +711,48 @@ export default function Auspiciadores() {
         monto_comprometido: '',
         descripcion_canje: '',
         cant_menciones: '',
-        fecha_comprometida: ''
+        fecha_comprometida: fechaHoyLocal
       });
       cargarAcuerdos();
     } catch (error) {
-      alert('Error al modificar acuerdo: ' + error.message);
+      setErrorModal(extraerMensajeError(error, 'Error al modificar acuerdo.'));
     }
   };
 
   const manejarEliminarAcuerdo = async (idAcuerdo) => {
-    const confirmar = window.confirm("¿Estás seguro de que deseas eliminar este acuerdo? Se borrarán también los registros de pago asociados.");
+    const confirmar = window.confirm(
+      '¿Estás seguro de que deseas eliminar este acuerdo? Se borrarán también los registros de pago asociados.'
+    );
     if (!confirmar) return;
 
     try {
       await eliminarAcuerdo(idAcuerdo);
       cargarAcuerdos();
     } catch (error) {
-      alert('Error al eliminar acuerdo: ' + error.message);
+      alert(extraerMensajeError(error, 'Error al eliminar acuerdo.'));
     }
   };
 
-  // Conteo de acuerdos vencidos para el banner (RF-P4-05)
+  const renderBadgeAcuerdo = (estado = 'PENDIENTE') => {
+    const estadoNormalizado = estado || 'PENDIENTE';
+    let claseVariante = 'ausp-badge-pendiente';
+    if (estadoNormalizado === 'CUMPLIDO') claseVariante = 'ausp-badge-cumplido';
+    else if (estadoNormalizado === 'PARCIAL') claseVariante = 'ausp-badge-parcial';
+    else if (estadoNormalizado === 'VENCIDO') claseVariante = 'ausp-badge-vencido';
+    else if (estadoNormalizado === 'INCOBRABLE') claseVariante = 'ausp-badge-incobrable';
+
+    return <span className={`ausp-badge ${claseVariante}`}>{estadoNormalizado}</span>;
+  };
+
+  const obtenerClaseBotonGestionar = (esCumplido, esIncobrable) => {
+    if (esCumplido) return 'ausp-btn-gestionar ausp-btn-gestionar-cumplido';
+    if (esIncobrable) return 'ausp-btn-gestionar ausp-btn-gestionar-incobrable';
+    return 'ausp-btn-gestionar ausp-btn-gestionar-activo';
+  };
+
   const acuerdosVencidos = listaAcuerdos.filter((a) => a.estado === 'VENCIDO');
 
-  // ---------- LÓGICA DE REPORTE CONSOLIDADO (RF-P4-08) ----------
   const reporteConsolidado = useMemo(() => {
-    // 1. Filtrar acuerdos por mes y año según fecha_comprometida
     const acuerdosFiltrados = listaAcuerdos.filter((acuerdo) => {
       const fecha = acuerdo.fecha_comprometida ? new Date(acuerdo.fecha_comprometida) : null;
       if (!fecha) return false;
@@ -338,17 +763,17 @@ export default function Auspiciadores() {
       return coincideAnio && coincideMes;
     });
 
-    // 2. Totales generales del periodo
     let totalComprometido = 0;
     let totalCumplido = 0;
     let totalVencido = 0;
     let totalIncobrable = 0;
 
-    // 3. Agrupación por auspiciador
     const mapaAuspiciadores = {};
 
     acuerdosFiltrados.forEach((acuerdo) => {
-      const idAusp = acuerdo.id_auspiciador || (acuerdo.auspiciador ? acuerdo.auspiciador.id_auspiciador : 'sin_id');
+      const idAusp =
+        acuerdo.id_auspiciador ||
+        (acuerdo.auspiciador ? acuerdo.auspiciador.id_auspiciador : 'sin_id');
       const nombreAusp = acuerdo.auspiciador?.nombre || `Auspiciador #${idAusp}`;
       const clasificacion = acuerdo.auspiciador?.clasificacion || 'CONFIABLE';
 
@@ -361,37 +786,46 @@ export default function Auspiciadores() {
           cumplido: 0,
           vencido: 0,
           incobrable: 0,
-          totalAcuerdos: 0,
+          totalAcuerdos: 0
         };
       }
 
       const monto = Number(acuerdo.monto_comprometido || 0);
-      const totalPagado = (acuerdo.cumplimientos || []).reduce(
-        (acc, c) => acc + Number(c.monto_recibido || 0),
-        0
-      );
+      const recibido = calcularTotalRecibido(acuerdo);
+      const saldoPendiente = Math.max(0, monto - recibido);
+      const fechaIso = acuerdo.fecha_comprometida
+        ? String(acuerdo.fecha_comprometida).slice(0, 10)
+        : '';
+      const estaVencidoPorFecha = Boolean(fechaIso && fechaIso < fechaHoyLocal);
 
       mapaAuspiciadores[idAusp].comprometido += monto;
       totalComprometido += monto;
       mapaAuspiciadores[idAusp].totalAcuerdos += 1;
 
       if (acuerdo.estado === 'CUMPLIDO') {
-        mapaAuspiciadores[idAusp].cumplido += monto;
-        totalCumplido += monto;
+        mapaAuspiciadores[idAusp].cumplido += recibido || monto;
+        totalCumplido += recibido || monto;
       } else if (acuerdo.estado === 'PARCIAL') {
-        mapaAuspiciadores[idAusp].cumplido += totalPagado;
-        totalCumplido += totalPagado;
-      } else if (acuerdo.estado === 'VENCIDO') {
-        const saldoVencido = monto - totalPagado;
-        mapaAuspiciadores[idAusp].vencido += saldoVencido > 0 ? saldoVencido : monto;
-        totalVencido += saldoVencido > 0 ? saldoVencido : monto;
-        if (totalPagado > 0) {
-          mapaAuspiciadores[idAusp].cumplido += totalPagado;
-          totalCumplido += totalPagado;
+        mapaAuspiciadores[idAusp].cumplido += recibido;
+        totalCumplido += recibido;
+        if (estaVencidoPorFecha) {
+          mapaAuspiciadores[idAusp].vencido += saldoPendiente;
+          totalVencido += saldoPendiente;
         }
+      } else if (acuerdo.estado === 'VENCIDO') {
+        if (recibido > 0) {
+          mapaAuspiciadores[idAusp].cumplido += recibido;
+          totalCumplido += recibido;
+        }
+        mapaAuspiciadores[idAusp].vencido += saldoPendiente;
+        totalVencido += saldoPendiente;
       } else if (acuerdo.estado === 'INCOBRABLE') {
-        mapaAuspiciadores[idAusp].incobrable += monto;
-        totalIncobrable += monto;
+        if (recibido > 0) {
+          mapaAuspiciadores[idAusp].cumplido += recibido;
+          totalCumplido += recibido;
+        }
+        mapaAuspiciadores[idAusp].incobrable += saldoPendiente;
+        totalIncobrable += saldoPendiente;
       }
     });
 
@@ -401,498 +835,217 @@ export default function Auspiciadores() {
         totalCumplido,
         totalVencido,
         totalIncobrable,
-        cantidadAcuerdos: acuerdosFiltrados.length,
+        cantidadAcuerdos: acuerdosFiltrados.length
       },
-      filas: Object.values(mapaAuspiciadores),
+      filas: Object.values(mapaAuspiciadores)
     };
-  }, [listaAcuerdos, filtroMes, filtroAnio]);
+  }, [listaAcuerdos, filtroMes, filtroAnio, fechaHoyLocal]);
+
+  const montoComprometidoModal = Number(modalCumplimiento.acuerdo?.monto_comprometido || 0);
+  const recibidoPrevioModal = calcularTotalRecibido(modalCumplimiento.acuerdo);
+  const saldoPendienteModal = Math.max(0, montoComprometidoModal - recibidoPrevioModal);
 
   return (
-    <div style={{ padding: '10px 0', width: '100%', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-      
-      {/* Botones de acción principales */}
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
-        <button
-          type="button"
-          onClick={() => navigate('/auspiciadores/registrar-acuerdo')}
-          style={{
-            backgroundColor: '#0d6efd',
-            color: 'white',
-            padding: '9px 16px',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: '600'
-          }}
-        >
-          + Registrar acuerdo
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            if (mostrarFormulario) cancelarEdicion();
-            setMostrarFormulario(!mostrarFormulario);
-          }}
-          style={{
-            backgroundColor: mostrarFormulario ? '#dc3545' : '#198754',
-            color: 'white',
-            padding: '9px 16px',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: '600'
-          }}
-        >
-          {mostrarFormulario ? '✕ Cerrar formulario' : '+ Registrar auspiciador'}
-        </button>
+    <div className="ausp-pagina">
+      <div className="ausp-encabezado">
+        <h1>Auspiciadores</h1>
+        <p>Gestión de auspiciadores, eventos, acuerdos de auspicio y control de aportes</p>
       </div>
 
-      {/* BANNER DE ALERTA DE ACUERDOS VENCIDOS (RF-P4-05) */}
-      {!mostrarFormulario && acuerdosVencidos.length > 0 && (
-        <div style={{
-          backgroundColor: '#fef2f2',
-          borderLeft: '4px solid #ef4444',
-          borderRadius: '8px',
-          padding: '12px 18px',
-          marginBottom: '20px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-        }}>
-          <div>
-            <strong style={{ color: '#991b1b', fontSize: '14px' }}>
-              ⚠️ Alerta: Tienes {acuerdosVencidos.length} {acuerdosVencidos.length === 1 ? 'acuerdo vencido' : 'acuerdos vencidos'}
-            </strong>
-            <p style={{ margin: '3px 0 0 0', color: '#7f1d1d', fontSize: '13px' }}>
-              Se ha superado la fecha comprometida sin registrar el pago completo del aporte.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* FORMULARIO DE REGISTRO / EDICIÓN AUSPICIADOR */}
-      {mostrarFormulario ? (
-        <div>
-          <div style={{
-            marginBottom: '35px',
-            padding: '24px',
-            border: '1px solid #e2e8f0',
-            borderRadius: '12px',
-            backgroundColor: '#ffffff',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
-          }}>
-            <h2 style={{ marginTop: 0, marginBottom: '18px', fontSize: '20px' }}>
-              {idEditando ? 'Modificar Auspiciador' : 'Registrar Auspiciador'}
-            </h2>
-
-            {mensaje && (
-              <p style={{
-                fontWeight: 'bold',
-                color: mensaje.includes('éxito') || mensaje.includes('cambiada') ? '#198754' : '#dc3545',
-                marginBottom: '15px'
-              }}>
-                {mensaje}
-              </p>
-            )}
-
-            <form onSubmit={manejarEnvio} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '14px', fontWeight: '500' }}>Nombre del Auspiciador:</label>
-                <input
-                  type="text"
-                  name="nombre"
-                  value={formData.nombre}
-                  onChange={manejarCambio}
-                  required
-                  style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '14px', fontWeight: '500' }}>Rubro:</label>
-                <input
-                  type="text"
-                  name="rubro"
-                  value={formData.rubro}
-                  onChange={manejarCambio}
-                  required
-                  style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '14px', fontWeight: '500' }}>Nombre del Contacto:</label>
-                <input
-                  type="text"
-                  name="contacto"
-                  value={formData.contacto}
-                  onChange={manejarCambio}
-                  required
-                  style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '14px', fontWeight: '500' }}>Teléfono:</label>
-                <input
-                  type="text"
-                  name="telefono"
-                  value={formData.telefono}
-                  onChange={manejarCambio}
-                  required
-                  style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-                />
-              </div>
-
-              <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '10px', marginTop: '10px' }}>
-                <button
-                  type="submit"
-                  style={{
-                    padding: '10px 20px',
-                    backgroundColor: idEditando ? '#28a745' : '#0056b3',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontWeight: '600',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {idEditando ? 'Guardar Cambios' : 'Guardar Auspiciador'}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={cancelarEdicion}
-                  style={{
-                    padding: '10px 16px',
-                    backgroundColor: '#6c757d',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Cancelar
-                </button>
-              </div>
-            </form>
-          </div>
-
-          <div style={{
-            backgroundColor: '#ffffff',
-            borderRadius: '16px',
-            padding: '24px',
-            border: '1px solid #f1f5f9',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)'
-          }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', color: '#1e293b' }}>
-              Auspiciadores Registrados
-            </h3>
-
-            {listaAuspiciadores.length === 0 ? (
-              <p style={{ color: '#64748b' }}>No hay auspiciadores registrados aún.</p>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-                {listaAuspiciadores.map((item) => {
-                  const id = item.id_auspiciador || item.id;
-                  const esNoConfiable = item.clasificacion === 'NO_CONFIABLE';
-
-                  return (
-                    <div
-                      key={id}
-                      style={{
-                        border: esNoConfiable ? '1px solid #fca5a5' : '1px solid #dee2e6',
-                        borderRadius: '10px',
-                        padding: '16px',
-                        backgroundColor: esNoConfiable ? '#fffdfd' : '#ffffff',
-                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.02)'
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                        <h4 style={{ margin: 0, fontSize: '16px', color: '#0f172a' }}>{item.nombre}</h4>
-                        
-                        <button
-                          type="button"
-                          onClick={() => abrirModalCambio(item)}
-                          title="Haz clic para cambiar la clasificación"
-                          style={{
-                            border: 'none',
-                            padding: '4px 10px',
-                            borderRadius: '14px',
-                            fontSize: '12px',
-                            fontWeight: '600',
-                            cursor: 'pointer',
-                            backgroundColor: esNoConfiable ? '#fee2e2' : '#dcfce7',
-                            color: esNoConfiable ? '#991b1b' : '#166534',
-                          }}
-                        >
-                          {esNoConfiable ? '⚠️ No confiable' : '✓ Confiable'}
-                        </button>
-                      </div>
-
-                      <p style={{ margin: '4px 0', fontSize: '14px' }}><strong>Rubro:</strong> {item.rubro}</p>
-                      <p style={{ margin: '4px 0', fontSize: '14px' }}><strong>Contacto:</strong> {item.contacto}</p>
-                      <p style={{ margin: '4px 0', fontSize: '14px' }}><strong>Teléfono:</strong> {item.telefono}</p>
-
-                      {item.motivo_clasificacion && (
-                        <p style={{ margin: '6px 0 0 0', fontSize: '12px', color: '#64748b', fontStyle: 'italic' }}>
-                          <strong>Motivo:</strong> {item.motivo_clasificacion}
-                        </p>
-                      )}
-
-                      <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
-                        <button
-                          type="button"
-                          onClick={() => iniciarEdicion(item)}
-                          style={{
-                            backgroundColor: '#1b2a4a',
-                            color: 'white',
-                            border: 'none',
-                            padding: '6px 12px',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '13px'
-                          }}
-                        >
-                          Editar
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => manejarEliminar(id)}
-                          style={{
-                            backgroundColor: '#6c757d',
-                            color: 'white',
-                            border: 'none',
-                            padding: '6px 12px',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '13px'
-                          }}
-                        >
-                          Eliminar
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-      ) : (
-        /* VISTA PRINCIPAL CON PESTAÑAS (ACUERDOS VS REPORTE RF-P4-08) */
-        <div style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '16px',
-          padding: '24px',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
-          border: '1px solid #f1f5f9'
-        }}>
-          {/* BARRA DE PESTAÑAS */}
-          <div style={{ display: 'flex', gap: '10px', borderBottom: '2px solid #e2e8f0', marginBottom: '22px' }}>
+      <div className="ausp-panel">
+        <div className="ausp-tabs-bar">
+          <div className="ausp-tabs-grupo">
             <button
               type="button"
               onClick={() => setPestanaActiva('acuerdos')}
-              style={{
-                background: 'none',
-                border: 'none',
-                borderBottom: pestanaActiva === 'acuerdos' ? '3px solid #0d6efd' : '3px solid transparent',
-                padding: '10px 16px',
-                fontSize: '15px',
-                fontWeight: pestanaActiva === 'acuerdos' ? '700' : '500',
-                color: pestanaActiva === 'acuerdos' ? '#0d6efd' : '#64748b',
-                cursor: 'pointer',
-                marginBottom: '-2px'
-              }}
+              className={`ausp-tab ${pestanaActiva === 'acuerdos' ? 'activa' : ''}`}
             >
-               Acuerdos de Auspicio
+              Acuerdos de Auspicio
             </button>
 
             <button
               type="button"
               onClick={() => setPestanaActiva('reporte')}
-              style={{
-                background: 'none',
-                border: 'none',
-                borderBottom: pestanaActiva === 'reporte' ? '3px solid #0d6efd' : '3px solid transparent',
-                padding: '10px 16px',
-                fontSize: '15px',
-                fontWeight: pestanaActiva === 'reporte' ? '700' : '500',
-                color: pestanaActiva === 'reporte' ? '#0d6efd' : '#64748b',
-                cursor: 'pointer',
-                marginBottom: '-2px'
-              }}
+              className={`ausp-tab ${pestanaActiva === 'reporte' ? 'activa' : ''}`}
             >
-               Reporte Mensual de Aportes
+              Reporte Mensual de Aportes
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setPestanaActiva('auspiciadores')}
+              className={`ausp-tab ${pestanaActiva === 'auspiciadores' ? 'activa' : ''}`}
+            >
+              Auspiciadores
             </button>
           </div>
+        </div>
 
-          {/* ======================================================== */}
-          {/* PESTAÑA 1: GESTIÓN OPERATIVA DE ACUERDOS                */}
-          {/* ======================================================== */}
-          {pestanaActiva === 'acuerdos' ? (
+        {pestanaActiva === 'acuerdos' && acuerdosVencidos.length > 0 && (
+          <div className="ausp-alerta-vencidos">
+            <AlertTriangle size={18} className="ausp-alerta-icono" />
             <div>
-              <div style={{ marginBottom: '18px' }}>
-                <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>Acuerdos de Auspicio</h2>
-                <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '13px' }}>
-                  Acuerdos por evento, glosa, cumplimiento de aporte y acciones
-                </p>
+              <h4 className="ausp-alerta-titulo">
+                Alerta: Tienes {acuerdosVencidos.length}{' '}
+                {acuerdosVencidos.length === 1 ? 'acuerdo vencido' : 'acuerdos vencidos'}
+              </h4>
+              <p className="ausp-alerta-texto">
+                Se ha superado la fecha comprometida sin registrar el pago completo del aporte.
+              </p>
+            </div>
+          </div>
+        )}
+
+        <div>
+          {pestanaActiva === 'acuerdos' && (
+            <div>
+              <div className="ausp-seccion-cab">
+                <div>
+                  <h2 className="ausp-seccion-titulo">Acuerdos de Auspicio</h2>
+                  <p className="ausp-seccion-sub">
+                    Acuerdos por evento, glosa, cumplimiento de aporte y acciones
+                  </p>
+                </div>
+
+                {esDueno && (
+                  <button
+                    type="button"
+                    onClick={abrirModalNuevoAcuerdo}
+                    className="ausp-btn-nuevo"
+                  >
+                    <Plus size={18} />
+                    <span>Registrar acuerdo</span>
+                  </button>
+                )}
+              </div>
+
+              <div className="ausp-buscador-wrap">
+                <input
+                  type="text"
+                  value={busquedaAcuerdo}
+                  onChange={(e) => setBusquedaAcuerdo(e.target.value)}
+                  placeholder="Buscar acuerdo por auspiciador, evento, glosa o estado..."
+                  className="ausp-buscador-input"
+                />
+                {busquedaAcuerdo && (
+                  <button
+                    type="button"
+                    onClick={() => setBusquedaAcuerdo('')}
+                    className="ausp-btn-limpiar-busqueda"
+                  >
+                    Limpiar
+                  </button>
+                )}
               </div>
 
               {cargandoAcuerdos ? (
-                <p style={{ color: '#64748b', textAlign: 'center', padding: '20px 0' }}>Cargando acuerdos...</p>
-              ) : listaAcuerdos.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '30px 15px', color: '#64748b' }}>
-                  <p style={{ margin: 0 }}>No hay acuerdos registrados todavía.</p>
+                <p className="ausp-cargando">Cargando acuerdos...</p>
+              ) : acuerdosFiltradosBusqueda.length === 0 ? (
+                <div className="ausp-vacio">
+                  <p>
+                    {busquedaAcuerdo.trim()
+                      ? 'No se encontraron acuerdos que coincidan con tu búsqueda.'
+                      : 'No hay acuerdos registrados todavía.'}
+                  </p>
                 </div>
               ) : (
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+                <div className="ausp-tabla-scroll">
+                  <table className="ausp-tabla">
                     <thead>
-                      <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        <th style={{ padding: '12px 14px' }}>Auspiciador</th>
-                        <th style={{ padding: '12px 14px' }}>Evento</th>
-                        <th style={{ padding: '12px 14px' }}>Tipo de Pago</th>
-                        <th style={{ padding: '12px 14px' }}>Glosa</th>
-                        <th style={{ padding: '12px 14px' }}>Plazo</th>
-                        <th style={{ padding: '12px 14px' }}>Estado</th>
-                        <th style={{ padding: '12px 14px', textAlign: 'center' }}>Acciones</th>
+                      <tr>
+                        <th>Auspiciador</th>
+                        <th>Evento</th>
+                        <th>Tipo de Pago</th>
+                        <th>Glosa</th>
+                        <th>Plazo</th>
+                        <th>Estado</th>
+                        <th className="ausp-th-centro">Acciones</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {listaAcuerdos.map((item) => {
+                      {acuerdosFiltradosBusqueda.map((item) => {
                         const id = item.id_acuerdo || item.id;
-                        const nombreAuspiciador = item.auspiciador?.nombre || `Auspiciador #${item.id_auspiciador || '-'}`;
-                        const nombreEvento = item.evento?.tipo || item.evento?.nombre || `Evento #${item.id_evento || '-'}`;
+                        const nombreAuspiciador =
+                          item.auspiciador?.nombre || `Auspiciador #${item.id_auspiciador || '-'}`;
+                        const nombreEvento =
+                          item.evento?.tipo ||
+                          item.evento?.nombre ||
+                          `Evento #${item.id_evento || '-'}`;
                         const tipoPago = item.tipo_aporte || item.tipo_pago || 'Aporte';
-                        const detalleMonto = item.monto_comprometido || item.monto 
-                          ? ` — $${Number(item.monto_comprometido || item.monto).toLocaleString('es-CL')}` 
-                          : '';
-                        const fechaPlazo = item.fecha_comprometida || item.fecha_limite 
-                          ? new Date(item.fecha_comprometida || item.fecha_limite).toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit' })
-                          : '--';
+                        const montoComp = Number(item.monto_comprometido || item.monto || 0);
+                        const detalleMonto =
+                          montoComp > 0 ? ` — $${montoComp.toLocaleString('es-CL')}` : '';
 
-                        const totalPagado = (item.cumplimientos || []).reduce(
-                          (acc, c) => acc + Number(c.monto_recibido || 0),
-                          0
-                        );
+                        const rawFecha = item.fecha_comprometida || item.fecha_limite;
+                        const fechaPlazo = rawFecha
+                          ? String(rawFecha).slice(5, 10).split('-').reverse().join('/')
+                          : '--';
 
                         const estado = item.estado || 'PENDIENTE';
                         const esCumplido = estado === 'CUMPLIDO';
                         const esParcial = estado === 'PARCIAL';
                         const esVencido = estado === 'VENCIDO';
                         const esIncobrable = estado === 'INCOBRABLE';
-
-                        const estiloBadge = esCumplido
-                          ? { bg: '#dcfce7', color: '#15803d' }
-                          : esParcial
-                          ? { bg: '#fef3c7', color: '#b45309' }
-                          : esVencido
-                          ? { bg: '#fee2e2', color: '#b91c1c' }
-                          : esIncobrable
-                          ? { bg: '#f1f5f9', color: '#64748b' }
-                          : { bg: '#e2e8f0', color: '#475569' };
+                        const recibidoAcumulado = calcularTotalRecibido(item);
+                        const saldoRestanteFila = Math.max(0, montoComp - recibidoAcumulado);
 
                         return (
-                          <tr key={id} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: esVencido ? '#fffdfd' : 'transparent' }}>
-                            <td style={{ padding: '14px', fontWeight: '600', color: '#1e293b' }}>
-                              {nombreAuspiciador}
-                            </td>
-                            <td style={{ padding: '14px', color: '#334155' }}>
-                              {nombreEvento}
-                            </td>
-                            <td style={{ padding: '14px', color: '#334155' }}>
-                              {tipoPago}{detalleMonto}
-                              {totalPagado > 0 && (
-                                <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
-                                  Recibido: ${totalPagado.toLocaleString('es-CL')}
+                          <tr
+                            key={id}
+                            className={`ausp-tr ${esVencido ? 'ausp-tr-vencido' : ''}`}
+                          >
+                            <td className="ausp-td-nombre">{nombreAuspiciador}</td>
+                            <td className="ausp-td-texto">{nombreEvento}</td>
+                            <td className="ausp-td-texto">
+                              {tipoPago}
+                              {detalleMonto}
+                              {esCumplido && (
+                                <div className="ausp-td-recibido">
+                                  Recibido: ${(recibidoAcumulado || montoComp).toLocaleString('es-CL')}
+                                </div>
+                              )}
+                              {!esCumplido && recibidoAcumulado > 0 && (
+                                <div className="ausp-td-recibido">
+                                  Abonado: ${recibidoAcumulado.toLocaleString('es-CL')} · Saldo: ${saldoRestanteFila.toLocaleString('es-CL')}
                                 </div>
                               )}
                             </td>
-                            <td style={{ padding: '14px', color: '#64748b', maxWidth: '220px' }}>
-                              {item.glosa || 'Sin glosa'}
-                            </td>
-                            <td style={{ padding: '14px', color: esVencido ? '#b91c1c' : '#334155', fontWeight: esVencido ? '600' : 'normal', whiteSpace: 'nowrap' }}>
+                            <td className="ausp-td-glosa">{item.glosa || 'Sin glosa'}</td>
+                            <td
+                              className={
+                                esVencido ? 'ausp-td-plazo-vencido' : 'ausp-td-plazo'
+                              }
+                            >
                               {fechaPlazo}
                             </td>
-                            <td style={{ padding: '14px' }}>
-                              <span style={{
-                                backgroundColor: estiloBadge.bg,
-                                color: estiloBadge.color,
-                                padding: '4px 10px',
-                                borderRadius: '20px',
-                                fontSize: '12px',
-                                fontWeight: '600',
-                                display: 'inline-block'
-                              }}>
-                                {estado}
-                              </span>
-                            </td>
-                            <td style={{ padding: '14px', textAlign: 'center', position: 'relative' }}>
-                              <div style={{ position: 'relative', display: 'inline-block' }}>
+                            <td>{renderBadgeAcuerdo(estado)}</td>
+                            <td className="ausp-td-acciones">
+                              <div className="ausp-menu-wrap">
                                 <button
                                   type="button"
-                                  onClick={() => setMenuAccionesAbierto(menuAccionesAbierto === id ? null : id)}
-                                  style={{
-                                    backgroundColor: esCumplido ? '#f8fafc' : esIncobrable ? '#f1f5f9' : '#0d6efd',
-                                    color: esCumplido ? '#475569' : esIncobrable ? '#64748b' : '#ffffff',
-                                    border: esCumplido || esIncobrable ? '1px solid #cbd5e1' : 'none',
-                                    padding: '6px 14px',
-                                    borderRadius: '6px',
-                                    fontSize: '12px',
-                                    fontWeight: '600',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '6px'
-                                  }}
+                                  onClick={() =>
+                                    setMenuAccionesAbierto(menuAccionesAbierto === id ? null : id)
+                                  }
+                                  className={obtenerClaseBotonGestionar(esCumplido, esIncobrable)}
                                 >
-                                  Gestionar ▾
+                                  <span>Gestionar</span>
+                                  <ChevronDown size={14} />
                                 </button>
 
                                 {menuAccionesAbierto === id && (
-                                  <div
-                                    style={{
-                                      position: 'absolute',
-                                      right: 0,
-                                      top: '110%',
-                                      backgroundColor: '#ffffff',
-                                      borderRadius: '8px',
-                                      boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1)',
-                                      border: '1px solid #e2e8f0',
-                                      zIndex: 50,
-                                      minWidth: '190px',
-                                      overflow: 'hidden',
-                                      display: 'flex',
-                                      flexDirection: 'column'
-                                    }}
-                                  >
-                                    {!esIncobrable && (
+                                  <div className="ausp-menu-dropdown">
+                                    {esContador && !esIncobrable && !esCumplido && (
                                       <button
                                         type="button"
                                         onClick={() => {
                                           setMenuAccionesAbierto(null);
                                           abrirModalCumplimiento(item);
                                         }}
-                                        style={{
-                                          padding: '10px 14px',
-                                          textAlign: 'left',
-                                          background: 'none',
-                                          border: 'none',
-                                          fontSize: '13px',
-                                          color: '#1e293b',
-                                          cursor: 'pointer',
-                                          borderBottom: '1px solid #f1f5f9'
-                                        }}
-                                        onMouseEnter={(e) => (e.target.style.backgroundColor = '#f8fafc')}
-                                        onMouseLeave={(e) => (e.target.style.backgroundColor = 'transparent')}
+                                        className="ausp-menu-item"
                                       >
-                                         {esCumplido ? 'Ver / Modificar Pago' : 'Registrar Pago / Entrega'}
+                                        {esParcial || recibidoAcumulado > 0
+                                          ? 'Registrar Siguiente Abono'
+                                          : 'Registrar Pago / Abono'}
                                       </button>
                                     )}
 
@@ -904,94 +1057,54 @@ export default function Auspiciadores() {
                                           setModalVerMotivo({
                                             abierto: true,
                                             auspiciador: nombreAuspiciador,
-                                            motivo: item.motivo_incobrable || 'Sin motivo especificado.'
+                                            motivo:
+                                              item.motivo_incobrable || 'Sin motivo especificado.'
                                           });
                                         }}
-                                        style={{
-                                          padding: '10px 14px',
-                                          textAlign: 'left',
-                                          background: 'none',
-                                          border: 'none',
-                                          fontSize: '13px',
-                                          color: '#475569',
-                                          cursor: 'pointer',
-                                          borderBottom: '1px solid #f1f5f9'
-                                        }}
-                                        onMouseEnter={(e) => (e.target.style.backgroundColor = '#f8fafc')}
-                                        onMouseLeave={(e) => (e.target.style.backgroundColor = 'transparent')}
+                                        className="ausp-menu-item ausp-menu-item-suave"
                                       >
-                                         Ver motivo incobrable
+                                        Ver motivo incobrable
                                       </button>
                                     )}
 
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setMenuAccionesAbierto(null);
-                                        abrirModalEditarAcuerdo(item);
-                                      }}
-                                      style={{
-                                        padding: '10px 14px',
-                                        textAlign: 'left',
-                                        background: 'none',
-                                        border: 'none',
-                                        fontSize: '13px',
-                                        color: '#0f172a',
-                                        cursor: 'pointer',
-                                        borderBottom: '1px solid #f1f5f9'
-                                      }}
-                                      onMouseEnter={(e) => (e.target.style.backgroundColor = '#f8fafc')}
-                                      onMouseLeave={(e) => (e.target.style.backgroundColor = 'transparent')}
-                                    >
-                                       Modificar Acuerdo
-                                    </button>
+                                    {esDueno && (
+                                      <>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setMenuAccionesAbierto(null);
+                                            abrirModalEditarAcuerdo(item);
+                                          }}
+                                          className="ausp-menu-item"
+                                        >
+                                          Modificar Acuerdo
+                                        </button>
 
-                                    {esVencido && (
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setMenuAccionesAbierto(null);
-                                          abrirModalIncobrable(item);
-                                        }}
-                                        style={{
-                                          padding: '10px 14px',
-                                          textAlign: 'left',
-                                          background: 'none',
-                                          border: 'none',
-                                          fontSize: '13px',
-                                          color: '#dc2626',
-                                          fontWeight: '500',
-                                          cursor: 'pointer',
-                                          borderBottom: '1px solid #f1f5f9'
-                                        }}
-                                        onMouseEnter={(e) => (e.target.style.backgroundColor = '#fef2f2')}
-                                        onMouseLeave={(e) => (e.target.style.backgroundColor = 'transparent')}
-                                      >
-                                         Declarar Incobrable
-                                      </button>
+                                        {esVencido && (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setMenuAccionesAbierto(null);
+                                              abrirModalIncobrable(item);
+                                            }}
+                                            className="ausp-menu-item ausp-menu-item-peligro"
+                                          >
+                                            Declarar Incobrable
+                                          </button>
+                                        )}
+
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setMenuAccionesAbierto(null);
+                                            manejarEliminarAcuerdo(id);
+                                          }}
+                                          className="ausp-menu-item ausp-menu-item-eliminar"
+                                        >
+                                          Eliminar Acuerdo
+                                        </button>
+                                      </>
                                     )}
-
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setMenuAccionesAbierto(null);
-                                        manejarEliminarAcuerdo(id);
-                                      }}
-                                      style={{
-                                        padding: '10px 14px',
-                                        textAlign: 'left',
-                                        background: 'none',
-                                        border: 'none',
-                                        fontSize: '13px',
-                                        color: '#ef4444',
-                                        fontWeight: '500',
-                                        cursor: 'pointer'
-                                      }}
-                                      onMouseEnter={(e) => (e.target.style.backgroundColor = '#fef2f2')}
-                                      onMouseLeave={(e) => (e.target.style.backgroundColor = 'transparent')}
-                                    >
-                                       Eliminar Acuerdo
-                                    </button>
                                   </div>
                                 )}
                               </div>
@@ -1004,37 +1117,26 @@ export default function Auspiciadores() {
                 </div>
               )}
             </div>
-          ) : (
-            /* ======================================================== */
-            /* PESTAÑA 2: REPORTE DE AUSPICIADORES (RF-P4-08)           */
-            /* ======================================================== */
+          )}
+
+          {pestanaActiva === 'reporte' && (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '15px', marginBottom: '20px' }}>
+              <div className="ausp-seccion-cab-reporte">
                 <div>
-                  <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>
-                    Reporte Consolidado de Aportes
-                  </h2>
-                  <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '13px' }}>
-                    Resumen mensual de aportes comprometidos, cumplidos, vencidos e incobrables por auspiciador (Solo lectura)
+                  <h2 className="ausp-seccion-titulo">Reporte Consolidado de Aportes</h2>
+                  <p className="ausp-seccion-sub">
+                    Resumen mensual de aportes comprometidos, cumplidos, vencidos e incobrables por
+                    auspiciador (Solo lectura)
                   </p>
                 </div>
 
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <div className="ausp-filtros-reporte">
                   <div>
-                    <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '3px', fontWeight: '600' }}>
-                      Mes:
-                    </label>
+                    <label className="ausp-filtro-label">Mes:</label>
                     <select
                       value={filtroMes}
                       onChange={(e) => setFiltroMes(e.target.value)}
-                      style={{
-                        padding: '7px 12px',
-                        borderRadius: '6px',
-                        border: '1px solid #cbd5e1',
-                        fontSize: '13px',
-                        backgroundColor: '#ffffff',
-                        fontWeight: '500'
-                      }}
+                      className="ausp-filtro-select"
                     >
                       <option value="TODOS">Todos los meses</option>
                       <option value="1">Enero</option>
@@ -1053,20 +1155,11 @@ export default function Auspiciadores() {
                   </div>
 
                   <div>
-                    <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '3px', fontWeight: '600' }}>
-                      Año:
-                    </label>
+                    <label className="ausp-filtro-label">Año:</label>
                     <select
                       value={filtroAnio}
                       onChange={(e) => setFiltroAnio(e.target.value)}
-                      style={{
-                        padding: '7px 12px',
-                        borderRadius: '6px',
-                        border: '1px solid #cbd5e1',
-                        fontSize: '13px',
-                        backgroundColor: '#ffffff',
-                        fontWeight: '500'
-                      }}
+                      className="ausp-filtro-select"
                     >
                       <option value="2026">2026</option>
                       <option value="2025">2025</option>
@@ -1076,97 +1169,98 @@ export default function Auspiciadores() {
                 </div>
               </div>
 
-              {/* TARJETAS RESUMEN DE TOTALES */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '24px' }}>
-                <div style={{ padding: '16px', borderRadius: '10px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                  <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Comprometido Total</span>
-                  <div style={{ fontSize: '20px', fontWeight: '700', color: '#1e293b', marginTop: '4px' }}>
+              <div className="ausp-kpis-grid">
+                <div className="ausp-kpi-card">
+                  <span className="ausp-kpi-label">Comprometido Total</span>
+                  <div className="ausp-kpi-valor">
                     ${reporteConsolidado.totales.totalComprometido.toLocaleString('es-CL')}
                   </div>
-                  <span style={{ fontSize: '11px', color: '#64748b' }}>{reporteConsolidado.totales.cantidadAcuerdos} acuerdos en el periodo</span>
+                  <span className="ausp-kpi-sub">
+                    {reporteConsolidado.totales.cantidadAcuerdos} acuerdos en el periodo
+                  </span>
                 </div>
 
-                <div style={{ padding: '16px', borderRadius: '10px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0' }}>
-                  <span style={{ fontSize: '12px', color: '#166534', fontWeight: '600', textTransform: 'uppercase' }}>Recaudado / Cumplido</span>
-                  <div style={{ fontSize: '20px', fontWeight: '700', color: '#15803d', marginTop: '4px' }}>
+                <div className="ausp-kpi-card ausp-kpi-verde">
+                  <span className="ausp-kpi-label">Recaudado / Cumplido</span>
+                  <div className="ausp-kpi-valor">
                     ${reporteConsolidado.totales.totalCumplido.toLocaleString('es-CL')}
                   </div>
-                  <span style={{ fontSize: '11px', color: '#166534' }}>Ingresos efectivos</span>
+                  <span className="ausp-kpi-sub">Ingresos efectivos</span>
                 </div>
 
-                <div style={{ padding: '16px', borderRadius: '10px', backgroundColor: '#fef2f2', border: '1px solid #fecaca' }}>
-                  <span style={{ fontSize: '12px', color: '#991b1b', fontWeight: '600', textTransform: 'uppercase' }}>Total Vencido</span>
-                  <div style={{ fontSize: '20px', fontWeight: '700', color: '#b91c1c', marginTop: '4px' }}>
+                <div className="ausp-kpi-card ausp-kpi-rojo">
+                  <span className="ausp-kpi-label">Total Vencido</span>
+                  <div className="ausp-kpi-valor">
                     ${reporteConsolidado.totales.totalVencido.toLocaleString('es-CL')}
                   </div>
-                  <span style={{ fontSize: '11px', color: '#991b1b' }}>Pendiente fuera de plazo</span>
+                  <span className="ausp-kpi-sub">Pendiente fuera de plazo</span>
                 </div>
 
-                <div style={{ padding: '16px', borderRadius: '10px', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1' }}>
-                  <span style={{ fontSize: '12px', color: '#475569', fontWeight: '600', textTransform: 'uppercase' }}>Total Incobrable</span>
-                  <div style={{ fontSize: '20px', fontWeight: '700', color: '#334155', marginTop: '4px' }}>
+                <div className="ausp-kpi-card ausp-kpi-gris">
+                  <span className="ausp-kpi-label">Total Incobrable</span>
+                  <div className="ausp-kpi-valor">
                     ${reporteConsolidado.totales.totalIncobrable.toLocaleString('es-CL')}
                   </div>
-                  <span style={{ fontSize: '11px', color: '#475569' }}>Deducción por pérdida</span>
+                  <span className="ausp-kpi-sub">Deducción por pérdida</span>
                 </div>
               </div>
 
-              {/* TABLA CONSOLIDADA POR AUSPICIADOR */}
               {reporteConsolidado.filas.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '36px 15px', color: '#64748b', backgroundColor: '#f8fafc', borderRadius: '8px' }}>
-                  <p style={{ margin: 0, fontSize: '14px' }}>
-                    No se encontraron acuerdos registrados para el periodo seleccionado.
-                  </p>
+                <div className="ausp-vacio-caja">
+                  <p>No se encontraron acuerdos registrados para el periodo seleccionado.</p>
                 </div>
               ) : (
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+                <div className="ausp-tabla-scroll">
+                  <table className="ausp-tabla">
                     <thead>
-                      <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#475569', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        <th style={{ padding: '12px 14px' }}>Auspiciador</th>
-                        <th style={{ padding: '12px 14px' }}>Clasificación</th>
-                        <th style={{ padding: '12px 14px', textAlign: 'right' }}>Comprometido</th>
-                        <th style={{ padding: '12px 14px', textAlign: 'right' }}>Cumplido / Pagado</th>
-                        <th style={{ padding: '12px 14px', textAlign: 'right' }}>Vencido</th>
-                        <th style={{ padding: '12px 14px', textAlign: 'right' }}>Incobrable</th>
-                        <th style={{ padding: '12px 14px', textAlign: 'center' }}>N° Acuerdos</th>
+                      <tr>
+                        <th>Auspiciador</th>
+                        <th>Clasificación</th>
+                        <th className="ausp-th-der">Comprometido</th>
+                        <th className="ausp-th-der">Cumplido / Pagado</th>
+                        <th className="ausp-th-der">Vencido</th>
+                        <th className="ausp-th-der">Incobrable</th>
+                        <th className="ausp-th-centro">N° Acuerdos</th>
                       </tr>
                     </thead>
                     <tbody>
                       {reporteConsolidado.filas.map((fila) => {
                         const esNoConfiable = fila.clasificacion === 'NO_CONFIABLE';
                         return (
-                          <tr key={fila.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                            <td style={{ padding: '14px', fontWeight: '600', color: '#1e293b' }}>
-                              {fila.nombre}
-                            </td>
-                            <td style={{ padding: '14px' }}>
-                              <span style={{
-                                backgroundColor: esNoConfiable ? '#fee2e2' : '#dcfce7',
-                                color: esNoConfiable ? '#991b1b' : '#166534',
-                                padding: '3px 8px',
-                                borderRadius: '12px',
-                                fontSize: '11px',
-                                fontWeight: '600'
-                              }}>
+                          <tr key={fila.id} className="ausp-tr">
+                            <td className="ausp-td-nombre">{fila.nombre}</td>
+                            <td>
+                              <span
+                                className={`ausp-badge-conf ${
+                                  esNoConfiable ? 'ausp-badge-conf-no' : 'ausp-badge-conf-si'
+                                }`}
+                              >
                                 {esNoConfiable ? 'No Confiable' : 'Confiable'}
                               </span>
                             </td>
-                            <td style={{ padding: '14px', textAlign: 'right', fontWeight: '600', color: '#1e293b' }}>
+                            <td className="ausp-td-monto-bold">
                               ${fila.comprometido.toLocaleString('es-CL')}
                             </td>
-                            <td style={{ padding: '14px', textAlign: 'right', color: '#15803d', fontWeight: '600' }}>
+                            <td className="ausp-td-monto-verde">
                               ${fila.cumplido.toLocaleString('es-CL')}
                             </td>
-                            <td style={{ padding: '14px', textAlign: 'right', color: fila.vencido > 0 ? '#b91c1c' : '#64748b', fontWeight: fila.vencido > 0 ? '600' : 'normal' }}>
+                            <td
+                              className={
+                                fila.vencido > 0 ? 'ausp-td-monto-rojo' : 'ausp-td-monto-gris'
+                              }
+                            >
                               ${fila.vencido.toLocaleString('es-CL')}
                             </td>
-                            <td style={{ padding: '14px', textAlign: 'right', color: fila.incobrable > 0 ? '#475569' : '#94a3b8', fontWeight: fila.incobrable > 0 ? '600' : 'normal' }}>
+                            <td
+                              className={
+                                fila.incobrable > 0
+                                  ? 'ausp-td-monto-incobrable'
+                                  : 'ausp-td-monto-tenue'
+                              }
+                            >
                               ${fila.incobrable.toLocaleString('es-CL')}
                             </td>
-                            <td style={{ padding: '14px', textAlign: 'center', color: '#64748b' }}>
-                              {fila.totalAcuerdos}
-                            </td>
+                            <td className="ausp-td-contador">{fila.totalAcuerdos}</td>
                           </tr>
                         );
                       })}
@@ -1176,113 +1270,225 @@ export default function Auspiciadores() {
               )}
             </div>
           )}
+
+          {pestanaActiva === 'auspiciadores' && (
+            <div>
+              <div className="ausp-seccion-cab">
+                <div>
+                  <h2 className="ausp-seccion-titulo">Auspiciadores Registrados</h2>
+                  <p className="ausp-seccion-sub">
+                    Listado de auspiciadores, rubro, contacto y estado de confianza
+                  </p>
+                </div>
+
+                {esDueno && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      cancelarEdicion();
+                      setMostrarFormulario(true);
+                    }}
+                    className="ausp-btn-nuevo"
+                  >
+                    <Plus size={18} />
+                    <span>Registrar auspiciador</span>
+                  </button>
+                )}
+              </div>
+
+              <div className="ausp-buscador-wrap">
+                <input
+                  type="text"
+                  value={busquedaAuspiciador}
+                  onChange={(e) => setBusquedaAuspiciador(e.target.value)}
+                  placeholder="Buscar auspiciador por nombre, rubro, contacto o teléfono..."
+                  className="ausp-buscador-input"
+                />
+                {busquedaAuspiciador && (
+                  <button
+                    type="button"
+                    onClick={() => setBusquedaAuspiciador('')}
+                    className="ausp-btn-limpiar-busqueda"
+                  >
+                    Limpiar
+                  </button>
+                )}
+              </div>
+
+              {auspiciadoresFiltradosBusqueda.length === 0 ? (
+                <div className="ausp-vacio-caja">
+                  <p>
+                    {busquedaAuspiciador.trim()
+                      ? 'No se encontraron auspiciadores que coincidan con tu búsqueda.'
+                      : 'No hay auspiciadores registrados aún.'}
+                  </p>
+                </div>
+              ) : (
+                <div className="ausp-tarjetas-grid">
+                  {auspiciadoresFiltradosBusqueda.map((item) => {
+                    const id = item.id_auspiciador || item.id;
+                    const esNoConfiable = item.clasificacion === 'NO_CONFIABLE';
+
+                    return (
+                      <div key={id} className="ausp-tarjeta">
+                        <div className="ausp-tarjeta-cab">
+                          <h4 className="ausp-tarjeta-titulo">{item.nombre}</h4>
+
+                          <button
+                            type="button"
+                            onClick={() => abrirModalCambio(item)}
+                            disabled={!esDueno}
+                            title={
+                              esDueno
+                                ? 'Haz clic para cambiar la clasificación'
+                                : 'Clasificación actual'
+                            }
+                            className={`ausp-btn-estado-conf ${
+                              esNoConfiable ? 'ausp-btn-no-confiable' : 'ausp-btn-confiable'
+                            }`}
+                          >
+                            {esNoConfiable ? 'No confiable' : 'Confiable'}
+                          </button>
+                        </div>
+
+                        <p className="ausp-tarjeta-dato">
+                          <strong>Rubro:</strong> {item.rubro}
+                        </p>
+                        <p className="ausp-tarjeta-dato">
+                          <strong>Contacto:</strong> {item.contacto}
+                        </p>
+                        <p className="ausp-tarjeta-dato">
+                          <strong>Teléfono:</strong> {item.telefono}
+                        </p>
+
+                        {item.motivo_clasificacion && (
+                          <p className="ausp-tarjeta-motivo">
+                            <strong>Motivo:</strong> {item.motivo_clasificacion}
+                          </p>
+                        )}
+
+                        {esDueno && (
+                          <div className="ausp-tarjeta-acciones">
+                            <button
+                              type="button"
+                              onClick={() => iniciarEdicion(item)}
+                              className="ausp-btn-modificar-card"
+                            >
+                              Modificar
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => manejarEliminar(id)}
+                              className="ausp-btn-eliminar-card"
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {mensajeExitoModal && (
+        <div className="ausp-modal-fondo">
+          <div className="ausp-modal-exito">
+            <div className="ausp-modal-exito-contenido">
+              <FaCheckCircle className="ausp-icono-exito" />
+              <h2 className="ausp-modal-exito-titulo">¡Operación Exitosa!</h2>
+              <p className="ausp-modal-exito-texto">{mensajeExitoModal}</p>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* MODAL 1: CUMPLIMIENTO */}
-      {modalCumplimiento.abierto && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          backgroundColor: 'rgba(15, 23, 42, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999,
-          padding: '20px'
-        }}>
-          <div style={{
-            backgroundColor: '#ffffff',
-            borderRadius: '12px',
-            padding: '24px',
-            maxWidth: '460px',
-            width: '100%',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-          }}>
-            <h3 style={{ marginTop: 0, marginBottom: '6px', fontSize: '18px', color: '#0f172a' }}>
-              Registrar Cumplimiento del Aporte
-            </h3>
-            
-            <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748b' }}>
-              Auspiciador: <strong>{modalCumplimiento.acuerdo?.auspiciador?.nombre || 'Acuerdo'}</strong> <br/>
-              Monto Comprometido: <strong>${Number(modalCumplimiento.acuerdo?.monto_comprometido || 0).toLocaleString('es-CL')}</strong> ({modalCumplimiento.acuerdo?.tipo_aporte})
+      {mostrarFormulario && (
+        <div className="ausp-modal-fondo">
+          <div className="ausp-modal-caja ausp-modal-caja-ancha">
+            <h2 className="ausp-modal-titulo">
+              {idEditando ? 'Modificar Auspiciador' : 'Registrar Auspiciador'}
+            </h2>
+            <p className="ausp-modal-sub">
+              Ingresa los datos correspondientes para el registro o actualización del auspiciador.
             </p>
 
-            <form onSubmit={confirmarCumplimiento}>
-              <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#334155' }}>
-                  {modalCumplimiento.acuerdo?.tipo_aporte === 'DINERO' ? 'Monto Recibido ($):' : 'Valorización del Canje Recibido ($):'}
-                </label>
-                <input
-                  type="number"
-                  value={modalCumplimiento.monto_recibido}
-                  onChange={(e) => setModalCumplimiento({ ...modalCumplimiento, monto_recibido: e.target.value })}
-                  placeholder="Ej: 100000 (0 para restablecer)"
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '9px 12px',
-                    borderRadius: '6px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '14px',
-                    boxSizing: 'border-box'
-                  }}
-                />
-                <span style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                  Ingresa 0 si deseas anular los registros de pago y restablecer el acuerdo.
-                </span>
-              </div>
+            {errorModal && <div className="ausp-error-modal">{errorModal}</div>}
 
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#334155' }}>
-                  Fecha de Recepción:
-                </label>
+            <form onSubmit={manejarEnvio} className="ausp-form">
+              <div>
+                <label className="ausp-label">Nombre del Auspiciador:</label>
                 <input
-                  type="date"
-                  value={modalCumplimiento.fecha_recibida}
-                  onChange={(e) => setModalCumplimiento({ ...modalCumplimiento, fecha_recibida: e.target.value })}
+                  type="text"
+                  name="nombre"
+                  maxLength={60}
+                  value={formData.nombre}
+                  onChange={manejarCambio}
                   required
-                  style={{
-                    width: '100%',
-                    padding: '9px 12px',
-                    borderRadius: '6px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '14px',
-                    boxSizing: 'border-box'
-                  }}
+                  placeholder="Ej: Red Bull"
+                  className="ausp-input"
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <div className="ausp-form-fila">
+                <div>
+                  <label className="ausp-label">Rubro (solo letras):</label>
+                  <input
+                    type="text"
+                    name="rubro"
+                    maxLength={50}
+                    value={formData.rubro}
+                    onChange={manejarCambio}
+                    required
+                    placeholder="Ej: Bebidas energéticas"
+                    className="ausp-input"
+                  />
+                </div>
+
+                <div>
+                  <label className="ausp-label">Nombre del Contacto (solo letras):</label>
+                  <input
+                    type="text"
+                    name="contacto"
+                    maxLength={60}
+                    value={formData.contacto}
+                    onChange={manejarCambio}
+                    required
+                    placeholder="Ej: Juan Pérez"
+                    className="ausp-input"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="ausp-label">Teléfono:</label>
+                <input
+                  type="text"
+                  name="telefono"
+                  maxLength={16}
+                  value={formData.telefono}
+                  onChange={manejarCambio}
+                  required
+                  placeholder="Ej: +56912345678"
+                  className="ausp-input"
+                />
+              </div>
+
+              <div className="ausp-modal-pie-borde">
                 <button
                   type="button"
-                  onClick={() => setModalCumplimiento({ abierto: false, acuerdo: null, monto_recibido: '', fecha_recibida: '' })}
-                  style={{
-                    backgroundColor: '#e2e8f0',
-                    color: '#334155',
-                    border: 'none',
-                    padding: '8px 14px',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '14px'
-                  }}
+                  onClick={cancelarEdicion}
+                  className="ausp-btn-cancelar"
                 >
                   Cancelar
                 </button>
-                <button
-                  type="submit"
-                  style={{
-                    backgroundColor: '#0d6efd',
-                    color: 'white',
-                    border: 'none',
-                    padding: '8px 16px',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: '600'
-                  }}
-                >
-                  Guardar Cumplimiento
+                <button type="submit" className="ausp-btn-guardar">
+                  {idEditando ? 'Guardar Cambios' : 'Guardar Auspiciador'}
                 </button>
               </div>
             </form>
@@ -1290,83 +1496,347 @@ export default function Auspiciadores() {
         </div>
       )}
 
-      {/* MODAL 2: CLASIFICACIÓN */}
-      {modalClasificacion.abierto && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          backgroundColor: 'rgba(15, 23, 42, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999,
-          padding: '20px'
-        }}>
-          <div style={{
-            backgroundColor: '#ffffff',
-            borderRadius: '12px',
-            padding: '24px',
-            maxWidth: '460px',
-            width: '100%',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-          }}>
-            <h3 style={{ marginTop: 0, marginBottom: '10px', fontSize: '18px', color: '#0f172a' }}>
-              Cambiar clasificación a: {modalClasificacion.nuevoEstado === 'NO_CONFIABLE' ? '⚠️ No Confiable' : '✓ Confiable'}
-            </h3>
-            
-            <p style={{ margin: '0 0 14px 0', fontSize: '14px', color: '#64748b' }}>
-              Auspiciador: <strong>{modalClasificacion.auspiciador?.nombre}</strong>
+      {mostrarModalAcuerdo && (
+        <div className="ausp-modal-fondo">
+          <div className="ausp-modal-caja ausp-modal-caja-ancha">
+            <h2 className="ausp-modal-titulo">Registrar Acuerdo de Auspicio</h2>
+            <p className="ausp-modal-sub">
+              Establece los compromisos comerciales, aportes y plazos para eventos.
             </p>
 
-            <form onSubmit={confirmarCambioClasificacion}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '6px', color: '#334155' }}>
-                Motivo del cambio (requerido):
-              </label>
-              <textarea
-                value={modalClasificacion.motivo}
-                onChange={(e) => setModalClasificacion({ ...modalClasificacion, motivo: e.target.value })}
-                placeholder="Ej: Retraso reiterado de pagos o incumplimiento de aportes..."
-                required
-                rows={3}
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  borderRadius: '6px',
-                  border: '1px solid #cbd5e1',
-                  boxSizing: 'border-box',
-                  fontSize: '14px',
-                  marginBottom: '16px'
-                }}
-              />
+            {errorModal && <div className="ausp-error-modal">{errorModal}</div>}
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            <form onSubmit={manejarEnvioNuevoAcuerdo} className="ausp-form">
+              <div className="ausp-form-fila">
+                <div>
+                  <label className="ausp-label">Auspiciador:</label>
+                  <select
+                    name="id_auspiciador"
+                    value={formAcuerdo.id_auspiciador}
+                    onChange={manejarCambioNuevoAcuerdo}
+                    required
+                    className="ausp-select"
+                  >
+                    <option value="">-- Selecciona un auspiciador --</option>
+                    {listaAuspiciadores.map((ausp) => {
+                      const idAusp = ausp.id_auspiciador || ausp.id;
+                      return (
+                        <option key={idAusp} value={idAusp}>
+                          {ausp.nombre}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="ausp-label">Evento / Transmisión:</label>
+                  <select
+                    name="id_evento"
+                    value={formAcuerdo.id_evento}
+                    onChange={manejarCambioNuevoAcuerdo}
+                    required
+                    className="ausp-select"
+                  >
+                    <option value="">-- Selecciona un evento --</option>
+                    {eventosAbiertos.map((ev) => {
+                      const idEv = ev.id_evento || ev.id;
+                      const fechaEv = formatearFechaEvento(ev.fecha);
+                      return (
+                        <option key={idEv} value={idEv}>
+                          {ev.tipo || ev.nombre || `Evento #${idEv}`}
+                          {fechaEv ? ` (${fechaEv})` : ''}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              </div>
+
+              {auspiciadorElegidoAcuerdo?.clasificacion === 'NO_CONFIABLE' && (
+                <div className="ausp-aviso-no-confiable">
+                  <AlertTriangle size={16} className="ausp-alerta-icono" />
+                  <div>
+                    <strong>Advertencia:</strong> Este auspiciador está clasificado como{' '}
+                    <strong>No Confiable</strong>
+                    {auspiciadorElegidoAcuerdo.motivo_clasificacion
+                      ? ` (${auspiciadorElegidoAcuerdo.motivo_clasificacion})`
+                      : ''}
+                    .
+                    {historialAuspiciadorElegido && (
+                      <div>
+                        <strong>Historial de cumplimiento:</strong> Cumplidos:{' '}
+                        {historialAuspiciadorElegido.cumplidos} · Parciales:{' '}
+                        {historialAuspiciadorElegido.parciales} · Vencidos:{' '}
+                        {historialAuspiciadorElegido.vencidos} · Incobrables:{' '}
+                        {historialAuspiciadorElegido.incobrables}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="ausp-form-fila">
+                <div>
+                  <label className="ausp-label">Tipo de Aporte:</label>
+                  <select
+                    name="tipo_aporte"
+                    value={formAcuerdo.tipo_aporte}
+                    onChange={manejarCambioNuevoAcuerdo}
+                    className="ausp-select"
+                  >
+                    <option value="DINERO">Dinero</option>
+                    <option value="CANJE">Canje</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="ausp-label">Monto Comprometido ($):</label>
+                  <input
+                    type="number"
+                    name="monto_comprometido"
+                    value={formAcuerdo.monto_comprometido}
+                    onChange={manejarCambioNuevoAcuerdo}
+                    onKeyDown={bloquearNegativosTeclado}
+                    required
+                    min="1"
+                    max="500000000"
+                    placeholder="Ej: 150000"
+                    className="ausp-input"
+                  />
+                </div>
+              </div>
+
+              {formAcuerdo.tipo_aporte === 'CANJE' && (
+                <div>
+                  <label className="ausp-label">Descripción del Canje:</label>
+                  <input
+                    type="text"
+                    name="descripcion_canje"
+                    maxLength={80}
+                    value={formAcuerdo.descripcion_canje}
+                    onChange={manejarCambioNuevoAcuerdo}
+                    required
+                    placeholder="Ej: 50 bebidas isotónicas..."
+                    className="ausp-input"
+                  />
+                </div>
+              )}
+
+              <div className="ausp-form-fila">
+                <div>
+                  <label className="ausp-label">Cantidad de Menciones (máx. 50):</label>
+                  <input
+                    type="number"
+                    name="cant_menciones"
+                    value={formAcuerdo.cant_menciones}
+                    onChange={manejarCambioNuevoAcuerdo}
+                    onKeyDown={bloquearNegativosTeclado}
+                    min="0"
+                    max="50"
+                    placeholder="Ej: 3"
+                    className="ausp-input"
+                  />
+                </div>
+
+                <div>
+                  <label className="ausp-label">Fecha Límite de Pago:</label>
+                  <input
+                    type="date"
+                    name="fecha_comprometida"
+                    lang="es-CL"
+                    min={fechaHoyLocal}
+                    value={formAcuerdo.fecha_comprometida}
+                    onChange={manejarCambioNuevoAcuerdo}
+                    required
+                    className="ausp-input"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="ausp-label">Glosa del Acuerdo Verbal:</label>
+                <textarea
+                  name="glosa"
+                  maxLength={80}
+                  value={formAcuerdo.glosa}
+                  onChange={manejarCambioNuevoAcuerdo}
+                  required
+                  rows={3}
+                  placeholder="Especifica condiciones, logos requeridos o detalles acordados verbalmente..."
+                  className="ausp-textarea"
+                />
+              </div>
+
+              <div className="ausp-modal-pie-borde">
                 <button
                   type="button"
-                  onClick={() => setModalClasificacion({ abierto: false, auspiciador: null, nuevoEstado: '', motivo: '' })}
-                  style={{
-                    backgroundColor: '#e2e8f0',
-                    color: '#334155',
-                    border: 'none',
-                    padding: '8px 14px',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '14px'
+                  onClick={cancelarNuevoAcuerdo}
+                  className="ausp-btn-cancelar"
+                >
+                  Cancelar
+                </button>
+                <button type="submit" className="ausp-btn-guardar">
+                  Registrar Acuerdo
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {modalCumplimiento.abierto && (
+        <div className="ausp-modal-fondo">
+          <div className="ausp-modal-caja">
+            <h3 className="ausp-modal-titulo">Registrar Cumplimiento / Abono</h3>
+
+            <p className="ausp-modal-sub">
+              Auspiciador:{' '}
+              <strong>{modalCumplimiento.acuerdo?.auspiciador?.nombre || 'Acuerdo'}</strong> <br />
+              Monto Comprometido:{' '}
+              <strong>${montoComprometidoModal.toLocaleString('es-CL')}</strong>{' '}
+              ({modalCumplimiento.acuerdo?.tipo_aporte}) <br />
+              Abonado a la fecha:{' '}
+              <strong>${recibidoPrevioModal.toLocaleString('es-CL')}</strong> · Saldo pendiente:{' '}
+              <strong>${saldoPendienteModal.toLocaleString('es-CL')}</strong>
+            </p>
+
+            {errorModal && <div className="ausp-error-modal">{errorModal}</div>}
+
+            <form onSubmit={confirmarCumplimiento}>
+              <div className="ausp-campo-grupo">
+                <label className="ausp-label">
+                  {modalCumplimiento.acuerdo?.tipo_aporte === 'DINERO'
+                    ? `Monto a Abonar / Recibir ($) [Máx: $${saldoPendienteModal.toLocaleString('es-CL')}]:`
+                    : `Valorización del Canje Recibido ($) [Máx: $${saldoPendienteModal.toLocaleString('es-CL')}]:`}
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max={saldoPendienteModal}
+                  step="1"
+                  onKeyDown={bloquearNegativosTeclado}
+                  value={modalCumplimiento.monto_recibido}
+                  onChange={(e) => {
+                    setErrorModal('');
+                    setModalCumplimiento({ ...modalCumplimiento, monto_recibido: e.target.value });
                   }}
+                  required
+                  className="ausp-input"
+                />
+                <span className="ausp-ayuda-input">
+                  Si abonas menos del saldo pendiente, quedará como PARCIAL para registrar otro abono después.
+                </span>
+              </div>
+
+              <div className="ausp-campo-grupo-lg">
+                <label className="ausp-label">Fecha de Recepción (hoy o anterior):</label>
+                <input
+                  type="date"
+                  lang="es-CL"
+                  min="2000-01-01"
+                  max={fechaHoyLocal}
+                  value={modalCumplimiento.fecha_recibida}
+                  onChange={(e) => {
+                    setErrorModal('');
+                    setModalCumplimiento({ ...modalCumplimiento, fecha_recibida: e.target.value });
+                  }}
+                  required
+                  className="ausp-input"
+                />
+              </div>
+
+              <div className="ausp-modal-pie">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setErrorModal('');
+                    setModalCumplimiento({
+                      abierto: false,
+                      acuerdo: null,
+                      monto_recibido: '',
+                      fecha_recibida: fechaHoyLocal
+                    });
+                  }}
+                  className="ausp-btn-cancelar"
+                >
+                  Cancelar
+                </button>
+                <button type="submit" className="ausp-btn-guardar">
+                  Guardar Abono
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {modalClasificacion.abierto && (
+        <div className="ausp-modal-fondo">
+          <div className="ausp-modal-caja">
+            <h3 className="ausp-modal-titulo">
+              Cambiar clasificación a:{' '}
+              {modalClasificacion.nuevoEstado === 'NO_CONFIABLE' ? 'No Confiable' : 'Confiable'}
+            </h3>
+
+            <p className="ausp-modal-sub">
+              Auspiciador: <strong>{modalClasificacion.auspiciador?.nombre}</strong>
+              {historialModalClasificacion && (
+                <>
+                  <br />
+                  <span>
+                    Acuerdos registrados — Cumplidos:{' '}
+                    <strong>{historialModalClasificacion.cumplidos}</strong> · Parciales:{' '}
+                    <strong>{historialModalClasificacion.parciales}</strong> · Vencidos:{' '}
+                    <strong>{historialModalClasificacion.vencidos}</strong> · Incobrables:{' '}
+                    <strong>{historialModalClasificacion.incobrables}</strong>
+                  </span>
+                </>
+              )}
+            </p>
+
+            {errorModal && <div className="ausp-error-modal">{errorModal}</div>}
+
+            <form onSubmit={confirmarCambioClasificacion}>
+              <div className="ausp-campo-grupo">
+                <label className="ausp-label">Motivo del cambio (requerido):</label>
+                <textarea
+                  maxLength={120}
+                  value={modalClasificacion.motivo}
+                  onChange={(e) => {
+                    setErrorModal('');
+                    setModalClasificacion({ ...modalClasificacion, motivo: e.target.value });
+                  }}
+                  placeholder="Ej: Retraso reiterado de pagos o incumplimiento de aportes..."
+                  required
+                  rows={3}
+                  className="ausp-textarea"
+                />
+              </div>
+
+              <div className="ausp-modal-pie">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setErrorModal('');
+                    setModalClasificacion({
+                      abierto: false,
+                      auspiciador: null,
+                      nuevoEstado: '',
+                      motivo: ''
+                    });
+                  }}
+                  className="ausp-btn-cancelar"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  style={{
-                    backgroundColor: modalClasificacion.nuevoEstado === 'NO_CONFIABLE' ? '#dc2626' : '#166534',
-                    color: 'white',
-                    border: 'none',
-                    padding: '8px 16px',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: '600'
-                  }}
+                  className={
+                    modalClasificacion.nuevoEstado === 'NO_CONFIABLE'
+                      ? 'ausp-btn-guardar-peligro'
+                      : 'ausp-btn-guardar-exito'
+                  }
                 >
                   Guardar Clasificación
                 </button>
@@ -1376,86 +1846,62 @@ export default function Auspiciadores() {
         </div>
       )}
 
-      {/* MODAL 3: DECLARAR INCOBRABLE (RF-P4-06) */}
       {modalIncobrable.abierto && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          backgroundColor: 'rgba(15, 23, 42, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999,
-          padding: '20px'
-        }}>
-          <div style={{
-            backgroundColor: '#ffffff',
-            borderRadius: '12px',
-            padding: '24px',
-            maxWidth: '460px',
-            width: '100%',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-          }}>
-            <h3 style={{ marginTop: 0, marginBottom: '8px', fontSize: '18px', color: '#b91c1c' }}>
-              Declarar Aporte Incobrable
-            </h3>
-            
-            <p style={{ margin: '0 0 14px 0', fontSize: '13px', color: '#64748b' }}>
-              Auspiciador: <strong>{modalIncobrable.acuerdo?.auspiciador?.nombre || 'Acuerdo'}</strong> <br/>
-              Monto Comprometido no recuperado: <strong>${Number(modalIncobrable.acuerdo?.monto_comprometido || 0).toLocaleString('es-CL')}</strong>
+        <div className="ausp-modal-fondo">
+          <div className="ausp-modal-caja">
+            <h3 className="ausp-modal-titulo-rojo">Declarar Aporte Incobrable</h3>
+
+            <p className="ausp-modal-sub">
+              Auspiciador:{' '}
+              <strong>{modalIncobrable.acuerdo?.auspiciador?.nombre || 'Acuerdo'}</strong> <br />
+              Monto Comprometido:{' '}
+              <strong>
+                ${Number(modalIncobrable.acuerdo?.monto_comprometido || 0).toLocaleString('es-CL')}
+              </strong>{' '}
+              · Saldo pendiente:{' '}
+              <strong>
+                $
+                {Math.max(
+                  0,
+                  Number(modalIncobrable.acuerdo?.monto_comprometido || 0) -
+                    calcularTotalRecibido(modalIncobrable.acuerdo)
+                ).toLocaleString('es-CL')}
+              </strong>
             </p>
 
+            {errorModal && <div className="ausp-error-modal">{errorModal}</div>}
+
             <form onSubmit={confirmarIncobrable}>
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '6px', color: '#334155' }}>
+              <div className="ausp-campo-grupo">
+                <label className="ausp-label">
                   Motivo por el cual se da por perdido el cobro (requerido):
                 </label>
                 <textarea
+                  maxLength={120}
                   value={modalIncobrable.motivo}
-                  onChange={(e) => setModalIncobrable({ ...modalIncobrable, motivo: e.target.value })}
-                  placeholder="Ej: Auspiciador no contesta correos ni llamadas tras reiteradas insistencias..."
+                  onChange={(e) => {
+                    setErrorModal('');
+                    setModalIncobrable({ ...modalIncobrable, motivo: e.target.value });
+                  }}
+                  placeholder="Ej: Auspiciador no contesta correos ni llamadas..."
                   required
                   rows={3}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    borderRadius: '6px',
-                    border: '1px solid #cbd5e1',
-                    boxSizing: 'border-box',
-                    fontSize: '14px'
-                  }}
+                  className="ausp-textarea"
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <div className="ausp-modal-pie">
                 <button
                   type="button"
-                  onClick={() => setModalIncobrable({ abierto: false, acuerdo: null, motivo: '' })}
-                  style={{
-                    backgroundColor: '#e2e8f0',
-                    color: '#334155',
-                    border: 'none',
-                    padding: '8px 14px',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '14px'
+                  onClick={() => {
+                    setErrorModal('');
+                    setModalIncobrable({ abierto: false, acuerdo: null, motivo: '' });
                   }}
+                  className="ausp-btn-cancelar"
                 >
                   Cancelar
                 </button>
-                <button
-                  type="submit"
-                  style={{
-                    backgroundColor: '#dc2626',
-                    color: 'white',
-                    border: 'none',
-                    padding: '8px 16px',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: '600'
-                  }}
-                >
+                <button type="submit" className="ausp-btn-guardar-peligro">
                   Confirmar Incobrable
                 </button>
               </div>
@@ -1464,86 +1910,42 @@ export default function Auspiciadores() {
         </div>
       )}
 
-      {/* MODAL 4: VER MOTIVO DE INCOBRABLE (BURBUJA MODAL) */}
       {modalVerMotivo.abierto && (
         <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(15, 23, 42, 0.45)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-            padding: '20px'
-          }}
+          className="ausp-modal-fondo"
           onClick={() => setModalVerMotivo({ abierto: false, auspiciador: '', motivo: '' })}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            style={{
-              backgroundColor: '#ffffff',
-              borderRadius: '16px',
-              padding: '24px',
-              maxWidth: '420px',
-              width: '100%',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05)'
-            }}
+            className="ausp-modal-caja ausp-modal-caja-chica"
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', color: '#0f172a' }}>
-                Motivo de Incobrable
-              </h3>
+            <div className="ausp-modal-cab-cerrar">
+              <h3 className="ausp-modal-titulo">Motivo de Incobrable</h3>
               <button
                 type="button"
-                onClick={() => setModalVerMotivo({ abierto: false, auspiciador: '', motivo: '' })}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '18px',
-                  color: '#94a3b8',
-                  cursor: 'pointer',
-                  padding: '2px 6px'
-                }}
+                onClick={() =>
+                  setModalVerMotivo({ abierto: false, auspiciador: '', motivo: '' })
+                }
+                className="ausp-btn-x"
+                aria-label="Cerrar"
               >
-                ✕
+                <X size={18} />
               </button>
             </div>
 
-            <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: '#64748b' }}>
-              Auspiciador: <strong style={{ color: '#1e293b' }}>{modalVerMotivo.auspiciador}</strong>
+            <p className="ausp-modal-sub">
+              Auspiciador: <strong>{modalVerMotivo.auspiciador}</strong>
             </p>
 
-            <div
-              style={{
-                backgroundColor: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                borderRadius: '10px',
-                padding: '14px 16px',
-                fontSize: '14px',
-                color: '#334155',
-                lineHeight: '1.5',
-                whiteSpace: 'pre-wrap',
-                marginBottom: '20px'
-              }}
-            >
-              "{modalVerMotivo.motivo}"
-            </div>
+            <div className="ausp-cita-motivo">&ldquo;{modalVerMotivo.motivo}&rdquo;</div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <div className="ausp-modal-pie">
               <button
                 type="button"
-                onClick={() => setModalVerMotivo({ abierto: false, auspiciador: '', motivo: '' })}
-                style={{
-                  backgroundColor: '#0d6efd',
-                  color: '#ffffff',
-                  border: 'none',
-                  padding: '9px 20px',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '600'
-                }}
+                onClick={() =>
+                  setModalVerMotivo({ abierto: false, auspiciador: '', motivo: '' })
+                }
+                className="ausp-btn-guardar"
               >
                 Entendido
               </button>
@@ -1552,166 +1954,137 @@ export default function Auspiciadores() {
         </div>
       )}
 
-      {/* MODAL 5: MODIFICAR ACUERDO */}
       {modalEditarAcuerdo.abierto && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          backgroundColor: 'rgba(15, 23, 42, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999,
-          padding: '20px'
-        }}>
-          <div style={{
-            backgroundColor: '#ffffff',
-            borderRadius: '16px',
-            padding: '24px',
-            maxWidth: '520px',
-            width: '100%',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-            maxHeight: '90vh',
-            overflowY: 'auto'
-          }}>
-            <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '18px', color: '#0f172a' }}>
-              Modificar Acuerdo de Auspicio
-            </h3>
+        <div className="ausp-modal-fondo">
+          <div className="ausp-modal-caja ausp-modal-caja-media">
+            <h3 className="ausp-modal-titulo-espacio">Modificar Acuerdo de Auspicio</h3>
 
-            <form onSubmit={confirmarEdicionAcuerdo}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {errorModal && <div className="ausp-error-modal">{errorModal}</div>}
+
+            <form onSubmit={confirmarEdicionAcuerdo} className="ausp-form">
+              <div>
+                <label className="ausp-label">Glosa / Compromiso:</label>
+                <textarea
+                  maxLength={80}
+                  value={modalEditarAcuerdo.glosa}
+                  onChange={(e) => {
+                    setErrorModal('');
+                    setModalEditarAcuerdo({ ...modalEditarAcuerdo, glosa: e.target.value });
+                  }}
+                  required
+                  rows={2}
+                  className="ausp-textarea"
+                />
+              </div>
+
+              <div className="ausp-form-fila">
                 <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '5px', color: '#334155' }}>
-                    Glosa / Compromiso:
-                  </label>
-                  <textarea
-                    value={modalEditarAcuerdo.glosa}
-                    onChange={(e) => setModalEditarAcuerdo({ ...modalEditarAcuerdo, glosa: e.target.value })}
-                    required
-                    rows={2}
-                    style={{
-                      width: '100%',
-                      padding: '9px 12px',
-                      borderRadius: '6px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '14px',
-                      boxSizing: 'border-box'
+                  <label className="ausp-label">Tipo de Aporte:</label>
+                  <select
+                    value={modalEditarAcuerdo.tipo_aporte}
+                    onChange={(e) => {
+                      setErrorModal('');
+                      setModalEditarAcuerdo({
+                        ...modalEditarAcuerdo,
+                        tipo_aporte: e.target.value
+                      });
                     }}
+                    className="ausp-select"
+                  >
+                    <option value="DINERO">DINERO</option>
+                    <option value="CANJE">CANJE</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="ausp-label">Monto Comprometido ($):</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="500000000"
+                    value={modalEditarAcuerdo.monto_comprometido}
+                    onKeyDown={bloquearNegativosTeclado}
+                    onChange={(e) => {
+                      setErrorModal('');
+                      setModalEditarAcuerdo({
+                        ...modalEditarAcuerdo,
+                        monto_comprometido: e.target.value
+                      });
+                    }}
+                    required
+                    className="ausp-input"
+                  />
+                </div>
+              </div>
+
+              {modalEditarAcuerdo.tipo_aporte === 'CANJE' && (
+                <div>
+                  <label className="ausp-label">Descripción del Canje:</label>
+                  <input
+                    type="text"
+                    maxLength={80}
+                    value={modalEditarAcuerdo.descripcion_canje}
+                    onChange={(e) => {
+                      setErrorModal('');
+                      setModalEditarAcuerdo({
+                        ...modalEditarAcuerdo,
+                        descripcion_canje: e.target.value
+                      });
+                    }}
+                    required
+                    placeholder="Ej: 50 poleras..."
+                    className="ausp-input"
+                  />
+                </div>
+              )}
+
+              <div className="ausp-form-fila">
+                <div>
+                  <label className="ausp-label">Cant. Menciones (máx. 50):</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="50"
+                    value={modalEditarAcuerdo.cant_menciones}
+                    onKeyDown={bloquearNegativosTeclado}
+                    onChange={(e) => {
+                      setErrorModal('');
+                      setModalEditarAcuerdo({
+                        ...modalEditarAcuerdo,
+                        cant_menciones: e.target.value
+                      });
+                    }}
+                    placeholder="Opcional"
+                    className="ausp-input"
                   />
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '5px', color: '#334155' }}>
-                      Tipo de Aporte:
-                    </label>
-                    <select
-                      value={modalEditarAcuerdo.tipo_aporte}
-                      onChange={(e) => setModalEditarAcuerdo({ ...modalEditarAcuerdo, tipo_aporte: e.target.value })}
-                      style={{
-                        width: '100%',
-                        padding: '9px 12px',
-                        borderRadius: '6px',
-                        border: '1px solid #cbd5e1',
-                        fontSize: '14px',
-                        boxSizing: 'border-box',
-                        backgroundColor: '#ffffff'
-                      }}
-                    >
-                      <option value="DINERO">DINERO</option>
-                      <option value="CANJE">CANJE</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '5px', color: '#334155' }}>
-                      Monto Comprometido ($):
-                    </label>
-                    <input
-                      type="number"
-                      value={modalEditarAcuerdo.monto_comprometido}
-                      onChange={(e) => setModalEditarAcuerdo({ ...modalEditarAcuerdo, monto_comprometido: e.target.value })}
-                      required
-                      style={{
-                        width: '100%',
-                        padding: '9px 12px',
-                        borderRadius: '6px',
-                        border: '1px solid #cbd5e1',
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
+                <div>
+                  <label className="ausp-label">Fecha Comprometida:</label>
+                  <input
+                    type="date"
+                    lang="es-CL"
+                    min={fechaHoyLocal}
+                    value={modalEditarAcuerdo.fecha_comprometida}
+                    onChange={(e) => {
+                      setErrorModal('');
+                      setModalEditarAcuerdo({
+                        ...modalEditarAcuerdo,
+                        fecha_comprometida: e.target.value
+                      });
+                    }}
+                    required
+                    className="ausp-input"
+                  />
                 </div>
+              </div>
 
-                {modalEditarAcuerdo.tipo_aporte === 'CANJE' && (
-                  <div>
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '5px', color: '#334155' }}>
-                      Descripción del Canje:
-                    </label>
-                    <input
-                      type="text"
-                      value={modalEditarAcuerdo.descripcion_canje}
-                      onChange={(e) => setModalEditarAcuerdo({ ...modalEditarAcuerdo, descripcion_canje: e.target.value })}
-                      placeholder="Ej: 50 poleras, bebidas energéticas..."
-                      style={{
-                        width: '100%',
-                        padding: '9px 12px',
-                        borderRadius: '6px',
-                        border: '1px solid #cbd5e1',
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
-                )}
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '5px', color: '#334155' }}>
-                      Cant. Menciones:
-                    </label>
-                    <input
-                      type="number"
-                      value={modalEditarAcuerdo.cant_menciones}
-                      onChange={(e) => setModalEditarAcuerdo({ ...modalEditarAcuerdo, cant_menciones: e.target.value })}
-                      placeholder="Opcional"
-                      style={{
-                        width: '100%',
-                        padding: '9px 12px',
-                        borderRadius: '6px',
-                        border: '1px solid #cbd5e1',
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '5px', color: '#334155' }}>
-                      Fecha Comprometida:
-                    </label>
-                    <input
-                      type="date"
-                      value={modalEditarAcuerdo.fecha_comprometida}
-                      onChange={(e) => setModalEditarAcuerdo({ ...modalEditarAcuerdo, fecha_comprometida: e.target.value })}
-                      required
-                      style={{
-                        width: '100%',
-                        padding: '9px 12px',
-                        borderRadius: '6px',
-                        border: '1px solid #cbd5e1',
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
-                  <button
-                    type="button"
-                    onClick={() => setModalEditarAcuerdo({
+              <div className="ausp-modal-pie">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setErrorModal('');
+                    setModalEditarAcuerdo({
                       abierto: false,
                       id_acuerdo: null,
                       glosa: '',
@@ -1719,42 +2092,21 @@ export default function Auspiciadores() {
                       monto_comprometido: '',
                       descripcion_canje: '',
                       cant_menciones: '',
-                      fecha_comprometida: ''
-                    })}
-                    style={{
-                      backgroundColor: '#e2e8f0',
-                      color: '#334155',
-                      border: 'none',
-                      padding: '8px 16px',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '14px'
-                    }}
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    style={{
-                      backgroundColor: '#28a745',
-                      color: 'white',
-                      border: 'none',
-                      padding: '8px 18px',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      fontWeight: '600'
-                    }}
-                  >
-                    Guardar Cambios
-                  </button>
-                </div>
+                      fecha_comprometida: fechaHoyLocal
+                    });
+                  }}
+                  className="ausp-btn-cancelar"
+                >
+                  Cancelar
+                </button>
+                <button type="submit" className="ausp-btn-guardar">
+                  Guardar Cambios
+                </button>
               </div>
             </form>
           </div>
         </div>
       )}
-
     </div>
   );
 }

@@ -15,12 +15,48 @@ export const createIncidenteService = async (data, id_jefe) => {
       throw error;
     }
 
+    if (equipo.estado !== 'OPERATIVO') {
+      const error = new Error(`El equipo figura actualmente como ${equipo.estado}; solo se pueden registrar incidentes en equipos OPERATIVOS.`);
+      error.statusCode = 400;
+      throw error;
+    }
+
+    // Verificar existencia y estado del evento si fue enviado
+    if (id_evento) {
+      const eventoExiste = await tx.evento.findUnique({
+        where: { id_evento: Number(id_evento) },
+        select: { id_evento: true, estado: true },
+      });
+      if (!eventoExiste) {
+        const error = new Error('El evento especificado no existe.');
+        error.statusCode = 404;
+        throw error;
+      }
+      if (!['CONFIRMADO', 'REALIZADO'].includes(eventoExiste.estado)) {
+        const error = new Error('Solo se pueden asociar incidentes a eventos CONFIRMADOS o REALIZADOS.');
+        error.statusCode = 400;
+        throw error;
+      }
+    }
+
+    if (id_trabajador) {
+      const trabajadorExiste = await tx.trabajador.findUnique({
+        where: { id_trabajador: Number(id_trabajador) },
+        select: { id_trabajador: true },
+      });
+      if (!trabajadorExiste) {
+        const error = new Error('El trabajador especificado no existe.');
+        error.statusCode = 404;
+        throw error;
+      }
+    }
+
     // 2. Determinar el valor del incidente y nuevo estado del equipo según RF-P6-03
     let valorIncidente = 0;
     let nuevoEstadoEquipo = equipo.estado;
 
     if (tipo === 'DANO') {
-      if (!costo_reparacion || Number(costo_reparacion) <= 0) {
+      if (costo_reparacion === undefined || costo_reparacion === null || Number(costo_reparacion) < 0) {
         const error = new Error('Para daños se requiere el costo estimado de reparación.');
         error.statusCode = 400;
         throw error;
@@ -43,12 +79,12 @@ export const createIncidenteService = async (data, id_jefe) => {
     const nuevoIncidente = await tx.incidente.create({
       data: {
         tipo,
-        fecha: new Date(fecha),
+        fecha: fecha ? new Date(fecha) : new Date(),
         descripcion,
         valor: valorIncidente,
         codigo,
         id_evento: id_evento ? Number(id_evento) : null,
-        id_trabajador: id_trabajador ? Number(id_trabajador) : null,
+        id_trabajador: id_evento && id_trabajador ? Number(id_trabajador) : null,
         id_jefe: Number(id_jefe),
       },
       include: {
@@ -58,27 +94,17 @@ export const createIncidenteService = async (data, id_jefe) => {
       },
     });
 
-    // 4. Actualizar el estado del equipo (Postcondición)
+    // 4. Actualizar el estado del equipo y marcar su kit como INCOMPLETO si pertenece a uno
     await tx.equipo.update({
       where: { codigo },
       data: { estado: nuevoEstadoEquipo },
     });
 
-    // 5. Si está vinculado a un evento, actualizar rentabilidad final (Postcondición)
-    if (id_evento) {
-      const evento = await tx.evento.findUnique({
-        where: { id_evento: Number(id_evento) },
+    if (equipo.id_kit) {
+      await tx.kit.updateMany({
+        where: { id_kit: equipo.id_kit, estado: { not: 'EN_TERRENO' } },
+        data: { estado: 'INCOMPLETO' },
       });
-
-      if (evento) {
-        const rentabilidadActual = evento.rentabilidad_final ?? (evento.precio_acordado - evento.gastos_estimados);
-        await tx.evento.update({
-          where: { id_evento: Number(id_evento) },
-          data: {
-            rentabilidad_final: rentabilidadActual - valorIncidente,
-          },
-        });
-      }
     }
 
     return nuevoIncidente;
@@ -93,7 +119,7 @@ export const getIncidentesService = async () => {
       trabajador: { select: { id_trabajador: true, nombre: true } },
       jefe: { select: { id_jefe: true, nombre: true } },
     },
-    orderBy: { fecha: 'desc' },
+    orderBy: [{ fecha: 'desc' }, { id_incidente: 'desc' }],
   });
 };
 
@@ -120,9 +146,7 @@ export const getIncidentesPorEventoService = async (id_evento) => {
         },
       },
     },
-    orderBy: {
-      fecha: 'desc',
-    },
+    orderBy: [{ fecha: 'desc' }, { id_incidente: 'desc' }],
   });
 
   const totalPerdidas = incidentes.reduce((acc, inc) => acc + (inc.valor || 0), 0);

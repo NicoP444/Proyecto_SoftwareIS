@@ -2,21 +2,31 @@ import { useState } from 'react';
 import FinanzasEventos from '../components/finanzas/FinanzaEvento.jsx';
 // Cada persona agrega aquí su import cuando su archivo exista:
 // import RentabilidadMes from '../components/finanzas/RentabilidadMes'; // Persona 2 (pendiente)
-// import PagosCliente from '../components/finanzas/PagosCliente';       // Persona 1
-// import CierreMensual from '../components/finanzas/CierreMensual';     // Persona 4
+import GastosFijos from '../components/finanzas/GastosFijos.jsx';     // Persona 4
+import PerdidasInventario from '../components/finanzas/PerdidasInventario.jsx';
+import ResumenInventario from '../components/finanzas/ResumenInventario.jsx';
+import ResumenFinancieroMensual from '../components/finanzas/ResumenFinancieroMensual.jsx';
+import RentabilidadMes from '../components/finanzas/RentabilidadMes.jsx'
+import { obtenerUsuario } from '../services/http.js';
 import '../styles/Finanzas.css';
+
 
 // Cada persona agrega UNA línea aquí con su pestaña
 const PESTANAS = [
   { id: 'eventos', texto: 'Eventos', componente: FinanzasEventos }, // Persona 2 (P7)
-  // { id: 'rentabilidad', texto: 'Rentabilidad', componente: RentabilidadMes },   // Persona 2 (pendiente)
-  // { id: 'pagos-cliente', texto: 'Pagos del cliente', componente: PagosCliente }, // Persona 1 (RF-P1-10)
-  // { id: 'mensual', texto: 'Cierre mensual', componente: CierreMensual },        // Persona 4 (P8)
+  { id: 'rentabilidad', texto: 'Rentabilidad Mensual', componente: RentabilidadMes },   // Persona 2 (pendiente)
+  { id: 'resumen-mensual', texto: 'Resumen Mensual', componente: ResumenFinancieroMensual }, // Persona 4
+  { id: 'perdidas', texto: 'Pérdidas de Inventario', componente: PerdidasInventario }, // Persona 4
+  { id: 'mensual', texto: 'Gastos Fijos', componente: GastosFijos, roles: ['CONTADOR'] },        // Persona 4 (P8)
+  { id: 'inventario-compras', texto: 'Inventario y Compras', componente: ResumenInventario }, // Persona 4
 ];
 
 export default function Finanzas() {
-  const [activa, setActiva] = useState(PESTANAS[0].id);
-  const Contenido = PESTANAS.find((p) => p.id === activa).componente;
+
+  const rol = String(obtenerUsuario()?.rol ?? '').toUpperCase();
+  const visibles = PESTANAS.filter((p) => !p.roles || p.roles.includes(rol));
+  const [activa, setActiva] = useState(visibles[0].id);
+  const Contenido = visibles.find((p) => p.id === activa).componente;
 
   return (
     <div className="finanzas">
@@ -27,10 +37,11 @@ export default function Finanzas() {
         </div>
       </div>
 
+      
       {/* Con una sola pestaña no se muestra la barra */}
-      {PESTANAS.length > 1 && (
+      {visibles.length > 1 && (
         <nav className="fin-pestanas">
-          {PESTANAS.map((p) => (
+          {visibles.map((p) => (
             <button
               key={p.id}
               type="button"

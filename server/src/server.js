@@ -6,11 +6,21 @@ import { fileURLToPath } from 'url';
 import authRoutes from './routes/auth.routes.js';
 import routes from './routes/index.js'; //gene
 import clienteRoutes from './routes/cliente.routes.js'; //jorge
-import recintoRoutes from './routes/recinto.routes.js'; //jorge
-import eventoRoutes from './routes/evento.routes.js'; //jorge
+import asignacionRoutes from './routes/asignacion.routes.js'; //jorge
+import configuracionRoutes from './routes/configuracion.routes.js'; //jorge
+import viabilidadRoutes from './routes/viabilidad.routes.js'; //jorge
+import pagoClienteRoutes from './routes/pagoCliente.routes.js'; //jorge
+import kitEventoRoutes from './routes/kitEvento.routes.js'; //jorge
+import panelRoutes from './routes/panel.routes.js'; //jorge
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+
+// Fechas "de hoy" en hora de Chile, aunque el servidor esté en UTC.
+// Sin esto, después de las 21:00 el sistema cree que ya es mañana
+// (no deja agendar eventos para hoy y el panel se corre un día).
+process.env.TZ = 'America/Santiago';
 
 //encontrar front
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -30,10 +40,14 @@ app.use('/api', routes);//gene y nico
 
 app.use('/uploads', express.static('uploads')); // Para servir archivos subidos (evidencias de gastos, etc.)
 
-//JORGE
+//jorge
 app.use('/api/clientes', clienteRoutes);
-app.use('/api/recintos', recintoRoutes);
-app.use('/api/coberturas', eventoRoutes);
+app.use('/api', asignacionRoutes); // personal disponible y asignación de personal a eventos
+app.use('/api/configuracion', configuracionRoutes); // margen de traslado
+app.use('/api/viabilidad', viabilidadRoutes); //viabilidad económica
+app.use('/api/pagos-cliente', pagoClienteRoutes); //pagos del cliente
+app.use('/api', kitEventoRoutes); // asignar kits a eventos
+app.use('/api/panel', panelRoutes); // panel de inicio por rol
 
 
 // Comentar, cuando esta en el server....

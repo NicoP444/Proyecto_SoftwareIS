@@ -1,4 +1,5 @@
-.finanzas {
+/* Variables de color: globales, para que también lleguen a las ventanas emergentes (modales) */
+:root {
   --fin-azul: #0b1a8c;
   --fin-azul-suave: #eceefb;
   --fin-verde: #34a56f;
@@ -8,6 +9,9 @@
   --fin-texto: #0f172a;
   --fin-suave: #64748b;
   --fin-borde: #e5e7eb;
+}
+
+.finanzas {
   color: var(--fin-texto);
 }
 
@@ -22,6 +26,28 @@
 }
 .fin-cabecera h1 { margin: 0; font-size: 28px; font-weight: 700; }
 .fin-cabecera p { margin: 4px 0 0; color: var(--fin-suave); }
+
+/* ---------- Pestañas del cascarón (una por persona) ---------- */
+.fin-pestanas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--fin-borde);
+}
+.fin-tab {
+  margin-bottom: -1px;
+  padding: 0 0 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--fin-suave);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.fin-tab.activa { color: var(--fin-texto); border-bottom-color: var(--fin-azul); }
 
 /* ---------- Botones ---------- */
 .fin-btn {
@@ -87,8 +113,10 @@
 .fin-kpi-naranja .fin-kpi-titulo { color: var(--fin-naranja); }
 .fin-kpi-gris { border-top-color: var(--fin-gris); }
 .fin-kpi-gris .fin-kpi-titulo { color: var(--fin-suave); }
+.fin-kpi-rojo { border-top-color: var(--fin-rojo); }
+.fin-kpi-rojo .fin-kpi-titulo { color: var(--fin-rojo); }
 
-/* ---------- Filtros ---------- */
+/* ---------- Filtros y buscador ---------- */
 .fin-filtros {
   display: flex;
   align-items: flex-end;
@@ -96,16 +124,57 @@
   gap: 16px;
   margin-bottom: 24px;
 }
-.fin-busqueda { position: relative; flex: 1; min-width: 220px; }
+.fin-busqueda { position: relative; flex: 1; min-width: 0; }
 .fin-busqueda svg {
   position: absolute;
   top: 50%;
-  left: 14px;
+  left: 16px;
   transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
   color: var(--fin-suave);
+  pointer-events: none;
 }
-.fin-busqueda input { padding-left: 40px; }
+.finanzas .fin-busqueda input:not([type='file']) {
+  height: 44px;
+  padding: 0 16px 0 44px;
+  border: 1px solid var(--fin-borde);
+  border-radius: 12px;
+  background: #fff;
+  font-size: 15px;
+}
+.fin-busqueda input::placeholder { color: #94a3b8; }
+/* Oculta la flechita ▼ que el navegador agrega a los campos con lista de sugerencias */
+.fin-busqueda input::-webkit-calendar-picker-indicator { display: none !important; }
 .fin-filtro { width: 250px; }
+
+/* ---------- Pestaña Eventos: buscador y pestañas internas ---------- */
+.fin-filtros-evento { justify-content: space-between; }
+.fin-filtros-evento .fin-busqueda { min-width: 220px; }
+.fin-filtro-evento { flex: 1; min-width: 240px; max-width: 420px; }
+
+.fin-subtabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  max-width: 100%;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--fin-borde);
+  border-radius: 12px;
+  background: #fff;
+}
+.fin-subtab {
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  color: var(--fin-suave);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.fin-subtab.activa { background: var(--fin-azul); color: #fff; }
 
 /* ---------- Campos de formulario ---------- */
 .fin-campo { display: flex; flex-direction: column; gap: 6px; }
@@ -136,6 +205,8 @@
   outline: 2px solid var(--fin-azul);
   outline-offset: -1px;
 }
+.finanzas input:disabled { background: #f8fafc; color: var(--fin-suave); }
+.fin-form input[readonly] { background: #f8fafc; color: var(--fin-suave); cursor: default; }
 
 /* ---------- Panel ---------- */
 .fin-panel {
@@ -152,20 +223,8 @@
   padding-bottom: 14px;
   border-bottom: 1px solid var(--fin-borde);
 }
+.fin-panel-titulo { font-size: 16px; font-weight: 600; }
 .fin-tabs { display: flex; gap: 24px; }
-.fin-tab {
-  margin-bottom: -15px;
-  padding: 0 0 14px;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  background: none;
-  color: var(--fin-suave);
-  font: inherit;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.fin-tab.activa { color: var(--fin-texto); border-bottom-color: var(--fin-azul); }
 .fin-contador { color: var(--fin-suave); font-size: 14px; }
 
 /* ---------- Tarjetas ---------- */
@@ -226,6 +285,7 @@
   text-decoration: none;
 }
 .fin-enlace-chico { align-self: flex-start; }
+.fin-enlace-boton { border: 0; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .fin-acciones { display: flex; gap: 6px; }
 .fin-icono-btn {
   display: grid;
@@ -241,12 +301,14 @@
 .fin-icono-btn:hover { background: #f1f5f9; color: var(--fin-texto); }
 .fin-icono-peligro:hover { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
 
-/* ---------- Estado de la rendición ---------- */
+/* ---------- Estados (rendición, pago, rentabilidad) ---------- */
 .fin-estado { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; white-space: nowrap; }
 .fin-estado::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
 .fin-estado-pendiente { color: var(--fin-naranja); }
 .fin-estado-rendida { color: var(--fin-verde); }
 .fin-estado-sin-gastos { color: var(--fin-suave); }
+.fin-estado-ganancia { color: var(--fin-verde); }
+.fin-estado-perdida { color: var(--fin-rojo); }
 
 /* ---------- Estado vacío ---------- */
 .fin-vacio {
@@ -266,33 +328,62 @@
 .fin-texto-suave { margin: 0; color: var(--fin-suave); font-size: 14px; line-height: 1.5; }
 .fin-form .fin-alerta { margin-bottom: 0; }
 
+/* ---------- Remuneraciones: campo del porcentaje ---------- */
+.fin-pct-campo { display: flex; align-items: center; gap: 8px; }
+.fin-pct-campo input { text-align: right; }
+.fin-pct-campo span { font-weight: 600; color: var(--fin-suave); }
+.fin-pct-ayuda { font-size: 12px; color: var(--fin-suave); }
+.fin-pct-error { color: #b91c1c; }
+
+/* ---------- Cierre de la jornada y rentabilidad ---------- */
+.fin-check { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--fin-borde); }
+.fin-check svg { flex: none; }
+.fin-check strong { display: block; }
+.fin-check span { font-size: 13px; color: var(--fin-suave); }
+.fin-check-ok svg { color: var(--fin-verde); }
+.fin-check-aviso svg { color: var(--fin-naranja); }
+.fin-check-bloqueo svg { color: var(--fin-rojo); }
+
+.fin-resultado { margin-top: 16px; }
+.fin-linea { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
+.fin-linea-total { margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--fin-borde); font-size: 16px; font-weight: 700; }
+
+/* ---------- Pantallas angostas ---------- */
+@media (max-width: 1100px) {
+  .fin-filtros-evento { flex-direction: column; align-items: stretch; }
+  .fin-subtabs { width: 100%; box-sizing: border-box; }
+}
+
 @media (max-width: 640px) {
   .fin-filtro { width: 100%; }
   .fin-form-fila { grid-template-columns: 1fr; }
 }
 
 
-/* ===== Pestañas internas de la pestaña Eventos ===== */
-.fin-filtros-evento { justify-content: space-between; }
-.fin-filtro-evento { flex: 1; min-width: 240px; max-width: 420px; }
-
-.fin-subtabs {
-  display: inline-flex;
-  gap: 4px;
-  padding: 4px;
+/* ---------- Lista de sugerencias del buscador de eventos ---------- */
+.fin-sugerencias {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: 280px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
   border: 1px solid var(--fin-borde);
   border-radius: 12px;
   background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
 }
-.fin-subtab {
-  padding: 8px 16px;
-  border: 0;
-  border-radius: 9px;
-  background: none;
-  color: var(--fin-suave);
-  font: inherit;
+.fin-sugerencia {
+  padding: 10px 12px;
+  border-radius: 8px;
   font-size: 14px;
-  font-weight: 600;
+  color: var(--fin-texto);
   cursor: pointer;
 }
-.fin-subtab.activa { background: var(--fin-azul); color: #fff; }
+.fin-sugerencia:hover,
+.fin-sugerencia.activa { background: var(--fin-azul-suave); color: var(--fin-azul); }
+.fin-sugerencia-vacia { padding: 10px 12px; font-size: 14px; color: var(--fin-suave); }

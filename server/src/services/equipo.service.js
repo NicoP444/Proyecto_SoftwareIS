@@ -1,8 +1,57 @@
 import prisma from '../config/prisma.js';
 
+// Evita que la fecha "YYYY-MM-DD" retroceda un día por la zona horaria de Chile
+const parsearFechaSegura = (fechaStr) => {
+  if (!fechaStr) return new Date();
+  const limpia = String(fechaStr).slice(0, 10);
+  return new Date(`${limpia}T12:00:00`);
+};
+
+// RF-P5-07: Marca estrictamente como repuesto solo a equipos OPERATIVO y sin kit actual
+const formatearRepuesto = (eq) => ({
+  ...eq,
+  es_repuesto: eq.estado === 'OPERATIVO' && eq.id_kit === null,
+});
+
+// RF-P5-02: Registra el cambio de valor en la tabla real "historial_cambio"
+const registrarCambioValorHistorial = async (codigo, valorAnterior, valorNuevo) => {
+  await prisma.historialCambio.create({
+    data: {
+      tabla_afectada: 'equipo',
+      dato: `valor_compra - ${codigo}`,
+      valor_anterior: String(valorAnterior),
+      valor_nuevo: String(valorNuevo),
+      motivo: `Modificación del valor de compra del equipo con código ${codigo}`,
+    },
+  });
+};
+
+// Recalcula el estado de un kit según sus equipos OPERATIVO (si no está EN_TERRENO)
+const recalcularEstadoKit = async (idKit) => {
+  if (!idKit) return;
+  const kit = await prisma.kit.findUnique({
+    where: { id_kit: idKit },
+    include: { equipos: true },
+  });
+  if (!kit || kit.estado === 'EN_TERRENO') return;
+
+  const equiposOperativos = (kit.equipos || []).filter((e) => e.estado === 'OPERATIVO');
+  const categoriasMinimas = ['CAMARA', 'TRIPODE', 'MICROFONO', 'SWITCH_VIDEO'];
+  const categoriasPresentes = new Set(equiposOperativos.map((e) => e.categoria));
+  const cumpleMinimo = categoriasMinimas.every((cat) => categoriasPresentes.has(cat));
+
+  const nuevoEstado = cumpleMinimo ? 'DISPONIBLE' : 'INCOMPLETO';
+  if (kit.estado !== nuevoEstado) {
+    await prisma.kit.update({
+      where: { id_kit: idKit },
+      data: { estado: nuevoEstado },
+    });
+  }
+};
+
 export const equipoService = {
   async obtenerTodos() {
-    return await prisma.equipo.findMany({
+    const equipos = await prisma.equipo.findMany({
       include: {
         kit: true,
         jefe: true,
@@ -11,6 +60,8 @@ export const equipoService = {
         fecha_compra: 'desc',
       },
     });
+
+    return equipos.map(formatearRepuesto);
   },
 
   async crear(datos) {
@@ -28,7 +79,11 @@ export const equipoService = {
       throw new Error('Faltan campos obligatorios: nombre, categoría, fecha de compra o valor.');
     }
 
-    // 1. Obtener un id_jefe válido existente en la base de datos
+    const valorNum = Math.round(Number(valor_compra));
+    if (Number.isNaN(valorNum) || valorNum <= 0) {
+      throw new Error('El valor de compra debe ser un número mayor a 0.');
+    }
+
     let jefeId = Number(id_jefe);
     let jefeExistente = null;
 
@@ -52,7 +107,6 @@ export const equipoService = {
       jefeId = jefeExistente.id_jefe;
     }
 
-    // 2. Prefijo según categoría
     const prefijos = {
       CAMARA: 'CAM',
       TRIPODE: 'TRI',
@@ -62,11 +116,10 @@ export const equipoService = {
     };
     const prefijo = prefijos[categoria] || 'EQP';
 
-    // 3. Generar correlativo único
     const totalExistentes = await prisma.equipo.count({
       where: { categoria },
     });
-    
+
     let correlativoNum = totalExistentes + 1;
     let codigoGenerado = `${prefijo}-${String(correlativoNum).padStart(3, '0')}`;
 
@@ -75,11 +128,9 @@ export const equipoService = {
       codigoGenerado = `${prefijo}-${String(correlativoNum).padStart(3, '0')}`;
     }
 
-    // 4. Formatear fecha segura para @db.Date
-    const fechaObj = new Date(fecha_compra);
+    const fechaObj = parsearFechaSegura(fecha_compra);
 
-    // 5. Inserción
-    return await prisma.equipo.create({
+    const creado = await prisma.equipo.create({
       data: {
         codigo: codigoGenerado,
         nombre: nombre.trim(),
@@ -87,7 +138,7 @@ export const equipoService = {
         marca: marca ? marca.trim() : null,
         modelo: modelo ? modelo.trim() : null,
         fecha_compra: fechaObj,
-        valor_compra: Math.round(Number(valor_compra)),
+        valor_compra: valorNum,
         estado: 'OPERATIVO',
         id_kit: null,
         id_evento_repuesto: null,
@@ -98,16 +149,18 @@ export const equipoService = {
         jefe: true,
       },
     });
+
+    return formatearRepuesto(creado);
   },
 
   async actualizar(codigo, datos) {
     const {
       nombre,
-      categoria,
       marca,
       modelo,
       fecha_compra,
       valor_compra,
+      estado,
     } = datos;
 
     const equipoExistente = await prisma.equipo.findUnique({
@@ -122,9 +175,6 @@ export const equipoService = {
     if (nombre !== undefined && nombre.trim() !== '') {
       dataActualizada.nombre = nombre.trim();
     }
-    if (categoria !== undefined) {
-      dataActualizada.categoria = categoria;
-    }
     if (marca !== undefined) {
       dataActualizada.marca = marca ? marca.trim() : null;
     }
@@ -132,13 +182,37 @@ export const equipoService = {
       dataActualizada.modelo = modelo ? modelo.trim() : null;
     }
     if (fecha_compra) {
-      dataActualizada.fecha_compra = new Date(fecha_compra);
-    }
-    if (valor_compra !== undefined && valor_compra !== '') {
-      dataActualizada.valor_compra = Math.round(Number(valor_compra));
+      dataActualizada.fecha_compra = parsearFechaSegura(fecha_compra);
     }
 
-    return await prisma.equipo.update({
+    // RF-P5-08: Permitir pasar de DANADO a OPERATIVO solo si actualmente está DANADO
+    let cambioAOperativo = false;
+    if (estado !== undefined && estado !== equipoExistente.estado) {
+      if (equipoExistente.estado === 'DANADO' && estado === 'OPERATIVO') {
+        dataActualizada.estado = 'OPERATIVO';
+        cambioAOperativo = true;
+      } else {
+        throw new Error('Solo se puede cambiar el estado a OPERATIVO cuando el equipo está DAÑADO.');
+      }
+    }
+
+    let cambioValor = false;
+    const valorAnterior = Number(equipoExistente.valor_compra);
+    let valorNuevo = valorAnterior;
+
+    if (valor_compra !== undefined && valor_compra !== '') {
+      const valorNum = Math.round(Number(valor_compra));
+      if (Number.isNaN(valorNum) || valorNum <= 0) {
+        throw new Error('El valor de compra debe ser mayor a 0.');
+      }
+      dataActualizada.valor_compra = valorNum;
+      if (valorNum !== valorAnterior) {
+        cambioValor = true;
+        valorNuevo = valorNum;
+      }
+    }
+
+    const actualizado = await prisma.equipo.update({
       where: { codigo },
       data: dataActualizada,
       include: {
@@ -146,6 +220,23 @@ export const equipoService = {
         jefe: true,
       },
     });
+
+    if (cambioValor) {
+      await registrarCambioValorHistorial(codigo, valorAnterior, valorNuevo);
+    }
+
+    if (cambioAOperativo && actualizado.id_kit) {
+      await recalcularEstadoKit(actualizado.id_kit);
+    }
+
+    const finalEquipo = cambioAOperativo && actualizado.id_kit
+      ? await prisma.equipo.findUnique({
+          where: { codigo },
+          include: { kit: true, jefe: true },
+        })
+      : actualizado;
+
+    return formatearRepuesto(finalEquipo);
   },
 
   async darDeBaja(codigo, motivo) {
@@ -165,7 +256,7 @@ export const equipoService = {
       throw new Error(`El equipo con código ${codigo} no existe.`);
     }
 
-    // Comprobamos si tiene historial de uso
+    const idKitAnterior = equipo.id_kit;
     const sinHistorial = equipo.incidentes.length === 0 && equipo.revisiones.length === 0;
 
     const equipoActualizado = await prisma.equipo.update({
@@ -183,8 +274,12 @@ export const equipoService = {
       },
     });
 
+    if (idKitAnterior) {
+      await recalcularEstadoKit(idKitAnterior);
+    }
+
     return {
-      equipo: equipoActualizado,
+      equipo: formatearRepuesto(equipoActualizado),
       sinHistorial,
       mensaje: 'Equipo dado de baja correctamente.',
     };
@@ -207,8 +302,16 @@ export const equipoService = {
       throw new Error('No se puede eliminar definitivamente porque registra historial de uso.');
     }
 
-    return await prisma.equipo.delete({
+    const idKitAnterior = equipo.id_kit;
+
+    const eliminado = await prisma.equipo.delete({
       where: { codigo },
     });
+
+    if (idKitAnterior) {
+      await recalcularEstadoKit(idKitAnterior);
+    }
+
+    return eliminado;
   },
 };

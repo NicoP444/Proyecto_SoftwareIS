@@ -1,14 +1,10 @@
-import {Router} from 'express';
-import { getHistorialCambios, postHistorialCambio } from '../controllers/historialCambio.controller.js';
-import { verListadoHistorialCambioMiddleware,crearHistorialCambioMiddleware,} from '../middlewares/historialCambio.middleware.js';
-
+import { Router } from 'express';
+import { obtenerHistorialEquipo } from '../controllers/historialEquipo.controller.js';
+import { historialEquipoMiddleware } from '../middlewares/historialEquipo.middleware.js';
 
 const router = Router();
 
-router.get('/', verListadoHistorialCambioMiddleware, getHistorialCambios);
-router.post('/', crearHistorialCambioMiddleware, postHistorialCambio);
+// Endpoint para consultar trazabilidad del equipo
+router.get('/:codigo', historialEquipoMiddleware, obtenerHistorialEquipo);
 
 export default router;
-
-//para get y post
-//http://localhost:3000/api/historial-cambios?id_dueno=1 

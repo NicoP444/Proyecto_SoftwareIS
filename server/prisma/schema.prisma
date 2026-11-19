@@ -130,11 +130,11 @@ model Dueno {
   estado            EstadoCuenta @default(ACTIVO)
   intentos_fallidos Int          @default(0) @db.SmallInt
   bloqueado_hasta   DateTime?    @db.Timestamp(6)
+  margen_traslado_min Int        @default(60) @db.SmallInt // minutos mínimos entre dos eventos en direcciones distintas (RF-P3-02)
 
   sesiones        Sesion[]
   historial       HistorialCambio[]
   clientes        Cliente[]
-  recintos        Recinto[]
   eventos         Evento[]
   trabajadores    Trabajador[]
   roles           RolTrabajo[]
@@ -242,18 +242,6 @@ model Cliente {
   @@map("cliente")
 }
 
-model Recinto {
-  id_recinto Int     @id @default(autoincrement())
-  nombre     String  @db.VarChar(80)
-  direccion  String? @db.VarChar(120)
-  comuna     String  @db.VarChar(60)
-  id_dueno   Int
-
-  dueno   Dueno    @relation(fields: [id_dueno], references: [id_dueno], onDelete: Restrict)
-
-  @@map("recinto")
-}
-
 model Evento {
   id_evento          Int          @id @default(autoincrement())
   tipo               String       @db.VarChar(40)
@@ -262,7 +250,6 @@ model Evento {
   hora_termino       DateTime     @db.Time(6)
   direccion          String       @db.VarChar(120)
   precio_acordado    Int
-  cantidad_camaras   Int          @default(1) @db.SmallInt
   cantidad_repuestos Int          @default(0) @db.SmallInt
   gastos_estimados   Int          @default(0)
   observaciones      String?      @db.VarChar(255)
@@ -342,8 +329,6 @@ model Disponibilidad {
   nro_bloque    Int
   fecha_inicio  DateTime @db.Date // fecha de inicio del bloque de disponibilidad 
   fecha_termino DateTime @db.Date // fecha de término del bloque de disponibilidad
-  hora_inicio   DateTime @db.Time(6) 
-  hora_termino  DateTime @db.Time(6)
   id_dueno      Int
 
   trabajador Trabajador @relation(fields: [id_trabajador], references: [id_trabajador], onDelete: Cascade)

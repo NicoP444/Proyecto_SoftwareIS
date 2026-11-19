@@ -1,15 +1,25 @@
 import { useEffect, useState } from "react";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, MessageCircle, Pencil, Plus, Trash2 } from "lucide-react";
 import {
   listarClientes,
-  crearCliente,
-  modificarCliente,
   eliminarCliente,
 } from "../../services/cliente.service.js";
-import { formatearRut, limpiarRut, rutEsValido } from "../../utils/rut.js";
+import { formatearRut } from "../../utils/rut.js";
+import FormularioCliente from "./FormularioCliente";
 
-const VACIO = { rut: "", nombre: "", telefono: "", correo: "" };
 const LIMITE = 50;
+
+// "+56911111111" -> "+56 9 1111 1111" (si no es un celular chileno, se muestra tal cual)
+function formatearTelefono(telefono = "") {
+  const digitos = telefono.replace(/\D/g, "");
+  if (/^569\d{8}$/.test(digitos)) {
+    return `+56 9 ${digitos.slice(3, 7)} ${digitos.slice(7)}`;
+  }
+  return telefono;
+}
+
+// Solo los dígitos, para los enlaces tel: y WhatsApp
+const soloDigitos = (telefono = "") => telefono.replace(/\D/g, "");
 
 /**
  * RF-P1-01: registrar, modificar y eliminar clientes (solo el Dueño).
@@ -21,10 +31,12 @@ export default function GestionClientes({ onCambio }) {
   const [recarga, setRecarga] = useState(0); // sube cada vez que hay que volver a pedir la lista
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
+  const [aviso, setAviso] = useState(""); // mensaje verde después de guardar o eliminar
 
-  const [formulario, setFormulario] = useState(null); // null = se ve la lista
-  const [errorForm, setErrorForm] = useState("");
-  const [guardando, setGuardando] = useState(false);
+  // null = se ve la lista · "nuevo" = formulario vacío · un cliente = formulario para modificarlo
+  const [formulario, setFormulario] = useState(null);
+  const [confirmando, setConfirmando] = useState(null); // id del cliente que se está por eliminar
+  const [eliminando, setEliminando] = useState(false);
 
   // Pide la lista 300 ms después de escribir en el buscador
   useEffect(() => {
@@ -48,109 +60,66 @@ export default function GestionClientes({ onCambio }) {
     };
   }, [buscar, recarga]);
 
-  const cambiar = (campo) => (e) => setFormulario({ ...formulario, [campo]: e.target.value });
-
-  function abrirNuevo() {
-    setErrorForm("");
-    setFormulario({ ...VACIO });
+  // Después de crear o modificar: vuelve a la lista y la refresca
+  function alGuardar(cliente) {
+    setAviso(
+      formulario === "nuevo"
+        ? `Cliente ${cliente?.nombre ?? ""} creado`
+        : `Cliente ${cliente?.nombre ?? ""} actualizado`,
+    );
+    setFormulario(null);
+    setRecarga((n) => n + 1);
+    onCambio?.(); // para que el calendario refresque los nombres
   }
 
-  function abrirEditar(c) {
-    setErrorForm("");
-    setFormulario({
-      id_cliente: c.id_cliente,
-      rut: formatearRut(c.rut),
-      nombre: c.nombre,
-      telefono: c.telefono,
-      correo: c.correo ?? "",
-    });
-  }
-
-  async function guardar(e) {
-    e.preventDefault();
-    setErrorForm("");
-    const f = formulario;
-
-    if (!f.rut.trim()) return setErrorForm("El RUT es obligatorio");
-    if (!rutEsValido(f.rut)) return setErrorForm("El RUT no es válido");
-    if (!f.nombre.trim()) return setErrorForm("Indica el nombre del cliente");
-    if (!f.telefono.trim()) return setErrorForm("Indica el teléfono del cliente");
-
-    const datos = {
-      rut: limpiarRut(f.rut),
-      nombre: f.nombre.trim(),
-      telefono: f.telefono.trim(),
-      correo: f.correo.trim(),
-    };
-
-    setGuardando(true);
-    try {
-      if (f.id_cliente) await modificarCliente(f.id_cliente, datos);
-      else await crearCliente(datos);
-      setFormulario(null);
-      setRecarga((n) => n + 1);
-      onCambio?.(); // para que el calendario refresque los nombres
-    } catch (err) {
-      setErrorForm(err.message);
-    } finally {
-      setGuardando(false);
-    }
+  function abrirFormulario(valor) {
+    setAviso("");
+    setError("");
+    setConfirmando(null);
+    setFormulario(valor);
   }
 
   async function eliminar(c) {
-    if (!window.confirm(`¿Eliminar al cliente ${c.nombre}?`)) return;
     setError("");
+    setEliminando(true);
     try {
       await eliminarCliente(c.id_cliente);
+      setConfirmando(null);
+      setAviso(`Cliente ${c.nombre} eliminado`);
       setRecarga((n) => n + 1);
       onCambio?.();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setEliminando(false);
     }
   }
 
   // ---------- Formulario (nuevo / editar) ----------
   if (formulario) {
     return (
-      <form className="formulario" onSubmit={guardar} noValidate>
-        {errorForm && <div className="mensaje mensaje-error">{errorForm}</div>}
-
-        <div className="campo">
-          <label htmlFor="cli-rut">RUT</label>
-          <input
-            id="cli-rut"
-            value={formulario.rut}
-            onChange={cambiar("rut")}
-            onBlur={() => setFormulario({ ...formulario, rut: formatearRut(formulario.rut) })}
-            placeholder="12.345.678-5"
-            maxLength={12}
-            autoFocus
-          />
-        </div>
-        <div className="campo">
-          <label htmlFor="cli-nombre">Nombre</label>
-          <input id="cli-nombre" value={formulario.nombre} onChange={cambiar("nombre")} maxLength={80} />
-        </div>
-        <div className="fila-doble">
-          <div className="campo">
-            <label htmlFor="cli-telefono">Teléfono</label>
-            <input id="cli-telefono" value={formulario.telefono} onChange={cambiar("telefono")} placeholder="+56 9 1234 5678" maxLength={20} />
-          </div>
-          <div className="campo">
-            <label htmlFor="cli-correo">Correo (opcional)</label>
-            <input id="cli-correo" type="email" value={formulario.correo} onChange={cambiar("correo")} maxLength={120} />
-          </div>
-        </div>
-
-        <div className="acciones">
-          <button type="button" className="boton boton-secundario" onClick={() => setFormulario(null)}>
-            Cancelar
+      <div className="cli-gestion">
+        <div className="cli-form-cabecera">
+          <button
+            type="button"
+            className="boton boton-texto"
+            onClick={() => setFormulario(null)}
+          >
+            <ArrowLeft /> Volver a la lista
           </button>
-          <button type="submit" className="boton boton-principal" disabled={guardando}>
-            {guardando ? "Guardando…" : formulario.id_cliente ? "Guardar cambios" : "Crear cliente"}
-          </button>
+          <h3>
+            {formulario === "nuevo"
+              ? "Nuevo cliente"
+              : `Editar a ${formulario.nombre}`}
+          </h3>
         </div>
-      </form>
+        <FormularioCliente
+          key={formulario === "nuevo" ? "nuevo" : formulario.id_cliente}
+          cliente={formulario === "nuevo" ? null : formulario}
+          onGuardado={alGuardar}
+          onCancelar={() => setFormulario(null)}
+        />
+      </div>
     );
   }
 
@@ -168,19 +137,28 @@ export default function GestionClientes({ onCambio }) {
             autoComplete="off"
           />
         </div>
-        <button type="button" className="boton boton-principal" onClick={abrirNuevo}>
+        <button
+          type="button"
+          className="boton boton-principal"
+          onClick={() => abrirFormulario("nuevo")}
+        >
           <Plus size={18} /> Nuevo cliente
         </button>
       </div>
 
+      {aviso && <div className="mensaje mensaje-exito">{aviso}</div>}
       {error && <div className="mensaje mensaje-error">{error}</div>}
       {cargando && <p className="vacio">Cargando clientes…</p>}
       {!cargando && !error && clientes.length === 0 && (
-        <p className="vacio">No hay clientes que coincidan.</p>
+        <p className="vacio">
+          {buscar
+            ? "No hay clientes que coincidan."
+            : "Aún no hay clientes registrados."}
+        </p>
       )}
 
       {clientes.length > 0 && (
-        <div style={{ overflowX: "auto" }}>
+        <div className="cli-tabla-contenedor">
           <table className="cli-tabla">
             <thead>
               <tr>
@@ -188,34 +166,106 @@ export default function GestionClientes({ onCambio }) {
                 <th>Nombre</th>
                 <th>Teléfono</th>
                 <th>Correo</th>
+                <th className="cli-centro">Eventos</th>
                 <th />
               </tr>
             </thead>
             <tbody>
               {clientes.map((c) => {
                 const nEventos = c._count?.eventos ?? 0;
+                const preguntando = confirmando === c.id_cliente;
                 return (
-                  <tr key={c.id_cliente}>
-                    <td>{formatearRut(c.rut)}</td>
-                    <td>{c.nombre}</td>
-                    <td>{c.telefono}</td>
-                    <td>{c.correo ?? "—"}</td>
+                  <tr
+                    key={c.id_cliente}
+                    className={preguntando ? "cli-fila-peligro" : ""}
+                  >
+                    <td className="cli-rut">{formatearRut(c.rut)}</td>
                     <td>
-                      <div className="cli-acciones">
-                        <button type="button" className="boton-icono" onClick={() => abrirEditar(c)} aria-label="Modificar">
-                          <Pencil size={16} />
-                        </button>
-                        <button
-                          type="button"
+                      <strong>{c.nombre}</strong>
+                    </td>
+                    <td>
+                      <div className="cli-telefono">
+                        <a href={`tel:+${soloDigitos(c.telefono)}`}>
+                          {formatearTelefono(c.telefono)}
+                        </a>
+                        <a
+                          href={`https://wa.me/${soloDigitos(c.telefono)}`}
+                          target="_blank"
+                          rel="noreferrer"
                           className="boton-icono"
-                          onClick={() => eliminar(c)}
-                          disabled={nEventos > 0}
-                          title={nEventos > 0 ? `Tiene ${nEventos} evento(s) asociado(s)` : "Eliminar"}
-                          aria-label="Eliminar"
+                          title="Escribir por WhatsApp"
+                          aria-label={`Escribir a ${c.nombre} por WhatsApp`}
                         >
-                          <Trash2 size={16} />
-                        </button>
+                          <MessageCircle size={15} />
+                        </a>
                       </div>
+                    </td>
+                    <td>
+                      {c.correo ? (
+                        <a href={`mailto:${c.correo}`}>{c.correo}</a>
+                      ) : (
+                        <span className="texto-tenue">—</span>
+                      )}
+                    </td>
+                    <td className="cli-centro">
+                      <span
+                        className={`cli-eventos ${nEventos === 0 ? "cero" : ""}`}
+                      >
+                        {nEventos}
+                      </span>
+                    </td>
+                    <td>
+                      {preguntando ? (
+                        // Confirmación dentro de la misma fila (en vez del window.confirm del navegador)
+                        <div className="cli-confirmar">
+                          <span>¿Eliminar?</span>
+                          <button
+                            type="button"
+                            className="boton boton-secundario"
+                            onClick={() => setConfirmando(null)}
+                            disabled={eliminando}
+                          >
+                            No
+                          </button>
+                          <button
+                            type="button"
+                            className="boton boton-peligro"
+                            onClick={() => eliminar(c)}
+                            disabled={eliminando}
+                          >
+                            {eliminando ? "Eliminando…" : "Sí, eliminar"}
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="cli-acciones">
+                          <button
+                            type="button"
+                            className="boton-icono"
+                            onClick={() => abrirFormulario(c)}
+                            title="Modificar"
+                            aria-label={`Modificar a ${c.nombre}`}
+                          >
+                            <Pencil size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            className="boton-icono cli-eliminar"
+                            onClick={() => {
+                              setAviso("");
+                              setConfirmando(c.id_cliente);
+                            }}
+                            disabled={nEventos > 0}
+                            title={
+                              nEventos > 0
+                                ? `No se puede eliminar: tiene ${nEventos} evento(s) asociado(s)`
+                                : "Eliminar"
+                            }
+                            aria-label={`Eliminar a ${c.nombre}`}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 );
@@ -226,7 +276,10 @@ export default function GestionClientes({ onCambio }) {
       )}
 
       {clientes.length === LIMITE && (
-        <p className="texto-tenue">Mostrando los primeros {LIMITE}. Usa el buscador para encontrar a otros.</p>
+        <p className="texto-tenue">
+          Mostrando los primeros {LIMITE}. Usa el buscador para encontrar a
+          otros.
+        </p>
       )}
     </div>
   );

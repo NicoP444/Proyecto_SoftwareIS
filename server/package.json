@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "type": "module",
   "main": "index.js",
-  "scripts": {
+   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "seed:todo": "node seeders/todo.js",
+    "seed:limpiar": "node seeders/limpiar.js"
   },
   "keywords": [],
   "author": "",
@@ -13,10 +15,12 @@
   "description": "",
   "dependencies": {
     "@prisma/client": "^6.19.3",
+    "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^18.0.3",
     "express": "^5.2.1",
+    "express-validator": "^7.3.2",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.5.0",
     "zod": "^4.6.5"

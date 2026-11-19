@@ -4,18 +4,18 @@ import Home from "./pages/Home";
 import Trabajadores from "./pages/Trabajadores"; //nico
 import Finanzas from "./pages/Finanzas"; //nico
 import Auspiciadores from "./pages/Auspiciadores";
-import Coberturas from "./pages/Coberturas";
 import Incidentes from "./pages/Incidentes";
-import Clientes from "./pages/Clientes";
 import RegistrarAcuerdoPage from "./pages/RegistrarAcuerdo";
 import SalidaKits from "./pages/SalidaKits";
-import Plantilla from "./components/Plantilla"; 
-import HistorialEquipo from './pages/HistorialEquipo.jsx';
+import Plantilla from "./components/Plantilla";
+import RutaPorRol from "./components/RutaPorRol";
 import Calendario from "./pages/Calendario";
-import ResumenIncidentesEventoPage from './pages/ResumenIncidentesEventoPage.jsx';
 import Equipos from "./pages/Equipos";
-import ConsultaInventario from './pages/ConsultarInventario.jsx';
 import MarcarEventoRealizado from './pages/MarcarEventoRealizado.jsx';
+import ConsultarInventario from './pages/ConsultarInventario.jsx';
+import Kits from "./pages/Kits";
+import PerdidasInventarioJefe from './pages/PerdidasInventarioJefe.jsx';
+
 
 // Componente para proteger rutas privadas
 function RutaProtegida({ children }) {
@@ -27,89 +27,44 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-       <Route path="/" element={<Landing />} />
+        <Route path="/" element={<Landing />} />
 
-        {/* Ruta privada Home */}
-        <Route
-          path="/home"
-          element={
-            <RutaProtegida>
-              <Home />
-            </RutaProtegida>
-          }
-        />
+        {/* Rutas con barra lateral: protegidas por sesión y por rol */}
+        <Route element={<RutaProtegida><Plantilla /></RutaProtegida>}>
 
-        {/* Rutas con barra lateral */}
-        <Route element={<Plantilla />}>
-          <Route path="/trabajadores" element={<Trabajadores />} />
-          <Route path="/finanzas" element={<Finanzas />} />
+          {/* Todos los roles */}
+          <Route path="/home" element={<Home />} />
           <Route path="/calendario" element={<Calendario />} />
-          <Route path="/auspiciadores" element={<Auspiciadores />} />
-          <Route path="/auspiciadores/registrar-acuerdo" element={<RegistrarAcuerdoPage />} />
-          <Route path="/equipos" element={<Equipos />} />
-          <Route path="/salida-kits" element={<SalidaKits />} />
-          <Route path="/marcar-evento" element={<MarcarEventoRealizado />} />
+          <Route path="/consulta-inventario" element={<ConsultarInventario />} />
+
+          {/* Dueño y Contador */}
+          <Route element={<RutaPorRol roles={["DUENO", "CONTADOR"]} />}>
+            <Route path="/finanzas" element={<Finanzas />} />
+            <Route path="/auspiciadores" element={<Auspiciadores />} />
+          </Route>
+
+          {/* Solo el Dueño */}
+          <Route element={<RutaPorRol roles={["DUENO"]} />}>
+            <Route path="/trabajadores" element={<Trabajadores />} />
+            <Route path="/auspiciadores/registrar-acuerdo" element={<RegistrarAcuerdoPage />} />
+            <Route path="/marcar-evento" element={<MarcarEventoRealizado />} />
+          </Route>
+
+          {/* Solo el Jefe de área técnica */}
+          <Route element={<RutaPorRol roles={["JEFE_TECNICO"]} />}>
+            <Route path="/equipos" element={<Equipos />} />
+            <Route path="/kits" element={<Kits />} />
+            <Route path="/salida-kits" element={<SalidaKits />} />
+            <Route path="/perdidas-inventario" element={<PerdidasInventarioJefe />} />
+          </Route>
         </Route>
-
-        <Route
-          path="/clientes"
-          element={
-            <RutaProtegida>
-              <Clientes />
-            </RutaProtegida>
-          }
-        />
-
-        <Route
-          path="/coberturas"
-          element={
-            <RutaProtegida>
-              <Coberturas />
-            </RutaProtegida>
-          }
-        />
-
+        
+          
         <Route
           path="/incidentes"
           element={
             <RutaProtegida>
               <Incidentes />
-            </RutaProtegida>
-          }
-        />
-
-        <Route
-          path="/equipos/historial"
-          element={
-            <RutaProtegida>
-              <HistorialEquipo />
-            </RutaProtegida>
-          }
-        />
-        
-        <Route
-          path="/resumen-incidentes"
-          element={
-            <RutaProtegida>
-              <ResumenIncidentesEventoPage />
-            </RutaProtegida>
-          }
-        />
-
-        <Route
-          path="/consulta-inventario"
-          element={
-            <RutaProtegida>
-              <ConsultaInventario />
-            </RutaProtegida>
-          }
-        />
-
-        <Route
-          path="/salida-kits"
-          element={
-            <RutaProtegida>
-              <SalidaKits />
             </RutaProtegida>
           }
         />

@@ -14,7 +14,7 @@ async function enviarArchivo(ruta, method, formData) {
 }
 
 // Eventos (módulo de Persona 1)
-export const listarEventos = () => pedir('/coberturas');
+export const listarEventos = () => pedir('/eventos');
 
 // Gastos (RF-P7-02 y RF-P7-03)
 export const listarGastos = (idEvento) => pedir(`/gastosEvento/evento/${idEvento}`);

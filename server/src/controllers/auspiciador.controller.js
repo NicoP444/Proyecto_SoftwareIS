@@ -1,59 +1,49 @@
-// Importamos la "cocina" (el servicio que acabas de crear)
 import { auspiciadorService } from '../services/auspiciador.service.js';
 
 export const auspiciadorController = {
-  // 0. LISTAR TODOS
+  // OBTENER TODOS
   async obtenerTodos(req, res) {
     try {
       const auspiciadores = await auspiciadorService.obtenerTodos();
       res.status(200).json(auspiciadores);
     } catch (error) {
-      res.status(500).json({ error: "Ocurrió un error al obtener los auspiciadores." });
+      const msg = error.message || 'Ocurrió un error al obtener los auspiciadores.';
+      res.status(500).json({ mensaje: msg, error: msg });
     }
   },
 
-  // 1. REGISTRAR
+  // REGISTRAR AUSPICIADOR
   async crear(req, res) {
     try {
       const nuevoAuspiciador = await auspiciadorService.crear(req.body);
       res.status(201).json(nuevoAuspiciador);
     } catch (error) {
-      res.status(500).json({ error: "Ocurrió un error al registrar el auspiciador." });
+      const msg = error.message || 'Ocurrió un error al registrar el auspiciador.';
+      res.status(400).json({ mensaje: msg, error: msg });
     }
   },
 
-  // 2. MODIFICAR
+  // MODIFICAR AUSPICIADOR
   async modificar(req, res) {
     try {
       const id = req.params.id;
       const datosActualizados = await auspiciadorService.modificar(id, req.body);
       res.status(200).json(datosActualizados);
     } catch (error) {
-      res.status(500).json({ error: "Ocurrió un error al modificar el auspiciador." });
+      const msg = error.message || 'Ocurrió un error al modificar el auspiciador.';
+      res.status(400).json({ mensaje: msg, error: msg });
     }
   },
 
-  // 3. ELIMINAR
+  // ELIMINAR AUSPICIADOR
   async eliminar(req, res) {
     try {
       const id = req.params.id;
       await auspiciadorService.eliminar(id);
-      res.status(200).json({ mensaje: "Auspiciador eliminado con éxito." });
+      res.status(200).json({ mensaje: 'Auspiciador eliminado con éxito.' });
     } catch (error) {
-      if (error.message.includes("tiene acuerdos")) {
-        return res.status(400).json({ error: error.message });
-      }
-      res.status(500).json({ error: "Ocurrió un error al eliminar el auspiciador." });
+      const msg = error.message || 'No se puede eliminar el auspiciador.';
+      res.status(400).json({ mensaje: msg, error: msg });
     }
   }
-};
-// server/src/services/auspiciador.service.js (o donde manejes auspiciadores)
-export const clasificarAuspiciador = async (id, clasificacion, motivo) => {
-  return await prisma.auspiciador.update({
-    where: { id_auspiciador: Number(id) },
-    data: {
-      clasificacion, // "CONFIABLE" o "NO_CONFIABLE" (según tu enum Clasificacion)
-      motivo_clasificacion: motivo,
-    },
-  });
 };

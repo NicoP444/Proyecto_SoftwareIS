@@ -1,9 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { consultarInventario } from '../services/consultarInventario.service.js';
+import { getHistorialEquipo } from '../services/historialEquipo.service.js';
+import { obtenerUsuario } from '../services/http.js';
+import '../styles/ConsultarInventario.css';
 
 export default function ConsultarInventario() {
-  const navigate = useNavigate();
+  const rolActual = String(obtenerUsuario()?.rol ?? '').toUpperCase();
+  const puedeVerHistorial = rolActual === 'DUENO' || rolActual === 'JEFE_TECNICO';
+
   const [datos, setDatos] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
@@ -12,6 +16,12 @@ export default function ConsultarInventario() {
   const [busqueda, setBusqueda] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('TODOS');
   const [kitSeleccionado, setKitSeleccionado] = useState(null);
+
+  // Estados para el Modal de Historial de Equipo
+  const [modalHistorialAbierto, setModalHistorialAbierto] = useState(false);
+  const [cargandoHistorial, setCargandoHistorial] = useState(false);
+  const [errorHistorial, setErrorHistorial] = useState('');
+  const [datosHistorial, setDatosHistorial] = useState(null);
 
   useEffect(() => {
     cargarDatos();
@@ -31,6 +41,28 @@ export default function ConsultarInventario() {
     } finally {
       setCargando(false);
     }
+  };
+
+  const abrirModalHistorial = async (codigo) => {
+    setModalHistorialAbierto(true);
+    setCargandoHistorial(true);
+    setErrorHistorial('');
+    setDatosHistorial(null);
+
+    try {
+      const res = await getHistorialEquipo(codigo);
+      setDatosHistorial(res?.data || res);
+    } catch (err) {
+      setErrorHistorial(err.message || 'No se pudo cargar el historial del equipo.');
+    } finally {
+      setCargandoHistorial(false);
+    }
+  };
+
+  const cerrarModalHistorial = () => {
+    setModalHistorialAbierto(false);
+    setDatosHistorial(null);
+    setErrorHistorial('');
   };
 
   // Formateo de enums a texto profesional con tildes, Ñ y 'Retirado'
@@ -62,67 +94,80 @@ export default function ConsultarInventario() {
 
   // Badge pill con ancho uniforme
   const renderBadge = (estado) => {
-    let bg = '#f1f5f9';
-    let text = '#475569';
+    let claseVariante = '';
 
     switch (estado) {
       case 'OPERATIVO':
       case 'DISPONIBLE':
-        bg = '#dcfce7';
-        text = '#15803d';
+        claseVariante = 'inv-badge-verde';
         break;
       case 'EN_TERRENO':
-        bg = '#dbeafe';
-        text = '#1d4ed8';
+        claseVariante = 'inv-badge-azul';
         break;
       case 'INCOMPLETO':
       case 'DANADO':
       case 'DADO_DE_BAJA':
       case 'PERDIDO':
       case 'ROBADO':
-        bg = '#fee2e2';
-        text = '#dc2626';
+        claseVariante = 'inv-badge-rojo';
         break;
       default:
         break;
     }
 
     return (
-      <span
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '6px',
-          width: '110px',
-          minWidth: '110px',
-          maxWidth: '110px',
-          height: '24px',
-          padding: '0 8px',
-          boxSizing: 'border-box',
-          borderRadius: '9999px',
-          fontSize: '0.72rem',
-          fontWeight: '700',
-          lineHeight: '1',
-          whiteSpace: 'nowrap',
-          backgroundColor: bg,
-          color: text,
-          letterSpacing: '0.02em',
-          flexShrink: 0,
-        }}
-      >
-        <span
-          style={{
-            width: '6px',
-            height: '6px',
-            borderRadius: '50%',
-            backgroundColor: text,
-            flexShrink: 0,
-          }}
-        />
+      <span className={`inv-badge ${claseVariante}`}>
+        <span className="inv-badge-punto" />
         <span>{formatearEstadoTexto(estado)}</span>
       </span>
     );
+  };
+
+  const renderBadgeEventoHistorial = (tipo) => {
+    let claseVariante = '';
+    let label = tipo;
+
+    switch (tipo) {
+      case 'COMPRA':
+        claseVariante = 'inv-badge-hist-compra';
+        label = 'Ingreso';
+        break;
+      case 'SALIDA':
+        claseVariante = 'inv-badge-hist-salida';
+        label = 'Salida';
+        break;
+      case 'RETORNO':
+        claseVariante = 'inv-badge-hist-retorno';
+        label = 'Retorno';
+        break;
+      case 'INCIDENTE':
+        claseVariante = 'inv-badge-hist-incidente';
+        label = 'Incidente';
+        break;
+      case 'BAJA':
+        claseVariante = 'inv-badge-hist-baja';
+        label = 'Retirado';
+        break;
+      default:
+        break;
+    }
+
+    return <span className={`inv-badge-hist ${claseVariante}`}>{label}</span>;
+  };
+
+  const formatearDescripcionHistorial = (item) => {
+    if (item.tipo === 'INCIDENTE') {
+      return item.descripcion
+        .replace('DANO', 'Daño')
+        .replace('PERDIDA', 'Pérdida')
+        .replace('ROBO', 'Robo');
+    }
+
+    if (item.tipo === 'BAJA') {
+      return item.descripcion.replace('Equipo dado de baja:', 'Equipo retirado:');
+    }
+
+    return item.descripcion;
   };
 
   // Filtros combinados: Búsqueda por texto + Filtro por Estado
@@ -149,6 +194,14 @@ export default function ConsultarInventario() {
     }
     return filtrados;
   }, [datos, busqueda, filtroEstado]);
+
+  useEffect(() => {
+    if (kitsFiltrados.length === 0) {
+      setKitSeleccionado(null);
+    } else if (!kitsFiltrados.some((k) => k.id_kit === kitSeleccionado?.id_kit)) {
+      setKitSeleccionado(kitsFiltrados[0]);
+    }
+  }, [kitsFiltrados, kitSeleccionado]);
 
   const repuestosFiltrados = useMemo(() => {
     if (!datos?.repuestos) return [];
@@ -193,69 +246,37 @@ export default function ConsultarInventario() {
   }, [datos, busqueda, filtroEstado]);
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1.5rem', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-      
+    <div>
       {/* Cabecera superior */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+      <div className="encabezado">
         <div>
-          <h1 style={{ fontSize: '1.65rem', fontWeight: '800', color: '#0f172a', margin: '0 0 0.25rem 0' }}>
-            Inventario General
-          </h1>
+          <h1>Inventario General</h1>
+          <p>Disponibilidad de kits, repuestos en bodega y balance de equipos</p>
         </div>
-        <button
-          type="button"
-          onClick={() => navigate('/home')}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            padding: '0.55rem 1.1rem',
-            backgroundColor: '#333c87',
-            color: '#ffffff',
-            border: 'none',
-            borderRadius: '6px',
-            fontSize: '0.88rem',
-            fontWeight: '600',
-            cursor: 'pointer',
-            boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-            transition: 'background-color 0.15s ease',
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#272e6b')}
-          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#333c87')}
-        >
-          ← Volver al inicio
-        </button>
       </div>
 
       {/* Indicadores métricos KPI */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-        <div style={{ backgroundColor: '#ffffff', padding: '1.1rem 1.25rem', borderRadius: '12px', border: '1px solid #e2e8f0', borderTop: '4px solid #333c87', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <span style={{ fontSize: '0.82rem', fontWeight: '600', color: '#64748b' }}>Total Kits Registrados</span>
-          <div style={{ fontSize: '1.85rem', fontWeight: '800', color: '#0f172a', marginTop: '0.2rem' }}>
-            {datos?.kits?.length || 0}
-          </div>
+      <div className="inv-kpis">
+        <div className="inv-kpi-card">
+          <span className="inv-kpi-titulo">Total Kits Registrados</span>
+          <div className="inv-kpi-valor">{datos?.kits?.length || 0}</div>
         </div>
 
-        <div style={{ backgroundColor: '#ffffff', padding: '1.1rem 1.25rem', borderRadius: '12px', border: '1px solid #e2e8f0', borderTop: '4px solid #16a34a', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <span style={{ fontSize: '0.82rem', fontWeight: '600', color: '#64748b' }}>Repuestos Disponibles</span>
-          <div style={{ fontSize: '1.85rem', fontWeight: '800', color: '#0f172a', marginTop: '0.2rem' }}>
-            {datos?.repuestos?.length || 0}
-          </div>
+        <div className="inv-kpi-card inv-kpi-verde">
+          <span className="inv-kpi-titulo">Repuestos Disponibles</span>
+          <div className="inv-kpi-valor">{datos?.repuestos?.length || 0}</div>
         </div>
 
-        <div style={{ backgroundColor: '#ffffff', padding: '1.1rem 1.25rem', borderRadius: '12px', border: '1px solid #e2e8f0', borderTop: '4px solid #0284c7', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <span style={{ fontSize: '0.82rem', fontWeight: '600', color: '#64748b' }}>Total de Equipos</span>
-          <div style={{ fontSize: '1.85rem', fontWeight: '800', color: '#0f172a', marginTop: '0.2rem' }}>
-            {datos?.resumen?.totalEquipos || 0}
-          </div>
+        <div className="inv-kpi-card inv-kpi-azul">
+          <span className="inv-kpi-titulo">Total de Equipos</span>
+          <div className="inv-kpi-valor">{datos?.resumen?.totalEquipos || 0}</div>
         </div>
       </div>
 
-      {/* Contenedor tipo Tarjeta sin desbordamiento extraño */}
-      <div style={{ backgroundColor: '#ffffff', borderRadius: '14px', border: '1px solid #eef2f6', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
-        
-        {/* Pestañas de navegación SIN scrollbar molesta */}
-        <div style={{ display: 'flex', borderBottom: '1px solid #f1f5f9', padding: '0 1.5rem', backgroundColor: '#ffffff', overflow: 'hidden' }}>
+      {/* Contenedor tipo Tarjeta */}
+      <div className="inv-panel">
+        {/* Pestañas de navegación */}
+        <div className="inv-tabs">
           {[
             { id: 'kits', label: 'Kits y Asignaciones' },
             { id: 'repuestos', label: 'Stock de Repuestos' },
@@ -269,46 +290,27 @@ export default function ConsultarInventario() {
                 setBusqueda('');
                 setFiltroEstado('TODOS');
               }}
-              style={{
-                padding: '1.1rem 1.3rem',
-                border: 'none',
-                background: 'none',
-                cursor: 'pointer',
-                fontWeight: tab === item.id ? '700' : '500',
-                fontSize: '0.92rem',
-                color: tab === item.id ? '#333c87' : '#64748b',
-                borderBottom: tab === item.id ? '2.5px solid #333c87' : '2.5px solid transparent',
-                marginBottom: '-1px',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.15s ease',
-              }}
+              className={`inv-tab ${tab === item.id ? 'activa' : ''}`}
             >
               {item.label}
             </button>
           ))}
         </div>
 
-        <div style={{ padding: '1.5rem' }}>
-          {error && (
-            <div style={{ padding: '0.9rem', backgroundColor: '#fee2e2', color: '#991b1b', borderRadius: '8px', marginBottom: '1.2rem', fontSize: '0.9rem' }}>
-              {error}
-            </div>
-          )}
+        <div className="inv-cuerpo">
+          {error && <div className="inv-error">{error}</div>}
 
           {cargando ? (
-            <div style={{ textAlign: 'center', padding: '4rem 1rem', color: '#64748b', fontSize: '0.95rem' }}>
-              Cargando información del inventario...
-            </div>
+            <div className="inv-cargando">Cargando información del inventario...</div>
           ) : (
             <>
               {/* FILTROS: BUSCADOR + DESPLEGABLE DE ESTADO */}
               {tab !== 'resumen' && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center', marginBottom: '1.5rem' }}>
-                  
+                <div className="inv-filtros">
                   {/* Buscador de texto */}
-                  <div style={{ position: 'relative', flex: '1', minWidth: '260px', maxWidth: '420px' }}>
+                  <div className="inv-buscador-wrap">
                     <svg
-                      style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '17px', height: '17px', color: '#94a3b8' }}
+                      className="inv-buscador-icono"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
@@ -321,40 +323,20 @@ export default function ConsultarInventario() {
                     </svg>
                     <input
                       type="text"
+                      maxLength={60}
                       placeholder="Buscar por código correlativo o nombre..."
                       value={busqueda}
-                      onChange={(e) => setBusqueda(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '0.55rem 0.75rem 0.55rem 2.4rem',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: '8px',
-                        fontSize: '0.88rem',
-                        backgroundColor: '#f8fafc',
-                        color: '#0f172a',
-                        outline: 'none',
-                        boxSizing: 'border-box',
-                      }}
+                      onChange={(e) => setBusqueda(e.target.value.slice(0, 60))}
+                      className="inv-buscador-input"
                     />
                   </div>
 
                   {/* Filtro por estado desplegable */}
-                  <div style={{ width: '200px' }}>
+                  <div className="inv-filtro-select-wrap">
                     <select
                       value={filtroEstado}
                       onChange={(e) => setFiltroEstado(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '0.55rem 0.75rem',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: '8px',
-                        fontSize: '0.88rem',
-                        backgroundColor: '#ffffff',
-                        color: '#0f172a',
-                        outline: 'none',
-                        cursor: 'pointer',
-                        boxSizing: 'border-box',
-                      }}
+                      className="inv-filtro-select"
                     >
                       <option value="TODOS">Todos los estados</option>
                       {tab === 'kits' ? (
@@ -379,27 +361,16 @@ export default function ConsultarInventario() {
 
               {/* SECCIÓN 1: KITS Y DETALLES */}
               {tab === 'kits' && (
-                <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '1.5rem', alignItems: 'start' }}>
-                  
-                  {/* Lista de Kits a la izquierda CON SCROLLBAR INTERNO */}
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: '700', textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+                <div className="inv-kits-grid">
+                  {/* Lista de Kits a la izquierda */}
+                  <div className="inv-kits-col">
+                    <div className="inv-kits-subtitulo">
                       Kits Registrados ({kitsFiltrados.length})
                     </div>
-                    
-                    {/* Contenedor desplazable: altura máxima 420px con scroll suave */}
-                    <div
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '0.75rem',
-                        maxHeight: '440px',
-                        overflowY: 'auto',
-                        paddingRight: '6px',
-                      }}
-                    >
+
+                    <div className="inv-kits-lista">
                       {kitsFiltrados.length === 0 ? (
-                        <div style={{ padding: '1.5rem', textAlign: 'center', backgroundColor: '#f8fafc', borderRadius: '10px', color: '#94a3b8', fontSize: '0.88rem' }}>
+                        <div className="inv-vacio-caja">
                           No se encontraron kits coincidentes.
                         </div>
                       ) : (
@@ -409,21 +380,13 @@ export default function ConsultarInventario() {
                             <div
                               key={k.id_kit}
                               onClick={() => setKitSeleccionado(k)}
-                              style={{
-                                padding: '1rem',
-                                borderRadius: '10px',
-                                cursor: 'pointer',
-                                backgroundColor: seleccionado ? '#f0f4ff' : '#ffffff',
-                                border: seleccionado ? '1.5px solid #333c87' : '1px solid #e2e8f0',
-                                boxShadow: seleccionado ? '0 2px 8px rgba(51, 60, 135, 0.08)' : 'none',
-                                transition: 'all 0.15s ease',
-                              }}
+                              className={`inv-kit-item ${seleccionado ? 'seleccionado' : ''}`}
                             >
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.4rem' }}>
-                                <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{k.nombre}</strong>
+                              <div className="inv-kit-item-cab">
+                                <strong>{k.nombre}</strong>
                               </div>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.6rem' }}>
-                                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                              <div className="inv-kit-item-pie">
+                                <span className="inv-kit-meta">
                                   Nivel: <strong>{k.nivel}</strong> • {k.equipos?.length || 0} eq.
                                 </span>
                                 {renderBadge(k.estado)}
@@ -436,15 +399,13 @@ export default function ConsultarInventario() {
                   </div>
 
                   {/* Panel de Detalle del Kit seleccionado */}
-                  <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.5rem', backgroundColor: '#ffffff' }}>
+                  <div className="inv-kit-detalle">
                     {kitSeleccionado ? (
                       <>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '1rem', borderBottom: '1px solid #f1f5f9', marginBottom: '1.25rem' }}>
+                        <div className="inv-kit-detalle-cab">
                           <div>
-                            <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: '800', color: '#0f172a' }}>
-                              {kitSeleccionado.nombre}
-                            </h2>
-                            <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                            <h2>{kitSeleccionado.nombre}</h2>
+                            <span className="inv-kit-detalle-sub">
                               Nivel: <strong>{kitSeleccionado.nivel}</strong> | Recargo referencial: {kitSeleccionado.recargo_pct}%
                             </span>
                           </div>
@@ -452,34 +413,22 @@ export default function ConsultarInventario() {
                         </div>
 
                         {/* Próximos Eventos Asignados */}
-                        <div style={{ marginBottom: '1.75rem' }}>
-                          <h4 style={{ margin: '0 0 0.6rem 0', fontSize: '0.85rem', fontWeight: '700', textTransform: 'uppercase', color: '#475569', letterSpacing: '0.04em' }}>
-                            Próximos Eventos Asignados
-                          </h4>
+                        <div className="inv-bloque-eventos">
+                          <h4 className="inv-seccion-titulo">Próximos Eventos Asignados</h4>
                           {kitSeleccionado.proximosEventos?.length === 0 ? (
-                            <div style={{ padding: '0.85rem 1rem', backgroundColor: '#f8fafc', borderRadius: '8px', color: '#64748b', fontSize: '0.88rem', border: '1px solid #f1f5f9' }}>
+                            <div className="inv-sin-eventos">
                               Sin eventos futuros programados para este kit.
                             </div>
                           ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '160px', overflowY: 'auto' }}>
+                            <div className="inv-eventos-lista">
                               {kitSeleccionado.proximosEventos.map((ev) => (
-                                <div
-                                  key={ev.id_evento}
-                                  style={{
-                                    padding: '0.75rem 1rem',
-                                    backgroundColor: '#f0fdf4',
-                                    border: '1px solid #bbf7d0',
-                                    borderRadius: '8px',
-                                    fontSize: '0.88rem',
-                                    color: '#166534',
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                  }}
-                                >
+                                <div key={ev.id_evento} className="inv-evento-item">
                                   <div>
                                     <strong>#{ev.id_evento} {ev.tipo}</strong> — {ev.direccion}
                                   </div>
-                                  <span style={{ fontWeight: '600' }}>{new Date(ev.fecha).toLocaleDateString()}</span>
+                                  <span className="inv-evento-fecha">
+                                    {new Date(ev.fecha).toLocaleDateString()}
+                                  </span>
                                 </div>
                               ))}
                             </div>
@@ -488,37 +437,36 @@ export default function ConsultarInventario() {
 
                         {/* Equipos integrantes */}
                         <div>
-                          <h4 style={{ margin: '0 0 0.6rem 0', fontSize: '0.85rem', fontWeight: '700', textTransform: 'uppercase', color: '#475569', letterSpacing: '0.04em' }}>
-                            Equipos Integrantes
-                          </h4>
-                          <div style={{ overflowX: 'auto', maxHeight: '240px', overflowY: 'auto' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
+                          <h4 className="inv-seccion-titulo">Equipos Integrantes</h4>
+                          <div className="inv-tabla-scroll-kit">
+                            <table className="inv-tabla">
                               <thead>
-                                <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.75rem', fontWeight: '700', letterSpacing: '0.05em', position: 'sticky', top: 0, backgroundColor: '#ffffff' }}>
-                                  <th style={{ padding: '0.75rem 0.5rem' }}>CÓDIGO</th>
-                                  <th style={{ padding: '0.75rem 0.5rem' }}>EQUIPO / MODELO</th>
-                                  <th style={{ padding: '0.75rem 0.5rem' }}>CATEGORÍA</th>
-                                  <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>ESTADO</th>
+                                <tr>
+                                  <th>CÓDIGO</th>
+                                  <th>EQUIPO / MODELO</th>
+                                  <th>CATEGORÍA</th>
+                                  <th>ESTADO</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {kitSeleccionado.equipos?.map((eq) => {
-                                  const tieneMarcaModelo = Boolean(eq.marca || eq.modelo);
+                                  const marcaModelo = [eq.marca, eq.modelo].filter(Boolean).join(' ');
+                                  const debeMostrarDetalle = Boolean(
+                                    marcaModelo && !eq.nombre.toLowerCase().includes(marcaModelo.toLowerCase())
+                                  );
+
                                   return (
-                                    <tr key={eq.codigo} style={{ borderBottom: '1px solid #f8fafc' }}>
-                                      <td style={{ padding: '0.85rem 0.5rem', fontWeight: '700', color: '#0f172a' }}>{eq.codigo}</td>
-                                      <td style={{ padding: '0.85rem 0.5rem', color: '#1e293b' }}>
+                                    <tr key={eq.codigo}>
+                                      <td className="inv-td-codigo">{eq.codigo}</td>
+                                      <td className="inv-td-nombre">
                                         {eq.nombre}
-                                        {tieneMarcaModelo && (
-                                          <span style={{ color: '#64748b', fontSize: '0.82rem', marginLeft: '6px' }}>
-                                            ({[eq.marca, eq.modelo].filter(Boolean).join(' ')})
-                                          </span>
+                                        {debeMostrarDetalle && (
+                                          <span className="inv-marca-modelo">({marcaModelo})</span>
                                         )}
                                       </td>
-                                      <td style={{ padding: '0.85rem 0.5rem', color: '#64748b' }}>{eq.categoria}</td>
-                                      <td style={{ padding: '0.85rem 0.5rem', textAlign: 'right' }}>
-                                        {renderBadge(eq.estado)}
-                                      </td>
+                                      <td className="inv-td-suave">{eq.categoria}</td>
+                                      <td className="inv-td-der">{renderBadge(eq.estado)}</td>
+                                      <td className="inv-td-der"></td>
                                     </tr>
                                   );
                                 })}
@@ -528,7 +476,9 @@ export default function ConsultarInventario() {
                         </div>
                       </>
                     ) : (
-                      <p style={{ color: '#94a3b8', textAlign: 'center', margin: '2rem 0' }}>Selecciona un kit de la lista izquierda.</p>
+                      <p className="inv-kit-sin-seleccion">
+                        Selecciona un kit de la lista izquierda.
+                      </p>
                     )}
                   </div>
                 </div>
@@ -537,49 +487,61 @@ export default function ConsultarInventario() {
               {/* SECCIÓN 2: REPUESTOS OPERATIVOS */}
               {tab === 'repuestos' && (
                 <div>
-                  <div style={{ marginBottom: '1rem' }}>
-                    <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.15rem', fontWeight: '700', color: '#0f172a' }}>
-                      Stock de Repuestos
-                    </h3>
+                  <div className="inv-tabla-cab">
+                    <h3>Stock de Repuestos</h3>
                   </div>
 
-                  {/* Tabla con scroll vertical de hasta 460px */}
-                  <div style={{ overflowX: 'auto', maxHeight: '460px', overflowY: 'auto', border: '1px solid #f1f5f9', borderRadius: '8px' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
+                  <div className="inv-tabla-scroll">
+                    <table className="inv-tabla">
                       <thead>
-                        <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.75rem', fontWeight: '700', letterSpacing: '0.05em', position: 'sticky', top: 0, backgroundColor: '#ffffff', zIndex: 1 }}>
-                          <th style={{ padding: '0.75rem 0.5rem' }}>CÓDIGO</th>
-                          <th style={{ padding: '0.75rem 0.5rem' }}>EQUIPO</th>
-                          <th style={{ padding: '0.75rem 0.5rem' }}>CATEGORÍA</th>
-                          <th style={{ padding: '0.75rem 0.5rem' }}>MARCA / MODELO</th>
-                          <th style={{ padding: '0.75rem 0.5rem' }}>VALOR COMPRA</th>
-                          <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>ESTADO</th>
+                        <tr>
+                          <th>CÓDIGO</th>
+                          <th>EQUIPO</th>
+                          <th>CATEGORÍA</th>
+                          <th>VALOR COMPRA</th>
+                          <th className="inv-th-der">ESTADO</th>
+                          {puedeVerHistorial && <th className="inv-th-der">HISTORIAL</th>}
                         </tr>
                       </thead>
                       <tbody>
                         {repuestosFiltrados.length === 0 ? (
                           <tr>
-                            <td colSpan="6" style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
+                            <td colSpan={puedeVerHistorial ? 6 : 5} className="inv-tabla-vacio">
                               No hay repuestos que coincidan con la búsqueda.
                             </td>
                           </tr>
                         ) : (
                           repuestosFiltrados.map((rep) => {
                             const marcaModelo = [rep.marca, rep.modelo].filter(Boolean).join(' ');
+                            const debeMostrarDetalle = Boolean(
+                              marcaModelo && !rep.nombre.toLowerCase().includes(marcaModelo.toLowerCase())
+                            );
+
                             return (
-                              <tr key={rep.codigo} style={{ borderBottom: '1px solid #f8fafc' }}>
-                                <td style={{ padding: '0.85rem 0.5rem', fontWeight: '700', color: '#0f172a' }}>{rep.codigo}</td>
-                                <td style={{ padding: '0.85rem 0.5rem', color: '#1e293b' }}>{rep.nombre}</td>
-                                <td style={{ padding: '0.85rem 0.5rem', color: '#64748b' }}>{rep.categoria}</td>
-                                <td style={{ padding: '0.85rem 0.5rem', color: '#64748b' }}>
-                                  {marcaModelo || '—'}
+                              <tr key={rep.codigo}>
+                                <td className="inv-td-codigo">{rep.codigo}</td>
+                                <td className="inv-td-nombre">
+                                  {rep.nombre}
+                                  {debeMostrarDetalle && (
+                                    <span className="inv-marca-modelo">({marcaModelo})</span>
+                                  )}
                                 </td>
-                                <td style={{ padding: '0.85rem 0.5rem', fontWeight: '600', color: '#0f172a' }}>
+                                <td className="inv-td-suave">{rep.categoria}</td>
+                                <td className="inv-td-monto">
                                   ${Number(rep.valor_compra || 0).toLocaleString('es-CL')}
                                 </td>
-                                <td style={{ padding: '0.85rem 0.5rem', textAlign: 'right' }}>
-                                  {renderBadge(rep.estado)}
-                                </td>
+                                <td className="inv-td-der">{renderBadge(rep.estado)}</td>
+                                {puedeVerHistorial && (
+                                  <td className="inv-td-der">
+                                    <button
+                                      type="button"
+                                      onClick={() => abrirModalHistorial(rep.codigo)}
+                                      className="inv-btn-sec"
+                                    >
+                                      Ver historial
+                                    </button>
+                                  </td>
+                                )}
                               </tr>
                             );
                           })
@@ -590,56 +552,63 @@ export default function ConsultarInventario() {
                 </div>
               )}
 
-              {/* SECCIÓN 3: BÚSQUEDA GLOBAL DE EQUIPOS */}
+              {/* SECCIÓN 3: CATÁLOGO DE EQUIPOS */}
               {tab === 'equipos' && (
                 <div>
-                  <div style={{ marginBottom: '1rem' }}>
-                    <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.15rem', fontWeight: '700', color: '#0f172a' }}>
-                      Catálogo de Equipos
-                    </h3>
-                    
+                  <div className="inv-tabla-cab">
+                    <h3>Catálogo de Equipos</h3>
                   </div>
 
-                  {/* Tabla con scroll vertical de hasta 460px */}
-                  <div style={{ overflowX: 'auto', maxHeight: '460px', overflowY: 'auto', border: '1px solid #f1f5f9', borderRadius: '8px' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
+                  <div className="inv-tabla-scroll">
+                    <table className="inv-tabla">
                       <thead>
-                        <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.75rem', fontWeight: '700', letterSpacing: '0.05em', position: 'sticky', top: 0, backgroundColor: '#ffffff', zIndex: 1 }}>
-                          <th style={{ padding: '0.75rem 0.5rem' }}>CÓDIGO</th>
-                          <th style={{ padding: '0.75rem 0.5rem' }}>EQUIPO</th>
-                          <th style={{ padding: '0.75rem 0.5rem' }}>CATEGORÍA</th>
-                          <th style={{ padding: '0.75rem 0.5rem' }}>KIT ASIGNADO</th>
-                          <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>ESTADO</th>
+                        <tr>
+                          <th>CÓDIGO</th>
+                          <th>EQUIPO</th>
+                          <th>CATEGORÍA</th>
+                          <th>KIT ASIGNADO</th>
+                          <th className="inv-th-der">ESTADO</th>
+                          {puedeVerHistorial && <th className="inv-th-der">ACCIONES</th>}
                         </tr>
                       </thead>
                       <tbody>
                         {todosEquiposFiltrados.length === 0 ? (
                           <tr>
-                            <td colSpan="5" style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
+                            <td colSpan={puedeVerHistorial ? 6 : 5} className="inv-tabla-vacio">
                               No se encontraron equipos registrados.
                             </td>
                           </tr>
                         ) : (
                           todosEquiposFiltrados.map((eq) => {
-                            const tieneMarcaModelo = Boolean(eq.marca || eq.modelo);
+                            const marcaModelo = [eq.marca, eq.modelo].filter(Boolean).join(' ');
+                            const debeMostrarDetalle = Boolean(
+                              marcaModelo && !eq.nombre.toLowerCase().includes(marcaModelo.toLowerCase())
+                            );
                             return (
-                              <tr key={eq.codigo} style={{ borderBottom: '1px solid #f8fafc' }}>
-                                <td style={{ padding: '0.85rem 0.5rem', fontWeight: '700', color: '#0f172a' }}>{eq.codigo}</td>
-                                <td style={{ padding: '0.85rem 0.5rem', color: '#1e293b' }}>
+                              <tr key={eq.codigo}>
+                                <td className="inv-td-codigo">{eq.codigo}</td>
+                                <td className="inv-td-nombre">
                                   {eq.nombre}
-                                  {tieneMarcaModelo && (
-                                    <span style={{ color: '#64748b', fontSize: '0.82rem', marginLeft: '6px' }}>
-                                      ({[eq.marca, eq.modelo].filter(Boolean).join(' ')})
-                                    </span>
+                                  {debeMostrarDetalle && (
+                                    <span className="inv-marca-modelo">({marcaModelo})</span>
                                   )}
                                 </td>
-                                <td style={{ padding: '0.85rem 0.5rem', color: '#64748b' }}>{eq.categoria}</td>
-                                <td style={{ padding: '0.85rem 0.5rem', fontWeight: '600', color: eq.kit ? '#333c87' : '#64748b' }}>
+                                <td className="inv-td-suave">{eq.categoria}</td>
+                                <td className={eq.kit ? 'inv-kit-asignado' : 'inv-kit-sin-asignar'}>
                                   {eq.kit?.nombre || 'Repuesto (Sin kit)'}
                                 </td>
-                                <td style={{ padding: '0.85rem 0.5rem', textAlign: 'right' }}>
-                                  {renderBadge(eq.estado)}
-                                </td>
+                                <td className="inv-td-der">{renderBadge(eq.estado)}</td>
+                                {puedeVerHistorial && (
+                                  <td className="inv-td-der">
+                                    <button
+                                      type="button"
+                                      onClick={() => abrirModalHistorial(eq.codigo)}
+                                      className="inv-btn-prim"
+                                    >
+                                      Ver historial
+                                    </button>
+                                  </td>
+                                )}
                               </tr>
                             );
                           })
@@ -652,19 +621,16 @@ export default function ConsultarInventario() {
 
               {/* SECCIÓN 4: TOTALES POR CATEGORÍA Y ESTADO */}
               {tab === 'resumen' && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
-                  
+                <div className="inv-resumen-grid">
                   {/* Totales por Categoría */}
-                  <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', backgroundColor: '#ffffff' }}>
-                    <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem', fontWeight: '700', color: '#0f172a', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.6rem' }}>
-                      Equipos por Categoría
-                    </h3>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
+                  <div className="inv-resumen-card">
+                    <h3>Equipos por Categoría</h3>
+                    <table className="inv-resumen-tabla">
                       <tbody>
                         {Object.entries(datos?.resumen?.totalesPorCategoria || {}).map(([cat, cant]) => (
-                          <tr key={cat} style={{ borderBottom: '1px solid #f8fafc' }}>
-                            <td style={{ padding: '0.65rem 0', color: '#334155', fontWeight: '500' }}>{cat}</td>
-                            <td style={{ padding: '0.65rem 0', textAlign: 'right', fontWeight: '700', color: '#333c87' }}>
+                          <tr key={cat}>
+                            <td className="inv-resumen-cat">{cat}</td>
+                            <td className="inv-resumen-cant-azul">
                               {cant} {cant === 1 ? 'unidad' : 'unidades'}
                             </td>
                           </tr>
@@ -674,16 +640,14 @@ export default function ConsultarInventario() {
                   </div>
 
                   {/* Totales por Estado */}
-                  <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', backgroundColor: '#ffffff' }}>
-                    <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem', fontWeight: '700', color: '#0f172a', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.6rem' }}>
-                      Equipos por Estado Operativo
-                    </h3>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
+                  <div className="inv-resumen-card">
+                    <h3>Equipos por Estado Operativo</h3>
+                    <table className="inv-resumen-tabla">
                       <tbody>
                         {Object.entries(datos?.resumen?.totalesPorEstado || {}).map(([est, cant]) => (
-                          <tr key={est} style={{ borderBottom: '1px solid #f8fafc' }}>
-                            <td style={{ padding: '0.65rem 0' }}>{renderBadge(est)}</td>
-                            <td style={{ padding: '0.65rem 0', textAlign: 'right', fontWeight: '700', color: '#0f172a' }}>
+                          <tr key={est}>
+                            <td>{renderBadge(est)}</td>
+                            <td className="inv-resumen-cant-oscuro">
                               {cant} {cant === 1 ? 'unidad' : 'unidades'}
                             </td>
                           </tr>
@@ -691,13 +655,107 @@ export default function ConsultarInventario() {
                       </tbody>
                     </table>
                   </div>
-
                 </div>
               )}
             </>
           )}
         </div>
       </div>
+
+      {/* MODAL DE HISTORIAL DE EQUIPO */}
+      {modalHistorialAbierto && (
+        <div onClick={cerrarModalHistorial} className="inv-modal-fondo">
+          <div onClick={(e) => e.stopPropagation()} className="inv-modal-caja">
+            {cargandoHistorial ? (
+              <div className="inv-modal-cargando">
+                Cargando historial y trazabilidad del equipo...
+              </div>
+            ) : errorHistorial ? (
+              <div>
+                <div className="inv-modal-error">{errorHistorial}</div>
+                <div className="inv-modal-pie-sin-borde">
+                  <button
+                    type="button"
+                    onClick={cerrarModalHistorial}
+                    className="inv-btn-cerrar-sec"
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              </div>
+            ) : datosHistorial ? (
+              <>
+                {/* Encabezado del Modal */}
+                <div className="inv-modal-cab">
+                  <div>
+                    <h3>Historial del Equipo: {datosHistorial.equipo?.nombre}</h3>
+                    <span className="inv-modal-sub">
+                      Código: <strong>{datosHistorial.equipo?.codigo}</strong> • Categoría: {datosHistorial.equipo?.categoria}
+                      {(datosHistorial.equipo?.marca || datosHistorial.equipo?.modelo) && (
+                        <> • Modelo: <strong>{[datosHistorial.equipo.marca, datosHistorial.equipo.modelo].filter(Boolean).join(' ')}</strong></>
+                      )}
+                    </span>
+                  </div>
+                  {renderBadge(datosHistorial.equipo?.estado_actual)}
+                </div>
+
+                {/* Línea de tiempo */}
+                <div className="inv-modal-seccion">
+                  <h4 className="inv-modal-seccion-titulo">
+                    Trazabilidad y Eventos Cronológicos ({datosHistorial.historial?.length || 0})
+                  </h4>
+
+                  {!datosHistorial.historial || datosHistorial.historial.length === 0 ? (
+                    <div className="inv-modal-vacio">
+                      Este equipo aún no registra movimientos en su historial.
+                    </div>
+                  ) : (
+                    <div className="inv-modal-lista">
+                      {datosHistorial.historial.map((item, idx) => (
+                        <div key={idx} className="inv-modal-item">
+                          <div className="inv-modal-item-cab">
+                            {renderBadgeEventoHistorial(item.tipo)}
+                            <span className="inv-modal-item-fecha">
+                              {['COMPRA', 'INCIDENTE'].includes(item.tipo)
+                                ? new Date(item.fecha).toLocaleDateString('es-CL', { timeZone: 'UTC' })
+                                : new Date(item.fecha).toLocaleString('es-CL')}
+                            </span>
+                          </div>
+                          <p className="inv-modal-item-desc">
+                            {formatearDescripcionHistorial(item)}
+                          </p>
+                          <div className="inv-modal-item-meta">
+                            {item.evento && <span><strong>Evento:</strong> {item.evento}</span>}
+                            {item.responsable && <span><strong>Responsable:</strong> {item.responsable}</span>}
+                            {item.detalle?.observacion && <span><strong>Obs:</strong> {item.detalle.observacion}</span>}
+                            {item.detalle?.costo_asociado !== undefined && (
+                              <span><strong>Costo:</strong> ${Number(item.detalle.costo_asociado).toLocaleString('es-CL')}</span>
+                            )}
+                            {item.detalle?.valor_compra !== undefined && (
+                              <span><strong>Valor adquisición:</strong> ${Number(item.detalle.valor_compra).toLocaleString('es-CL')}</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Pie del Modal */}
+                <div className="inv-modal-pie">
+                  <button
+                    type="button"
+                    onClick={cerrarModalHistorial}
+                    className="inv-btn-cerrar-prim"
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              </>
+            ) : null}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, AlertTriangle, Info } from 'lucide-react';
 import { obtenerAuspiciadores } from '../services/auspiciadorService';
 import { registrarAcuerdo, obtenerAcuerdos } from '../services/acuerdoService';
-import { listarCoberturas } from '../services/coberturas.service.js';
+import { listarEventos } from '../services/evento.service.js';
 
 export default function RegistrarAcuerdoPage() {
   const navigate = useNavigate();
@@ -44,15 +44,15 @@ export default function RegistrarAcuerdoPage() {
           console.warn('No se pudo precargar historial de acuerdos:', e.message);
         }
 
-        // 3. Cargar Coberturas / Eventos reales con listarCoberturas
+        // 3. Cargar eventos reales
         try {
-          const resCoberturas = await listarCoberturas();
-          const lista = Array.isArray(resCoberturas)
-            ? resCoberturas
-            : (resCoberturas?.data || []);
+          const resEventos = await listarEventos();
+          const lista = Array.isArray(resEventos)
+            ? resEventos
+            : (resEventos?.data || []);
           setEventos(lista);
-        } catch (errCoberturas) {
-          console.error('Error al cargar coberturas con el servicio:', errCoberturas);
+        } catch (errEventos) {
+          console.error('Error al cargar eventos con el servicio:', errEventos);
         }
 
       } catch (err) {
@@ -201,7 +201,7 @@ export default function RegistrarAcuerdoPage() {
               </select>
             </div>
 
-            {/* Evento / Cobertura dinámico */}
+            {/* Evento dinámico */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label style={{ fontWeight: '600', fontSize: '13px', color: '#334155' }}>Evento / Transmisión:</label>
               <select
@@ -221,8 +221,8 @@ export default function RegistrarAcuerdoPage() {
               >
                 <option value="">-- Selecciona un evento --</option>
                 {eventos.map((ev) => {
-                  const idEv = ev.id_cobertura || ev.id_evento || ev.id;
-                  const nombreEv = ev.nombre || ev.tipo || ev.titulo || `Cobertura #${idEv}`;
+                  const idEv = ev.id_evento || ev.id;
+                  const nombreEv = ev.nombre || ev.tipo || ev.titulo || `Evento #${idEv}`;
                   return (
                     <option key={idEv} value={idEv}>
                       {nombreEv}

@@ -37,13 +37,6 @@ export function rolesDe(trabajador) {
   return (trabajador.roles ?? trabajador.desempena ?? []).map((d) => d.rol).filter(Boolean);
 }
 
-
-export function aHora(valor) {
-  if (!valor) return '';
-  const texto = String(valor);
-  return texto.includes('T') ? texto.slice(11, 16) : texto.slice(0, 5);// se trasforma en horas
-}
-
 // sirve para mostrar la fecha en formato "YYYY-MM-DD", si no tiene fecha, devolvemos una cadena vacía
 export function aFecha(valor) { 
   return valor ? String(valor).slice(0, 10) : ''; // tomamos del 0 al 10 la letras
@@ -61,7 +54,7 @@ export function formatearFecha(fecha) {
   });
 }
 
-// ---------- Disponibilidad (bloques de fechas con horario) ----------
+// ---------- Disponibilidad (bloques de fechas)----------
 
 /** "2026-10-22" de hoy, para comparar con las fechas de los bloques */
 function hoyComoTexto() {
@@ -96,10 +89,7 @@ export function textoFechasBloque(bloque) {
   return `${formatearFecha(bloque.fecha_inicio)} al ${formatearFecha(bloque.fecha_termino)}`;
 }
 
-/** "09:00 a 18:00" */
-export function textoHorarioBloque(bloque) {
-  return `${aHora(bloque.hora_inicio)} a ${aHora(bloque.hora_termino)}`;
-}
+
 
 /** Período del bloque vigente, o "Sin período" */
 export function textoPeriodo(disponibilidad) {
@@ -107,11 +97,7 @@ export function textoPeriodo(disponibilidad) {
   return bloque ? textoFechasBloque(bloque) : 'Sin período';
 }
 
-/** Horario del bloque vigente, o un aviso si no hay bloques */
-export function textoHorario(disponibilidad) {
-  const bloque = bloqueVigente(disponibilidad);
-  return bloque ? `Disponible de ${textoHorarioBloque(bloque)}` : 'Sin disponibilidad registrada';
-}
+
 
 /** Primer y último día del mes actual (para proponer fechas en el formulario)  valores predeterminados*/
 export function periodoMesActual() {
@@ -119,5 +105,5 @@ export function periodoMesActual() {
   const anio = hoy.getFullYear(); // obtenemos el año actual
   const mes = String(hoy.getMonth() + 1).padStart(2, '0'); // obtenemos el mes actual y lo formateamos con dos dígitos
   const ultimoDia = new Date(anio, hoy.getMonth() + 1, 0).getDate();// obtenemos el último día del mes actual
-  return { inicio: `${anio}-${mes}-01`, termino: `${anio}-${mes}-${ultimoDia}` };// devolvemos un objeto con las fechas de inicio y término del mes actual
+  return { inicio: `${anio}-${mes}-01`, termino: `${anio}-${mes}-${ultimoDia}` };
 }

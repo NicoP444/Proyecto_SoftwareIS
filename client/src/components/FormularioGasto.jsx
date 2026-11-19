@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { TIPOS } from './finanzas/formato.js'; // Corrección 1: Ruta ajustada
+import { TIPOS, formatearFecha } from './finanzas/formato';
 import { urlEvidencia } from '../services/gastoEvento.service.js';
 
 export default function FormularioGasto({ gasto, trabajadores, onGuardar, onCancelar }) {
@@ -7,6 +7,9 @@ export default function FormularioGasto({ gasto, trabajadores, onGuardar, onCanc
   const [tipo, setTipo] = useState(gasto?.tipo_gasto ?? 'MOVILIZACION');
   const [error, setError] = useState('');
   const [enviando, setEnviando] = useState(false);
+
+  // Al registrar, la fecha siempre es la de hoy
+  const hoy = new Date().toLocaleDateString('sv-SE'); // AAAA-MM-DD
 
   async function enviar(e) {
     e.preventDefault();
@@ -26,10 +29,9 @@ export default function FormularioGasto({ gasto, trabajadores, onGuardar, onCanc
 
       <div className="fin-campo">
         <label htmlFor="id_trabajador">Trabajador</label>
-        <select id="id_trabajador" name="id_trabajador" required defaultValue={gasto?.asignacion?.id_trabajador ?? ''}>
+        <select id="id_trabajador" name="id_trabajador" required defaultValue={gasto?.asignacion.id_trabajador ?? ''}>
           <option value="">Selecciona un trabajador</option>
-          {/* Corrección 3: Agregado el signo de interrogación por si trabajadores llega vacío al principio */}
-          {trabajadores?.map((t) => (
+          {trabajadores.map((t) => (
             <option key={t.id_trabajador} value={t.id_trabajador}>{t.trabajador}</option>
           ))}
         </select>
@@ -39,8 +41,7 @@ export default function FormularioGasto({ gasto, trabajadores, onGuardar, onCanc
         <div className="fin-campo">
           <label htmlFor="tipo_gasto">Tipo de gasto</label>
           <select id="tipo_gasto" name="tipo_gasto" value={tipo} onChange={(e) => setTipo(e.target.value)}>
-            {/* Corrección 2: Agregado (TIPOS || {}) para evitar el quiebre de pantalla blanca */}
-            {Object.entries(TIPOS || {}).map(([valor, texto]) => (
+            {Object.entries(TIPOS).map(([valor, texto]) => (
               <option key={valor} value={valor}>{texto}</option>
             ))}
           </select>
@@ -53,13 +54,15 @@ export default function FormularioGasto({ gasto, trabajadores, onGuardar, onCanc
 
       <div className="fin-campo">
         <label htmlFor="fecha">Fecha</label>
-        <input
-          id="fecha"
-          name="fecha"
-          type="date"
-          required
-          defaultValue={gasto ? String(gasto.fecha).slice(0, 10) : new Date().toLocaleDateString('sv-SE')}
-        />
+        {editando ? (
+          <input id="fecha" name="fecha" type="date" required defaultValue={String(gasto.fecha).slice(0, 10)} />
+        ) : (
+          <>
+            {/* Al registrar: solo hoy. El campo oculto es el que se envía; el de texto es solo para mostrarla */}
+            <input type="hidden" name="fecha" value={hoy} />
+            <input id="fecha" type="text" value={`${formatearFecha(hoy)} (hoy)`} readOnly />
+          </>
+        )}
       </div>
 
       {tipo === 'MOVILIZACION' && (

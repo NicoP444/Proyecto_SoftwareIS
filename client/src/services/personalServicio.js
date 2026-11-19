@@ -79,3 +79,13 @@ export function actualizarBloqueDisponibilidad(idTrabajador, nroBloque, bloque) 
     body: { ...bloque, id_dueno: idDueno() },
   });
 }
+
+export async function eliminarBloqueDisponibilidad(idTrabajador, nroBloque) {
+  // Cambiamos "trabajador" por "trabajadores" para que coincida con tu index.routes
+  const data = await pedir(`/trabajadores/${idTrabajador}/disponibilidad/${nroBloque}`, {
+    method: 'DELETE',
+  });
+  
+  if (data.error) throw new Error(data.mensaje || 'Error al eliminar la disponibilidad');
+  return data;
+}

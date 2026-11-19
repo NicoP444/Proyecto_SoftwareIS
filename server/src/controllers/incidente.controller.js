@@ -1,11 +1,16 @@
-import { createIncidenteService, 
+import {
+  createIncidenteService,
   getIncidentesService,
-  getIncidentesPorEventoService} from '../services/incidente.service.js';
+  getIncidentesPorEventoService,
+} from '../services/incidente.service.js';
 
 export const registrarIncidente = async (req, res, next) => {
   try {
-    // Si manejas sesión o auth, req.user suele traer id_jefe. Si no, se envía en el body de prueba.
-    const id_jefe = req.user?.id_jefe || req.body.id_jefe || 1;
+    const id_jefe = req.usuario?.id_jefe || req.user?.id_jefe;
+
+    if (!id_jefe) {
+      return res.status(401).json({ mensaje: 'No se pudo identificar al Jefe de área técnica desde la sesión.' });
+    }
 
     const incidente = await createIncidenteService(req.body, id_jefe);
     res.status(201).json({
@@ -13,6 +18,9 @@ export const registrarIncidente = async (req, res, next) => {
       data: incidente,
     });
   } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({ mensaje: error.message });
+    }
     next(error);
   }
 };
