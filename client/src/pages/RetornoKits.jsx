@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { obtenerKitsEnTerreno, registrarRetornoKit } from '../services/retornoKit.service.js';
 import '../styles/RetornoKits.css';
 
+const TIENE_LETRAS_REGEX = /[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]/;
+
 export default function RetornoKits() {
   const [salidas, setSalidas] = useState([]);
   const [cargando, setCargando] = useState(false);
@@ -9,6 +11,7 @@ export default function RetornoKits() {
   const [revisiones, setRevisiones] = useState({});
   const [enviando, setEnviando] = useState(false);
   const [mensaje, setMensaje] = useState(null);
+  const [errorModal, setErrorModal] = useState('');
 
   const cargarSalidasEnTerreno = async () => {
     try {
@@ -27,6 +30,8 @@ export default function RetornoKits() {
   }, []);
 
   const abrirModalRevision = (salida) => {
+    setMensaje(null);
+    setErrorModal('');
     setSalidaSeleccionada(salida);
     const estadoInicial = {};
     const equipos = salida.reserva?.kit?.equipos || [];
@@ -45,9 +50,11 @@ export default function RetornoKits() {
   const cerrarModal = () => {
     setSalidaSeleccionada(null);
     setRevisiones({});
+    setErrorModal('');
   };
 
   const handleEstadoChange = (codigo, campo, valor) => {
+    if (errorModal) setErrorModal('');
     setRevisiones((prev) => ({
       ...prev,
       [codigo]: {
@@ -59,18 +66,31 @@ export default function RetornoKits() {
 
   const handleGuardarRetorno = async (e) => {
     e.preventDefault();
+    setErrorModal('');
+
+    const listaRevisiones = Object.values(revisiones);
+    for (const r of listaRevisiones) {
+      const obs = (r.observacion || '').trim();
+      if (obs !== '' && !TIENE_LETRAS_REGEX.test(obs)) {
+        setErrorModal(
+          `La observación de ${r.nombre} (${r.codigo}) debe incluir texto explicativo (no puede contener solo números o símbolos).`
+        );
+        return;
+      }
+    }
+
     try {
       setEnviando(true);
-      const listaRevisiones = Object.values(revisiones).map((r) => ({
+      const payloadRevisiones = listaRevisiones.map((r) => ({
         codigo: r.codigo,
         estado_retorno: r.estado_retorno,
-        observacion: r.observacion,
+        observacion: r.observacion.trim(),
         costo_reparacion: r.costo_reparacion ? Number(r.costo_reparacion) : null,
       }));
 
       const res = await registrarRetornoKit({
         id_salida: salidaSeleccionada.id_salida,
-        revisiones: listaRevisiones,
+        revisiones: payloadRevisiones,
       });
 
       setMensaje({
@@ -80,6 +100,7 @@ export default function RetornoKits() {
       cerrarModal();
       await cargarSalidasEnTerreno();
     } catch (error) {
+      cerrarModal();
       setMensaje({
         tipo: 'error',
         texto: error.response?.data?.mensaje || error.message || 'Error al guardar retorno',
@@ -156,6 +177,12 @@ export default function RetornoKits() {
                 </span>
               </div>
             </div>
+
+            {errorModal && (
+              <div className="ret-mensaje ret-mensaje-error" style={{ marginBottom: '0.9rem' }}>
+                {errorModal}
+              </div>
+            )}
 
             <form onSubmit={handleGuardarRetorno}>
               <div className="ret-equipos-lista">

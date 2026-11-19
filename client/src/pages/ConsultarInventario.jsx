@@ -716,7 +716,9 @@ export default function ConsultarInventario() {
                           <div className="inv-modal-item-cab">
                             {renderBadgeEventoHistorial(item.tipo)}
                             <span className="inv-modal-item-fecha">
-                              {new Date(item.fecha).toLocaleString('es-CL')}
+                              {['COMPRA', 'INCIDENTE'].includes(item.tipo)
+                                ? new Date(item.fecha).toLocaleDateString('es-CL', { timeZone: 'UTC' })
+                                : new Date(item.fecha).toLocaleString('es-CL')}
                             </span>
                           </div>
                           <p className="inv-modal-item-desc">

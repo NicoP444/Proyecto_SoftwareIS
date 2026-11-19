@@ -8,6 +8,8 @@ import {
 import { API_URL } from '../../services/config.js';
 import '../../styles/CierreMensual.css';
 
+const TIENE_LETRAS_REGEX = /[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]/;
+
 const MESES = [
   { valor: 1, nombre: 'Enero' },
   { valor: 2, nombre: 'Febrero' },
@@ -40,6 +42,12 @@ export default function GastosFijos() {
   const [monto, setMonto] = useState('');
   const [archivo, setArchivo] = useState(null);
   const [editandoId, setEditandoId] = useState(null);
+
+  // Estado para desplegable Gestionar y modal de eliminación
+  const [menuAbiertoId, setMenuAbiertoId] = useState(null);
+  const [gastoAEliminar, setGastoAEliminar] = useState(null);
+  const [motivoEliminacion, setMotivoEliminacion] = useState('');
+  const [errorModalEliminar, setErrorModalEliminar] = useState('');
 
   const [cargando, setCargando] = useState(false);
   const [guardando, setGuardando] = useState(false);
@@ -76,12 +84,20 @@ export default function GastosFijos() {
 
   useEffect(() => {
     limpiarFormulario();
+    setMenuAbiertoId(null);
     cargarGastos();
   }, [anio, mes]);
+
+  useEffect(() => {
+    const handleClickFuera = () => setMenuAbiertoId(null);
+    document.addEventListener('click', handleClickFuera);
+    return () => document.removeEventListener('click', handleClickFuera);
+  }, []);
 
   const handleIniciarEdicion = (gasto) => {
     setError('');
     setExito('');
+    setMenuAbiertoId(null);
     setEditandoId(gasto.id_gasto_fijo);
     setDescripcion(gasto.descripcion || '');
     setMonto(String(gasto.monto || ''));
@@ -89,8 +105,31 @@ export default function GastosFijos() {
     if (formRef.current) formRef.current.reset();
   };
 
-  const handleEliminar = async (gasto) => {
-    if (!window.confirm(`¿Eliminar el gasto fijo "${gasto.descripcion}" por $${Number(gasto.monto).toLocaleString('es-CL')}?`)) {
+  const handleAbrirModalEliminar = (gasto) => {
+    setError('');
+    setExito('');
+    setMenuAbiertoId(null);
+    setGastoAEliminar(gasto);
+    setMotivoEliminacion('');
+    setErrorModalEliminar('');
+  };
+
+  const handleCerrarModalEliminar = () => {
+    if (guardando) return;
+    setGastoAEliminar(null);
+    setMotivoEliminacion('');
+    setErrorModalEliminar('');
+  };
+
+  const handleConfirmarEliminar = async (e) => {
+    e.preventDefault();
+    if (!gastoAEliminar || guardando) return;
+
+    const motivoLimpio = motivoEliminacion.trim();
+    if (!TIENE_LETRAS_REGEX.test(motivoLimpio)) {
+      setErrorModalEliminar(
+        'El motivo de eliminación debe incluir texto explicativo (no puede ser solo números o símbolos).'
+      );
       return;
     }
 
@@ -98,13 +137,18 @@ export default function GastosFijos() {
       setGuardando(true);
       setError('');
       setExito('');
-      await eliminarGastoFijo(gasto.id_gasto_fijo);
-      if (editandoId === gasto.id_gasto_fijo) {
+      setErrorModalEliminar('');
+      await eliminarGastoFijo(gastoAEliminar.id_gasto_fijo);
+      if (editandoId === gastoAEliminar.id_gasto_fijo) {
         limpiarFormulario();
       }
+      setGastoAEliminar(null);
+      setMotivoEliminacion('');
       setExito('Gasto fijo eliminado correctamente.');
       await cargarGastos();
     } catch (err) {
+      setGastoAEliminar(null);
+      setMotivoEliminacion('');
       setError(err.message || 'No se pudo eliminar el gasto fijo.');
     } finally {
       setGuardando(false);
@@ -114,6 +158,11 @@ export default function GastosFijos() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (formularioBloqueado || !descripcion.trim() || !monto) return;
+
+    if (!TIENE_LETRAS_REGEX.test(descripcion.trim())) {
+      setError('La descripción del gasto fijo debe incluir texto explicativo (no puede contener solo números o símbolos).');
+      return;
+    }
 
     try {
       setGuardando(true);
@@ -209,28 +258,19 @@ export default function GastosFijos() {
             <h3 className="cm-card-titulo-lg">
               {editandoId ? 'Modificar Gasto Fijo Mensual' : 'Registrar Gasto Fijo Mensual'}
             </h3>
-            <p className="cm-card-sub">
+            <p className="cm-card-sub-0">
               Gastos recurrentes no asociados a un evento (ej. internet satelital, bodega, suscripciones).
             </p>
           </div>
-          {editandoId && (
-            <button
-              type="button"
-              onClick={limpiarFormulario}
-              className="cm-enlace"
-            >
-              Cancelar edición
-            </button>
-          )}
         </div>
 
         {!esMesActual && (
-          <div className="cm-alerta-historial">
+          <div className="cm-alerta-historial" style={{ marginTop: '1rem' }}>
             Estás consultando el historial de un período anterior. Solo se permite registrar o modificar gastos fijos en el mes en curso.
           </div>
         )}
 
-        <form ref={formRef} onSubmit={handleSubmit} className="cm-form-gastos">
+        <form ref={formRef} onSubmit={handleSubmit} className="cm-form-gastos" style={{ marginTop: '1rem' }}>
           <div>
             <label className="cm-label">DESCRIPCIÓN *</label>
             <input
@@ -281,17 +321,29 @@ export default function GastosFijos() {
             </label>
           </div>
 
-          <button
-            type="submit"
-            disabled={formularioBloqueado}
-            className="cm-btn-primario"
-          >
-            {guardando
-              ? 'Guardando...'
-              : editandoId
-                ? 'Guardar Cambios'
-                : '+ Registrar Gasto Fijo'}
-          </button>
+          <div className="cm-form-botones">
+            {editandoId && (
+              <button
+                type="button"
+                onClick={limpiarFormulario}
+                disabled={guardando}
+                className="cm-btn-secundario"
+              >
+                Cancelar
+              </button>
+            )}
+            <button
+              type="submit"
+              disabled={formularioBloqueado}
+              className="cm-btn-primario"
+            >
+              {guardando
+                ? 'Guardando...'
+                : editandoId
+                  ? 'Guardar Cambios'
+                  : '+ Registrar Gasto Fijo'}
+            </button>
+          </div>
         </form>
       </div>
 
@@ -313,7 +365,7 @@ export default function GastosFijos() {
             No hay gastos fijos registrados para este mes.
           </div>
         ) : (
-          <div className="cm-tabla-scroll">
+          <div className="cm-tabla-scroll cm-tabla-scroll-gastos">
             <table className="cm-tabla">
               <thead>
                 <tr>
@@ -325,55 +377,133 @@ export default function GastosFijos() {
                 </tr>
               </thead>
               <tbody>
-                {gastos.map((g) => (
-                  <tr key={g.id_gasto_fijo}>
-                    <td className="cm-td-fuerte">{g.descripcion}</td>
-                    <td className="cm-td-suave">
-                      {g.evidencia ? (
-                        <a
-                          href={`${serverBaseUrl}${g.evidencia}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="cm-enlace"
-                        >
-                          Ver comprobante
-                        </a>
-                      ) : (
-                        'Sin evidencia'
-                      )}
-                    </td>
-                    <td className="cm-td-texto">{g.contador?.nombre || 'Contador'}</td>
-                    <td className="cm-td-monto">
-                      ${Number(g.monto || 0).toLocaleString('es-CL')}
-                    </td>
-                    {!mesCerrado && esMesActual && (
-                      <td className="cm-td-monto">
-                        <button
-                          type="button"
-                          onClick={() => handleIniciarEdicion(g)}
-                          disabled={guardando}
-                          className="cm-enlace"
-                        >
-                          Editar
-                        </button>
-                        {' · '}
-                        <button
-                          type="button"
-                          onClick={() => handleEliminar(g)}
-                          disabled={guardando}
-                          className="cm-enlace"
-                        >
-                          Eliminar
-                        </button>
+                {gastos.map((g, idx) => {
+                  const abierto = menuAbiertoId === g.id_gasto_fijo;
+                  const abrirHaciaArriba = gastos.length > 1 && idx === gastos.length - 1;
+                  return (
+                    <tr key={g.id_gasto_fijo}>
+                      <td className="cm-td-fuerte">{g.descripcion}</td>
+                      <td className="cm-td-suave">
+                        {g.evidencia ? (
+                          <a
+                            href={`${serverBaseUrl}${g.evidencia}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="cm-enlace"
+                          >
+                            Ver comprobante
+                          </a>
+                        ) : (
+                          'Sin evidencia'
+                        )}
                       </td>
-                    )}
-                  </tr>
-                ))}
+                      <td className="cm-td-texto">{g.contador?.nombre || 'Contador'}</td>
+                      <td className="cm-td-monto">
+                        ${Number(g.monto || 0).toLocaleString('es-CL')}
+                      </td>
+                      {!mesCerrado && esMesActual && (
+                        <td className="cm-td-monto">
+                          <div
+                            className="cm-gestionar-wrap"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setMenuAbiertoId(abierto ? null : g.id_gasto_fijo)
+                              }
+                              disabled={guardando}
+                              className={`cm-btn-gestionar ${abierto ? 'activo' : ''}`}
+                            >
+                              <span>Gestionar</span>
+                              <span className="cm-gestionar-flecha">▾</span>
+                            </button>
+
+                            {abierto && (
+                              <div className={`cm-gestionar-menu ${abrirHaciaArriba ? 'arriba' : ''}`}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleIniciarEdicion(g)}
+                                  className="cm-gestionar-opcion"
+                                >
+                                  Modificar gasto
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleAbrirModalEliminar(g)}
+                                  className="cm-gestionar-opcion peligro"
+                                >
+                                  Eliminar gasto
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
       </div>
+
+      {/* Modal de Confirmación de Eliminación */}
+      {gastoAEliminar && (
+        <div className="cm-modal-fondo" onClick={handleCerrarModalEliminar}>
+          <div className="cm-modal-caja" onClick={(e) => e.stopPropagation()}>
+            <h3 className="cm-modal-titulo">Eliminar Gasto Fijo</h3>
+            <p className="cm-modal-sub">
+              Estás a punto de eliminar{' '}
+              <strong>"{gastoAEliminar.descripcion}"</strong> por{' '}
+              <strong>${Number(gastoAEliminar.monto || 0).toLocaleString('es-CL')}</strong>.
+              Esta acción actualizará el balance del período.
+            </p>
+
+            {errorModalEliminar && (
+              <div className="cm-alerta-error" style={{ marginBottom: '0.85rem' }}>
+                {errorModalEliminar}
+              </div>
+            )}
+
+            <form onSubmit={handleConfirmarEliminar}>
+              <label className="cm-modal-label">Motivo de la eliminación *</label>
+              <textarea
+                rows="3"
+                required
+                maxLength={255}
+                placeholder="Indica el motivo por el cual eliminas este gasto fijo..."
+                value={motivoEliminacion}
+                onChange={(e) => {
+                  setMotivoEliminacion(e.target.value);
+                  if (errorModalEliminar) setErrorModalEliminar('');
+                }}
+                disabled={guardando}
+                className="cm-modal-textarea"
+              />
+
+              <div className="cm-modal-acciones">
+                <button
+                  type="button"
+                  onClick={handleCerrarModalEliminar}
+                  disabled={guardando}
+                  className="cm-btn-secundario"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={!motivoEliminacion.trim() || guardando}
+                  className="cm-btn-eliminar-confirmar"
+                >
+                  {guardando ? 'Eliminando...' : '🗑 Confirmar eliminación'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

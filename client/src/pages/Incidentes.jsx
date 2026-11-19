@@ -8,6 +8,8 @@ import { consultarInventario } from '../services/consultarInventario.service.js'
 import { obtenerKitsPorEvento } from '../services/salidaKit.service.js';
 import '../styles/Incidentes.css';
 
+const TIENE_LETRAS_REGEX = /[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]/;
+
 export default function Incidentes() {
   const [incidentes, setIncidentes] = useState([]);
   const [equipos, setEquipos] = useState([]);
@@ -52,11 +54,9 @@ export default function Incidentes() {
         const resInv = await consultarInventario();
         const payloadInv = resInv?.data || resInv || {};
         const todos = payloadInv.todosLosEquipos || [];
-        // Filtrar equipos activos (excluir los ya perdidos, robados o dados de baja)
-        const activos = todos.filter(
-          (eq) => !['PERDIDO', 'ROBADO', 'DADO_DE_BAJA'].includes(eq.estado)
-        );
-        setEquipos(activos);
+        // Solo equipos OPERATIVOS (excluye DANADO, PERDIDO, ROBADO y DADO_DE_BAJA)
+        const operativos = todos.filter((eq) => eq.estado === 'OPERATIVO');
+        setEquipos(operativos);
       } catch (e) {
         console.warn('No se pudo cargar inventario de equipos:', e.message);
       }
@@ -101,7 +101,7 @@ export default function Incidentes() {
         const respTrabajador = r.salida?.responsable?.trabajador || null;
         const nombreKit = r.kit?.nombre || 'Kit';
         (r.kit?.equipos || []).forEach((eq) => {
-          if (!['PERDIDO', 'ROBADO', 'DADO_DE_BAJA'].includes(eq.estado)) {
+          if (eq.estado === 'OPERATIVO') {
             listaFiltrada.push({
               ...eq,
               nombreKit,
@@ -170,11 +170,20 @@ export default function Incidentes() {
       return;
     }
 
+    if (!TIENE_LETRAS_REGEX.test(formData.descripcion.trim())) {
+      setMensaje({
+        tipo: 'error',
+        texto: 'La descripción del incidente debe incluir texto explicativo (no puede contener solo números o símbolos).',
+      });
+      return;
+    }
+
     setCargando(true);
 
     try {
       const payload = {
         ...formData,
+        descripcion: formData.descripcion.trim(),
         id_evento: formData.id_evento ? Number(formData.id_evento) : null,
         id_trabajador:
           formData.id_evento && formData.id_trabajador ? Number(formData.id_trabajador) : null,
@@ -252,6 +261,8 @@ export default function Incidentes() {
   const hayEvento = Boolean(formData.id_evento);
 
   const equiposFiltrados = listaEquiposBase.filter((eq) => {
+    // Si ya hay un equipo seleccionado y no está escribiendo una búsqueda nueva, mostrar toda la lista disponible
+    if (formData.codigo) return true;
     const q = busquedaEquipo.trim().toLowerCase();
     if (!q) return true;
     const texto = `${eq.codigo} - ${eq.nombre} ${eq.nombreKit || ''} ${eq.kit?.nombre || ''}`.toLowerCase();
@@ -267,6 +278,7 @@ export default function Incidentes() {
         : 'Se asigna automáticamente al elegir equipo';
 
   const eventosFiltrados = eventos.filter((ev) => {
+    if (formData.id_evento) return true;
     const q = busquedaEvento.trim().toLowerCase();
     if (!q) return true;
     const textoCompleto = `evento #${ev.id_evento} - ${ev.tipo || 'transmisión'}`.toLowerCase();
@@ -434,8 +446,8 @@ export default function Incidentes() {
                 {equiposFiltrados.length === 0 ? (
                   <div className="inc-evento-vacio">
                     {hayEvento && listaEquiposBase.length === 0
-                      ? 'Este evento no tiene equipos disponibles en kits reservados'
-                      : `No se encontraron equipos con "${busquedaEquipo}"`}
+                      ? 'Este evento no tiene equipos operativos disponibles en kits reservados'
+                      : `No se encontraron equipos operativos con "${busquedaEquipo}"`}
                   </div>
                 ) : (
                   equiposFiltrados.map((eq) => {
