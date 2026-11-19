@@ -128,6 +128,8 @@ export default function Auspiciadores() {
   const fechaActual = new Date();
   const [filtroMes, setFiltroMes] = useState(String(fechaActual.getMonth() + 1));
   const [filtroAnio, setFiltroAnio] = useState(String(fechaActual.getFullYear()));
+  const [busquedaAcuerdo, setBusquedaAcuerdo] = useState('');
+  const [busquedaAuspiciador, setBusquedaAuspiciador] = useState('');
 
   const [listaAcuerdos, setListaAcuerdos] = useState([]);
   const [cargandoAcuerdos, setCargandoAcuerdos] = useState(true);
@@ -298,6 +300,42 @@ export default function Auspiciadores() {
       return fechaIso >= fechaHoyLocal;
     });
   }, [listaEventos, fechaHoyLocal]);
+
+  const acuerdosFiltradosBusqueda = useMemo(() => {
+    const q = busquedaAcuerdo.trim().toLowerCase();
+    if (!q) return listaAcuerdos;
+    return listaAcuerdos.filter((item) => {
+      const auspiciador = (item.auspiciador?.nombre || '').toLowerCase();
+      const evento = (item.evento?.tipo || item.evento?.nombre || '').toLowerCase();
+      const tipo = (item.tipo_aporte || item.tipo_pago || '').toLowerCase();
+      const glosa = (item.glosa || '').toLowerCase();
+      const estado = (item.estado || '').toLowerCase();
+      return (
+        auspiciador.includes(q) ||
+        evento.includes(q) ||
+        tipo.includes(q) ||
+        glosa.includes(q) ||
+        estado.includes(q)
+      );
+    });
+  }, [listaAcuerdos, busquedaAcuerdo]);
+
+  const auspiciadoresFiltradosBusqueda = useMemo(() => {
+    const q = busquedaAuspiciador.trim().toLowerCase();
+    if (!q) return listaAuspiciadores;
+    return listaAuspiciadores.filter((item) => {
+      const nombre = (item.nombre || '').toLowerCase();
+      const rubro = (item.rubro || '').toLowerCase();
+      const contacto = (item.contacto || '').toLowerCase();
+      const telefono = (item.telefono || '').toLowerCase();
+      return (
+        nombre.includes(q) ||
+        rubro.includes(q) ||
+        contacto.includes(q) ||
+        telefono.includes(q)
+      );
+    });
+  }, [listaAuspiciadores, busquedaAuspiciador]);
 
   const iniciarEdicion = (item) => {
     setErrorModal('');
@@ -866,11 +904,34 @@ export default function Auspiciadores() {
                 )}
               </div>
 
+              <div className="ausp-buscador-wrap">
+                <input
+                  type="text"
+                  value={busquedaAcuerdo}
+                  onChange={(e) => setBusquedaAcuerdo(e.target.value)}
+                  placeholder="Buscar acuerdo por auspiciador, evento, glosa o estado..."
+                  className="ausp-buscador-input"
+                />
+                {busquedaAcuerdo && (
+                  <button
+                    type="button"
+                    onClick={() => setBusquedaAcuerdo('')}
+                    className="ausp-btn-limpiar-busqueda"
+                  >
+                    Limpiar
+                  </button>
+                )}
+              </div>
+
               {cargandoAcuerdos ? (
                 <p className="ausp-cargando">Cargando acuerdos...</p>
-              ) : listaAcuerdos.length === 0 ? (
+              ) : acuerdosFiltradosBusqueda.length === 0 ? (
                 <div className="ausp-vacio">
-                  <p>No hay acuerdos registrados todavía.</p>
+                  <p>
+                    {busquedaAcuerdo.trim()
+                      ? 'No se encontraron acuerdos que coincidan con tu búsqueda.'
+                      : 'No hay acuerdos registrados todavía.'}
+                  </p>
                 </div>
               ) : (
                 <div className="ausp-tabla-scroll">
@@ -887,7 +948,7 @@ export default function Auspiciadores() {
                       </tr>
                     </thead>
                     <tbody>
-                      {listaAcuerdos.map((item) => {
+                      {acuerdosFiltradosBusqueda.map((item) => {
                         const id = item.id_acuerdo || item.id;
                         const nombreAuspiciador =
                           item.auspiciador?.nombre || `Auspiciador #${item.id_auspiciador || '-'}`;
@@ -1220,13 +1281,36 @@ export default function Auspiciadores() {
                 )}
               </div>
 
-              {listaAuspiciadores.length === 0 ? (
+              <div className="ausp-buscador-wrap">
+                <input
+                  type="text"
+                  value={busquedaAuspiciador}
+                  onChange={(e) => setBusquedaAuspiciador(e.target.value)}
+                  placeholder="Buscar auspiciador por nombre, rubro, contacto o teléfono..."
+                  className="ausp-buscador-input"
+                />
+                {busquedaAuspiciador && (
+                  <button
+                    type="button"
+                    onClick={() => setBusquedaAuspiciador('')}
+                    className="ausp-btn-limpiar-busqueda"
+                  >
+                    Limpiar
+                  </button>
+                )}
+              </div>
+
+              {auspiciadoresFiltradosBusqueda.length === 0 ? (
                 <div className="ausp-vacio-caja">
-                  <p>No hay auspiciadores registrados aún.</p>
+                  <p>
+                    {busquedaAuspiciador.trim()
+                      ? 'No se encontraron auspiciadores que coincidan con tu búsqueda.'
+                      : 'No hay auspiciadores registrados aún.'}
+                  </p>
                 </div>
               ) : (
                 <div className="ausp-tarjetas-grid">
-                  {listaAuspiciadores.map((item) => {
+                  {auspiciadoresFiltradosBusqueda.map((item) => {
                     const id = item.id_auspiciador || item.id;
                     const esNoConfiable = item.clasificacion === 'NO_CONFIABLE';
 

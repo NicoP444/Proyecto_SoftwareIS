@@ -1,19 +1,26 @@
 import { pedir } from './http.js';
 
-export const obtenerUsuarios = async (idDueno = 1) => {
-  return await pedir(`/usuarios?id_dueno=${idDueno}`);
-};
+export async function obtenerUsuarios(idDueno) {
+  return pedir('/usuarios');
+}
 
-export const crearUsuario = async (datosUsuario) => {
-  return await pedir('/usuarios', {
+export async function crearUsuario(datos) {
+  return pedir('/usuarios', {
     method: 'POST',
-    body: datosUsuario,
+    body: datos,
   });
-};
+}
 
-export const cambiarEstadoUsuario = async (id, rol, estado) => {
-  return await pedir(`/usuarios/${id}/estado`, {
+export async function modificarUsuario(id, datos) {
+  return pedir(`/usuarios/${id}`, {
+    method: 'PUT',
+    body: datos,
+  });
+}
+
+export async function cambiarEstadoUsuario(id, rol, estado) {
+  return pedir(`/usuarios/${id}/estado`, {
     method: 'PUT',
     body: { rol, estado },
   });
-};
+}
