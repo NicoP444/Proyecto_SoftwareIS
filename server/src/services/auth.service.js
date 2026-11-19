@@ -39,7 +39,7 @@ export async function iniciarSesion(correo, contrasena) {
 
   // 3. Verificar si la cuenta sigue bloqueada por 15 minutos
   if (usuario.bloqueado_hasta && new Date() < new Date(usuario.bloqueado_hasta)) {
-    throw new Error(MENSAJE_ERROR_LOGIN);
+    throw new Error('Cuenta bloqueada temporalmente por múltiples intentos fallidos. Intenta nuevamente en 15 minutos.');
   }
 
   // 4. Comparar la contraseña escrita con la encriptada
@@ -53,6 +53,13 @@ export async function iniciarSesion(correo, contrasena) {
     if (nuevosIntentos >= 5) {
       datosActualizar.bloqueado_hasta = new Date(Date.now() + 15 * 60 * 1000);
       datosActualizar.intentos_fallidos = 0;
+
+      await prisma[tabla].update({
+        where: { [campoId]: usuario[campoId] },
+        data: datosActualizar,
+      });
+
+      throw new Error('Has superado el máximo de intentos fallidos. Tu cuenta quedó bloqueada por 15 minutos.');
     }
 
     await prisma[tabla].update({
