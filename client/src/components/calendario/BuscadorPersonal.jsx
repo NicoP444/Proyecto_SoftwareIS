@@ -126,7 +126,7 @@ export default function BuscadorPersonal({ evento, onAsignado }) {
   return (
     <div className="personal-buscador">
       <div className="personal-filtros">
-                <div className="campo">
+        <div className="campo">
           <label htmlFor="pd-buscar">Buscar por nombre</label>
           <input
             id="pd-buscar"
@@ -160,7 +160,9 @@ export default function BuscadorPersonal({ evento, onAsignado }) {
       {cargando && personal.length === 0 && <p className="texto-tenue">Buscando…</p>}
       {!cargando && filas.length === 0 && !error && (
         <p className="texto-tenue">
-          {idRol ? "Nadie tiene ese rol (o ya están todos en el evento)." : "Todo el personal ya está en este evento."}
+          {busqueda || idRol
+            ? "Nadie coincide con la búsqueda o el filtro (o ya están en el evento)."
+            : "Todo el personal ya está en este evento."}
         </p>
       )}
 
