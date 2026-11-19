@@ -1,0 +1,99 @@
+.acuerdos-cargando {
+  font-size: 13px;
+  color: #64748b;
+  text-align: center;
+  padding: 20px 0;
+}
+
+.acuerdos-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 220px;
+  overflow-y: auto;
+  margin-top: 10px;
+}
+
+.acuerdos-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background-color: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #f1f5f9;
+}
+
+.acuerdos-item-info {
+  overflow: hidden;
+}
+
+.acuerdos-item-nombre {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.acuerdos-item-glosa {
+  margin: 2px 0 0 0;
+  font-size: 12px;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.acuerdos-item-derecha {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.acuerdos-item-monto {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.acuerdos-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+  margin-top: 2px;
+}
+
+.acuerdos-item-plazo {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.badge-estado-cobro {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.badge-estado-pendiente {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+.badge-estado-parcial {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+
+.badge-estado-vencido {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
