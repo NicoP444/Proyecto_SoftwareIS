@@ -55,7 +55,7 @@ export const listarKitsEvento = async (id_evento, id_dueno) => {
   });
 };
 
-// ---------- RF-P1-05: solo kits completos y libres en el horario del evento ----------
+// ---------- RF-P1-05: kits para asignar (los que no se pueden, vienen bloqueados con su motivo) ----------
 export const listarKitsDisponibles = async (id_evento, id_dueno) => {
   const evento = await obtenerEvento(id_evento, id_dueno);
 
@@ -63,17 +63,30 @@ export const listarKitsDisponibles = async (id_evento, id_dueno) => {
     await prisma.reservaKit.findMany({ where: { id_evento }, select: { id_kit: true } })
   ).map((r) => r.id_kit);
 
-  // "Completo" = que no figure como incompleto
+  // Se listan TODOS los kits que aún no tiene el evento; los que no se pueden asignar
+  // vienen con disponible: false y el motivo, para que el selector los muestre bloqueados
   const kits = await prisma.kit.findMany({
-    where: { estado: { not: 'INCOMPLETO' }, id_kit: { notIn: yaEnElEvento } },
+    where: { id_kit: { notIn: yaEnElEvento } },
     select: { id_kit: true, nombre: true, nivel: true, estado: true },
     orderBy: { nombre: 'asc' },
   });
 
   const otras = await reservasDelDia(evento, kits.map((k) => k.id_kit));
-  const ocupados = new Set(otras.filter((o) => chocaConEvento(evento, o.evento)).map((o) => o.id_kit));
+  const choques = new Map();
+  for (const o of otras) {
+    if (chocaConEvento(evento, o.evento) && !choques.has(o.id_kit)) choques.set(o.id_kit, o.evento);
+  }
 
-  return kits.filter((k) => !ocupados.has(k.id_kit));
+  return kits.map((k) => {
+    let motivo = null;
+    if (k.estado === 'INCOMPLETO') {
+      motivo = 'Incompleto: le falta equipo operativo';
+    } else if (choques.has(k.id_kit)) {
+      const otro = choques.get(k.id_kit);
+      motivo = `Ocupado en "${otro.tipo}" (${aHora(otro.hora_inicio)}–${aHora(otro.hora_termino)})`;
+    }
+    return { ...k, disponible: motivo === null, motivo };
+  });
 };
 
 // ---------- RF-P1-05: reservar un kit para el evento ----------
