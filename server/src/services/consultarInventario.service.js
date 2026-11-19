@@ -2,6 +2,7 @@ import prisma from '../config/prisma.js';
 
 export const consultarInventarioService = async () => {
   const ahora = new Date();
+  const inicioHoyUTC = new Date(Date.UTC(ahora.getFullYear(), ahora.getMonth(), ahora.getDate()));
 
   // 1. Kits con nivel, estado, equipos integrantes y próximos eventos
   const kits = await prisma.kit.findMany({
@@ -19,7 +20,7 @@ export const consultarInventarioService = async () => {
       reservas: {
         where: {
           evento: {
-            fecha: { gte: ahora },
+            fecha: { gte: inicioHoyUTC },
           },
         },
         include: {

@@ -1,11 +1,11 @@
 import { obtenerKitsSinRetornoService } from '../services/alertaKits.service.js';
+import { manejarError } from '../utils/errores.js';
 
-export const getKitsSinRetorno = async (req, res, next) => {
+export const getKitsSinRetorno = async (req, res) => {
   try {
     const alertas = await obtenerKitsSinRetornoService();
     return res.status(200).json(alertas);
   } catch (error) {
-    console.error('Error al consultar kits sin retorno:', error);
-    next(error);
+    return manejarError(res, error);
   }
 };

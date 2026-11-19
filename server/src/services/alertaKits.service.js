@@ -1,5 +1,26 @@
 import prisma from '../config/prisma.js';
 
+const calcularFinEvento = (evento) => {
+  if (!evento?.fecha || !evento?.hora_termino) return null;
+
+  const fechaBase = new Date(evento.fecha);
+  const horaTermino = new Date(evento.hora_termino);
+
+  const esMedianoche =
+    horaTermino.getUTCHours() === 0 &&
+    horaTermino.getUTCMinutes() === 0 &&
+    horaTermino.getUTCSeconds() === 0;
+
+  return new Date(
+    fechaBase.getUTCFullYear(),
+    fechaBase.getUTCMonth(),
+    fechaBase.getUTCDate() + (esMedianoche ? 1 : 0),
+    horaTermino.getUTCHours(),
+    horaTermino.getUTCMinutes(),
+    horaTermino.getUTCSeconds()
+  );
+};
+
 export const obtenerKitsSinRetornoService = async () => {
   const ahora = new Date();
   // Umbral de 24 horas atrás
@@ -37,10 +58,8 @@ export const obtenerKitsSinRetornoService = async () => {
       const evento = reserva.evento;
 
       if (salida && !salida.fecha_hora_retorno && evento) {
-        // Combinar fecha del evento con hora_termino
-        const fechaEventoStr = new Date(evento.fecha).toISOString().split('T')[0];
-        const horaTerminoStr = new Date(evento.hora_termino).toISOString().split('T')[1];
-        const fechaFinEvento = new Date(`${fechaEventoStr}T${horaTerminoStr}`);
+        const fechaFinEvento = calcularFinEvento(evento);
+        if (!fechaFinEvento) continue;
 
         // Si el evento terminó hace más de 24 horas
         if (fechaFinEvento < hace24Horas) {

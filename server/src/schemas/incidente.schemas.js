@@ -82,7 +82,7 @@ export const validarCrearIncidente = (body) => {
     }
   }
 
-  // 5. Fecha opcional
+  // 5. Fecha opcional (no permite fechas futuras)
   if (fecha !== undefined && fecha !== null && fecha !== '') {
     if (!FECHA_REGEX.test(String(fecha))) {
       throw new ValidationError('La fecha debe tener formato AAAA-MM-DD', 'fecha');
@@ -90,6 +90,11 @@ export const validarCrearIncidente = (body) => {
     const parsed = new Date(`${fecha}T00:00:00.000Z`);
     if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== String(fecha)) {
       throw new ValidationError('La fecha ingresada no es válida', 'fecha');
+    }
+    const ahora = new Date();
+    const hoyUTC = new Date(Date.UTC(ahora.getFullYear(), ahora.getMonth(), ahora.getDate()));
+    if (parsed > hoyUTC) {
+      throw new ValidationError('La fecha del incidente no puede ser futura', 'fecha');
     }
   }
 

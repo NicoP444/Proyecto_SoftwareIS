@@ -4,8 +4,9 @@ import {
   actualizarGastoFijoService,
   eliminarGastoFijoService,
 } from '../services/gastosFijos.service.js';
+import { manejarError } from '../utils/errores.js';
 
-export const registrarGastoFijo = async (req, res, next) => {
+export const registrarGastoFijo = async (req, res) => {
   try {
     const id_contador = req.usuario?.id_contador || req.user?.id_contador;
 
@@ -19,24 +20,21 @@ export const registrarGastoFijo = async (req, res, next) => {
       data: gasto,
     });
   } catch (error) {
-    if (error.statusCode === 400) {
-      return res.status(400).json({ mensaje: error.message });
-    }
-    next(error);
+    return manejarError(res, error);
   }
 };
 
-export const listarGastosFijos = async (req, res, next) => {
+export const listarGastosFijos = async (req, res) => {
   try {
     const { anio, mes } = req.periodo;
     const data = await listarGastosFijosPorMesService(anio, mes);
     return res.status(200).json({ data });
   } catch (error) {
-    next(error);
+    return manejarError(res, error);
   }
 };
 
-export const actualizarGastoFijo = async (req, res, next) => {
+export const actualizarGastoFijo = async (req, res) => {
   try {
     const id_contador = req.usuario?.id_contador || req.user?.id_contador;
     if (!id_contador) {
@@ -49,24 +47,26 @@ export const actualizarGastoFijo = async (req, res, next) => {
       data: gasto,
     });
   } catch (error) {
-    if (error.statusCode === 400 || error.statusCode === 404) {
-      return res.status(error.statusCode).json({ mensaje: error.message });
-    }
-    next(error);
+    return manejarError(res, error);
   }
 };
 
-export const eliminarGastoFijo = async (req, res, next) => {
+export const eliminarGastoFijo = async (req, res) => {
   try {
-    const data = await eliminarGastoFijoService(req.params.id);
+    const id_contador = req.usuario?.id_contador || req.user?.id_contador;
+    if (!id_contador) {
+      return res.status(401).json({ mensaje: 'No se pudo identificar al Contador desde la sesión.' });
+    }
+
+    const data = await eliminarGastoFijoService(req.params.id, {
+      motivo: req.body?.motivo,
+      id_contador,
+    });
     return res.status(200).json({
       message: 'Gasto fijo eliminado exitosamente.',
       data,
     });
   } catch (error) {
-    if (error.statusCode === 400 || error.statusCode === 404) {
-      return res.status(error.statusCode).json({ mensaje: error.message });
-    }
-    next(error);
+    return manejarError(res, error);
   }
 };

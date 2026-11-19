@@ -1,6 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 import prisma from '../config/prisma.js';
+import { ValidationError, NotFoundError } from '../utils/errores.js';
+
+const TIENE_LETRAS_REGEX = /[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]/;
 
 const eliminarArchivoLocal = (rutaRelativa) => {
   if (!rutaRelativa || !rutaRelativa.startsWith('/uploads/')) return;
@@ -14,7 +17,7 @@ const eliminarArchivoLocal = (rutaRelativa) => {
   }
 };
 
-export const obtenerOCrearMesAbierto = async (anio, mes, id_contador = 1) => {
+export const obtenerOCrearMesAbierto = async (anio, mes, id_contador) => {
   let mesContable = await prisma.mesContable.findUnique({
     where: { anio_mes: { anio: Number(anio), mes: Number(mes) } },
   });
@@ -33,30 +36,33 @@ export const obtenerOCrearMesAbierto = async (anio, mes, id_contador = 1) => {
   return mesContable;
 };
 
-export const registrarGastoFijoService = async ({ anio, mes, descripcion, monto, evidencia, id_contador = 1 }) => {
-  const mesContable = await obtenerOCrearMesAbierto(anio, mes, id_contador);
-
-  if (mesContable.estado === 'CERRADO') {
-    const err = new Error(`El período ${String(mes).padStart(2, '0')}/${anio} ya está cerrado. No se pueden agregar gastos fijos.`);
-    err.statusCode = 400;
-    throw err;
+export const registrarGastoFijoService = async ({ anio, mes, descripcion, monto, evidencia, id_contador }) => {
+  const contadorId = Number(id_contador);
+  if (!Number.isInteger(contadorId) || contadorId <= 0) {
+    throw new ValidationError('No se pudo identificar al Contador que registra el gasto.');
   }
 
-  const gasto = await prisma.gastoFijo.create({
+  const mesContable = await obtenerOCrearMesAbierto(anio, mes, contadorId);
+
+  if (mesContable.estado === 'CERRADO') {
+    throw new ValidationError(
+      `El período ${String(mes).padStart(2, '0')}/${anio} ya está cerrado. No se pueden agregar gastos fijos.`
+    );
+  }
+
+  return await prisma.gastoFijo.create({
     data: {
       descripcion,
       monto: Number(monto),
       evidencia: evidencia || null,
       id_mes: mesContable.id_mes,
-      id_contador: Number(id_contador),
+      id_contador: contadorId,
     },
     include: {
       mes: { select: { id_mes: true, anio: true, mes: true, estado: true } },
       contador: { select: { id_contador: true, nombre: true } },
     },
   });
-
-  return gasto;
 };
 
 export const actualizarGastoFijoService = async (id_gasto_fijo, { descripcion, monto, evidencia, id_contador }) => {
@@ -66,22 +72,16 @@ export const actualizarGastoFijoService = async (id_gasto_fijo, { descripcion, m
   });
 
   if (!existente) {
-    const err = new Error('El gasto fijo especificado no existe.');
-    err.statusCode = 404;
-    throw err;
+    throw new NotFoundError('El gasto fijo especificado no existe.');
   }
 
   if (existente.mes.estado === 'CERRADO') {
-    const err = new Error('No se puede modificar un gasto fijo de un mes ya cerrado.');
-    err.statusCode = 400;
-    throw err;
+    throw new ValidationError('No se puede modificar un gasto fijo de un mes ya cerrado.');
   }
 
   const ahora = new Date();
   if (existente.mes.anio !== ahora.getFullYear() || existente.mes.mes !== ahora.getMonth() + 1) {
-    const err = new Error('Solo se pueden modificar gastos fijos del período actual en curso.');
-    err.statusCode = 400;
-    throw err;
+    throw new ValidationError('Solo se pueden modificar gastos fijos del período actual en curso.');
   }
 
   const dataActualizar = {
@@ -105,33 +105,54 @@ export const actualizarGastoFijoService = async (id_gasto_fijo, { descripcion, m
   });
 };
 
-export const eliminarGastoFijoService = async (id_gasto_fijo) => {
+export const eliminarGastoFijoService = async (id_gasto_fijo, { motivo, id_contador } = {}) => {
+  const motivoLimpio = String(motivo || '').trim();
+  if (!motivoLimpio || !TIENE_LETRAS_REGEX.test(motivoLimpio)) {
+    throw new ValidationError(
+      'Debe ingresar un motivo explicativo válido para eliminar el gasto fijo.',
+      'motivo'
+    );
+  }
+
+  const contadorId = Number(id_contador);
+  if (!Number.isInteger(contadorId) || contadorId <= 0) {
+    throw new ValidationError('No se pudo identificar al Contador que elimina el gasto.');
+  }
+
   const existente = await prisma.gastoFijo.findUnique({
     where: { id_gasto_fijo: Number(id_gasto_fijo) },
     include: { mes: true },
   });
 
   if (!existente) {
-    const err = new Error('El gasto fijo especificado no existe.');
-    err.statusCode = 404;
-    throw err;
+    throw new NotFoundError('El gasto fijo especificado no existe.');
   }
 
   if (existente.mes.estado === 'CERRADO') {
-    const err = new Error('No se puede eliminar un gasto fijo de un mes ya cerrado.');
-    err.statusCode = 400;
-    throw err;
+    throw new ValidationError('No se puede eliminar un gasto fijo de un mes ya cerrado.');
   }
 
   const ahora = new Date();
   if (existente.mes.anio !== ahora.getFullYear() || existente.mes.mes !== ahora.getMonth() + 1) {
-    const err = new Error('Solo se pueden eliminar gastos fijos del período actual en curso.');
-    err.statusCode = 400;
-    throw err;
+    throw new ValidationError('Solo se pueden eliminar gastos fijos del período actual en curso.');
   }
 
-  await prisma.gastoFijo.delete({
-    where: { id_gasto_fijo: Number(id_gasto_fijo) },
+  await prisma.$transaction(async (tx) => {
+    await tx.historialCambio.create({
+      data: {
+        tabla_afectada: 'gasto_fijo',
+        dato: `Eliminación gasto fijo #${existente.id_gasto_fijo} (${existente.descripcion})`.slice(0, 60),
+        valor_anterior: `$${Number(existente.monto).toLocaleString('es-CL')}`,
+        valor_nuevo: '$0 (Eliminado)',
+        motivo: motivoLimpio.slice(0, 255),
+        id_contador: contadorId,
+        id_evento: null,
+      },
+    });
+
+    await tx.gastoFijo.delete({
+      where: { id_gasto_fijo: Number(id_gasto_fijo) },
+    });
   });
 
   eliminarArchivoLocal(existente.evidencia);
