@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import Modal from './Modal';
-import { clp, formatearFecha } from './finanzas/formato';
+import Modal from './Modal.jsx';
+import { clp, formatearFecha } from './finanzas/formato.js';
 import { verHistorialTrabajador } from '../services/historialTrabajador.service.js';
 import { obtenerUsuario } from '../services/http.js';
 import '../styles/Finanzas.css';
