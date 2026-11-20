@@ -328,10 +328,17 @@ export const actualizarEvento = async (id, datos, idDueno) => {
     ["estado", existente.estado, estado],
   ].filter(([, antes, despues]) => texto(antes) !== texto(despues));
 
-  const motivo =
-    String(datos.motivo ?? "")
-      .trim()
-      .slice(0, 255) || "Modificación del evento";
+  // RF-P1-07: cada cambio queda en el historial con su motivo (obligatorio si algo cambió)
+  const motivo = String(datos.motivo ?? "").trim();
+  if (cambios.length > 0 && !motivo) {
+    throw new ValidationError("Debes indicar el motivo del cambio", "motivo");
+  }
+  if (motivo.length > 255) {
+    throw new ValidationError(
+      "El motivo no puede superar los 255 caracteres",
+      "motivo",
+    );
+  }
 
   // 6. Actualizar + historial + remuneraciones en la misma transacción: o se hace todo o nada
   const actualizado = await prisma.$transaction(async (tx) => {

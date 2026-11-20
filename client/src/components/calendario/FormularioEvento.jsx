@@ -127,6 +127,8 @@ export default function FormularioEvento({
       e.precio_acordado = "Indica un precio mayor a cero";
     else if (precio > 2000000000)
       e.precio_acordado = "El precio es demasiado alto";
+    if (editando && !datos.motivo.trim())
+      e.motivo = "Indica el motivo del cambio (queda en el historial)";
     return e;
   }
 
@@ -147,6 +149,7 @@ export default function FormularioEvento({
         hora_inicio: "ev-inicio",
         hora_termino: "ev-termino",
         precio_acordado: "ev-precio",
+        motivo: "ev-motivo",
       };
       document.getElementById(ids[primero])?.focus();
       return;
@@ -318,8 +321,8 @@ export default function FormularioEvento({
       </div>
 
       {editando && (
-        <div className="campo">
-          <label htmlFor="ev-motivo">Motivo del cambio (opcional)</label>
+        <div className={conError("motivo")}>
+          <label htmlFor="ev-motivo">Motivo del cambio</label>
           <input
             id="ev-motivo"
             value={datos.motivo}
@@ -327,6 +330,9 @@ export default function FormularioEvento({
             maxLength={255}
             placeholder="Ej: El cliente adelantó la hora de inicio"
           />
+          {errores.motivo && (
+            <span className="campo-error">{errores.motivo}</span>
+          )}
         </div>
       )}
 
