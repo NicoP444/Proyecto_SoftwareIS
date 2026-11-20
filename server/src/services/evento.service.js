@@ -403,3 +403,39 @@ export async function listarHistorialEvento(id, usuario) {
     },
   });
 }
+
+// Historial general de eventos (incluye los eliminados, RF-P1-08). Solo el Dueño.
+// Se busca por el texto "evento #N:" porque al eliminar un evento sus filas quedan con id_evento = null
+export async function listarHistorialGeneral(usuario, numeroEvento) {
+  let prefijo = "evento #";
+  if (numeroEvento !== undefined && numeroEvento !== "") {
+    const n = Number(numeroEvento);
+    if (!Number.isInteger(n) || n <= 0) {
+      throw new ValidationError("El número de evento no es válido");
+    }
+    prefijo = `evento #${n}:`; // con ":" para que #1 no traiga también #12
+  }
+
+  return prisma.historialCambio.findMany({
+    where: {
+      dato: { startsWith: prefijo },
+      OR: [
+        { id_dueno: usuario.id_dueno }, // cambios hechos por el dueño (incluye eliminaciones)
+        { evento: { id_dueno: usuario.id_dueno } }, // cambios del contador en sus eventos (pagos)
+      ],
+    },
+    orderBy: { fecha_hora: "desc" },
+    take: 300,
+    select: {
+      id_cambio: true,
+      fecha_hora: true,
+      tabla_afectada: true,
+      dato: true,
+      valor_anterior: true,
+      valor_nuevo: true,
+      motivo: true,
+      dueno: { select: { nombre: true } },
+      contador: { select: { nombre: true } },
+    },
+  });
+}

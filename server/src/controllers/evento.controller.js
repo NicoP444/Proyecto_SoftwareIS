@@ -4,6 +4,7 @@ import {
   eliminarEvento,
   actualizarEvento,
   listarHistorialEvento,
+  listarHistorialGeneral,
 } from "../services/evento.service.js";
 import { manejarError } from "../utils/errores.js";
 
@@ -53,6 +54,14 @@ export async function putEvento(req, res) {
 export async function getHistorialEvento(req, res) {
   try {
     res.json(await listarHistorialEvento(Number(req.params.id), req.user));
+  } catch (error) {
+    manejarError(res, error);
+  }
+}
+
+export async function getHistorialGeneral(req, res) {
+  try {
+    res.json(await listarHistorialGeneral(req.user, req.query.evento));
   } catch (error) {
     manejarError(res, error);
   }

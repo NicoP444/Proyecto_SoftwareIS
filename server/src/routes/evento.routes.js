@@ -5,6 +5,7 @@ import {
   deleteEvento,
   putEvento,
   getHistorialEvento,
+  getHistorialGeneral,
 } from "../controllers/evento.controller.js";
 import {
   validarId,
@@ -23,6 +24,14 @@ router.get(
   permitirRoles("DUENO", "CONTADOR"),
   validarId,
   getHistorialEvento,
+);
+
+// Historial general de eventos (incluye eliminados): solo el Dueño
+router.get(
+  "/historial",
+  autenticar,
+  permitirRoles("DUENO"),
+  getHistorialGeneral,
 );
 router.post(
   "/",
