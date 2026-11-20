@@ -49,3 +49,10 @@ export const listarHistorialEvento = (id) =>
   fetch(`${API_URL}/eventos/${id}/historial`, {
     headers: cabecerasAuth(),
   }).then(manejarRespuesta);
+
+// Historial general de eventos (solo Dueño). numeroEvento es opcional
+export const listarHistorialGeneral = (numeroEvento = "") =>
+  fetch(
+    `${API_URL}/eventos/historial${numeroEvento ? `?evento=${encodeURIComponent(numeroEvento)}` : ""}`,
+    { headers: cabecerasAuth() },
+  ).then(manejarRespuesta);

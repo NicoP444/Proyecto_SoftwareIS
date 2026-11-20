@@ -406,3 +406,35 @@ button.cal-mas { flex-shrink: 0; padding: 0; border: 0; background: none; text-a
 /* ===== Sugerencias de tipo y dirección (reemplazan al datalist del navegador) ===== */
 .campo-sugerencias li button { font-size: 0.85rem; color: var(--texto); }
 .campo-sugerencias li button.marcada { background: var(--primario-suave); }
+
+/* ---------- Historial de cambios del evento (RF-P1-07, RF-P1-08, RF-P1-10) ---------- */
+.cal-id { font-size: 0.8rem; font-weight: 600; color: var(--texto-tenue); font-variant-numeric: tabular-nums; }
+
+.hist-panel { display: flex; flex-direction: column; gap: 12px; }
+.hist-barra { display: flex; gap: 8px; align-items: flex-end; }
+.hist-barra .campo { flex: 1; max-width: 240px; }
+.hist-resumen { margin: 0; font-size: 0.78rem; color: var(--texto-suave); }
+
+.hist-tabla-contenedor { max-height: 60vh; overflow: auto; }
+.hist-tabla { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.hist-tabla th, .hist-tabla td { padding: 8px; border-bottom: 1px solid var(--borde); text-align: left; vertical-align: top; }
+.hist-tabla th { position: sticky; top: 0; z-index: 1; background: var(--blanco); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--texto-suave); }
+.hist-tabla tbody tr:hover { background: var(--fondo); }
+
+.hist-fecha { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.hist-fecha small,
+.hist-usuario small { display: block; font-size: 0.7rem; color: var(--texto-tenue); }
+.hist-usuario { white-space: nowrap; }
+.hist-evento { white-space: nowrap; font-weight: 600; color: var(--primario); font-variant-numeric: tabular-nums; }
+
+.hist-campo { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 600; white-space: nowrap; color: var(--primario); background: var(--primario-suave); }
+.hist-cambio { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.hist-cambio svg { flex-shrink: 0; width: 14px; height: 14px; color: var(--texto-tenue); }
+.hist-antes { color: var(--texto-suave); text-decoration: line-through; }
+.hist-despues { font-weight: 600; color: var(--texto); }
+.hist-motivo.generico { font-style: italic; color: var(--texto-tenue); }
+
+/* Eliminación: fila en rojo suave */
+.hist-tabla tbody tr.hist-fila-eliminado,
+.hist-tabla tbody tr.hist-fila-eliminado:hover { background: rgba(229, 72, 77, 0.06); }
+.hist-fila-eliminado .hist-campo { color: var(--rojo); background: rgba(229, 72, 77, 0.12); }

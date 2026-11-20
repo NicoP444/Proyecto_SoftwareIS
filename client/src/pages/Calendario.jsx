@@ -33,6 +33,7 @@ import PagosEvento from "../components/calendario/PagosEvento";
 import DetalleFinancieroEvento from "../components/calendario/DetalleFinancieroEvento";
 import ConsultaPersonal from "../components/calendario/ConsultaPersonal";
 import HistorialEvento from "../components/calendario/HistorialEvento";
+import HistorialGeneral from "../components/calendario/HistorialGeneral";
 import MargenTraslado from "../components/calendario/MargenTraslado";
 import MenuHerramientas from "../components/calendario/MenuHerramientas";
 import ResumenIncidentesEvento from "../components/incidentes/ResumenIncidentesEvento";
@@ -141,6 +142,7 @@ export default function Calendario() {
   const [gestionandoClientes, setGestionandoClientes] = useState(false); // ventana "Clientes"
   const [consultandoPersonal, setConsultandoPersonal] = useState(false); // ventana "Personal disponible"
   const [configurandoMargen, setConfigurandoMargen] = useState(false); // ventana "Margen de traslado"
+  const [viendoHistorial, setViendoHistorial] = useState(false); // ventana "Historial de eventos"
   const [fechaNueva, setFechaNueva] = useState(""); // fecha que se precarga al crear
   const [errorEliminar, setErrorEliminar] = useState(""); // motivo si el back no deja eliminar
   const [eliminando, setEliminando] = useState(false);
@@ -338,6 +340,7 @@ export default function Calendario() {
               onClientes={() => setGestionandoClientes(true)}
               onPersonal={() => setConsultandoPersonal(true)}
               onMargen={() => setConfigurandoMargen(true)}
+              onHistorial={() => setViendoHistorial(true)}
             />
             <button
               type="button"
@@ -533,6 +536,7 @@ export default function Calendario() {
             <div className="cal-tarjeta-cabecera">
               <div className="cal-tarjeta-titulo">
                 <h3>{e.tipo}</h3>
+                <span className="cal-id">#{e.id_evento}</span>
                 <span
                   className={`chip-cal ${ESTADOS[e.estado]?.clase ?? "cerrado"}`}
                 >
@@ -761,12 +765,14 @@ export default function Calendario() {
                 />
               </section>
             )}
+
             {/* ---------- Historial (RF-P1-07, RF-P1-08, RF-P1-10) ---------- */}
             {pestana === "historial" && verFinanzas && (
               <section className="cal-bloque">
                 <HistorialEvento idEvento={e.id_evento} version={versionFin} />
               </section>
             )}
+
             {errorEliminar && (
               <div className="mensaje mensaje-error">{errorEliminar}</div>
             )}
@@ -886,6 +892,17 @@ export default function Calendario() {
       >
         <MargenTraslado />
       </Modal>
+
+      {/* Historial general de eventos, incluidos los eliminados (RF-P1-08) */}
+      <Modal
+        abierto={viendoHistorial}
+        onCerrar={() => setViendoHistorial(false)}
+        titulo="Historial de eventos"
+        ancho="amplio"
+      >
+        <HistorialGeneral />
+      </Modal>
+
       {/* Todos los eventos de un día (cuando no caben en la celda del mes) */}
       <Modal
         abierto={Boolean(diaAbierto)}
