@@ -485,14 +485,16 @@ export default function Calendario() {
                         key={c.id_evento}
                         type="button"
                         className={`cal-evento ${ESTADOS[c.estado]?.clase ?? "cerrado"}`}
-                        title={`${c.tipo} · ${c.cliente?.nombre ?? ""} · ${c.direccion} · ${ESTADOS[c.estado]?.texto ?? c.estado}`}
+                        title={`#${c.id_evento} · ${c.tipo} · ${c.cliente?.nombre ?? ""} · ${c.direccion} · ${ESTADOS[c.estado]?.texto ?? c.estado}`}
                         onClick={(ev) => {
                           ev.stopPropagation(); // que no abra también "Nuevo evento"
                           setEventoAbierto(c);
                         }}
                       >
                         <b>{horaDe(c.hora_inicio)}</b> {c.tipo}
-                        <small>{c.cliente?.nombre}</small>
+                        <small>
+                          #{c.id_evento} · {c.cliente?.nombre}
+                        </small>
                         {/* En el mes la dirección no cabe: se ve en Semana, al pasar el mouse y en el detalle */}
                         {vista === "semana" && <small>{c.direccion}</small>}
                       </button>
@@ -926,7 +928,9 @@ export default function Calendario() {
               {c.tipo}
               <small>{c.cliente?.nombre}</small>
               <small>{c.direccion}</small>
-              <small>{ESTADOS[c.estado]?.texto ?? c.estado}</small>
+              <small>
+                #{c.id_evento} · {ESTADOS[c.estado]?.texto ?? c.estado}
+              </small>
             </button>
           ))}
         </div>
