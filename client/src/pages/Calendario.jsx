@@ -32,6 +32,7 @@ import ViabilidadEvento from "../components/calendario/ViabilidadEvento";
 import PagosEvento from "../components/calendario/PagosEvento";
 import DetalleFinancieroEvento from "../components/calendario/DetalleFinancieroEvento";
 import ConsultaPersonal from "../components/calendario/ConsultaPersonal";
+import HistorialEvento from "../components/calendario/HistorialEvento";
 import MargenTraslado from "../components/calendario/MargenTraslado";
 import MenuHerramientas from "../components/calendario/MenuHerramientas";
 import ResumenIncidentesEvento from "../components/incidentes/ResumenIncidentesEvento";
@@ -570,6 +571,7 @@ export default function Calendario() {
                 { id: "equipo", texto: "Personal y kits", ver: true },
                 { id: "finanzas", texto: "Finanzas", ver: verFinanzas }, // RF-P1-12 / RF-P1-13
                 { id: "convocatoria", texto: "Convocatoria", ver: puedeCrear },
+                { id: "historial", texto: "Historial", ver: verFinanzas },
               ]
                 .filter((p) => p.ver)
                 .map((p) => (
@@ -759,7 +761,12 @@ export default function Calendario() {
                 />
               </section>
             )}
-
+            {/* ---------- Historial (RF-P1-07, RF-P1-08, RF-P1-10) ---------- */}
+            {pestana === "historial" && verFinanzas && (
+              <section className="cal-bloque">
+                <HistorialEvento idEvento={e.id_evento} version={versionFin} />
+              </section>
+            )}
             {errorEliminar && (
               <div className="mensaje mensaje-error">{errorEliminar}</div>
             )}
