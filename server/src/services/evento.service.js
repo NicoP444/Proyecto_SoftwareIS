@@ -374,3 +374,32 @@ export const actualizarEvento = async (id, datos, idDueno) => {
 
   return { ...actualizado, advertencias };
 };
+
+// RF-P1-07, RF-P1-08 y RF-P1-10: historial de cambios de un evento
+// Dueño y Contador lo consultan; el Jefe técnico no, porque incluye precios y pagos
+export async function listarHistorialEvento(id, usuario) {
+  const evento = await prisma.evento.findFirst({
+    where:
+      usuario.rol === "DUENO"
+        ? { id_evento: id, id_dueno: usuario.id_dueno }
+        : { id_evento: id },
+    select: { id_evento: true },
+  });
+  if (!evento) throw new NotFoundError("El evento no existe");
+
+  return prisma.historialCambio.findMany({
+    where: { id_evento: id },
+    orderBy: { fecha_hora: "desc" },
+    select: {
+      id_cambio: true,
+      fecha_hora: true,
+      tabla_afectada: true,
+      dato: true,
+      valor_anterior: true,
+      valor_nuevo: true,
+      motivo: true,
+      dueno: { select: { nombre: true } },
+      contador: { select: { nombre: true } },
+    },
+  });
+}
