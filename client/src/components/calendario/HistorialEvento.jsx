@@ -17,6 +17,8 @@ const CAMPOS = {
   rentabilidad_final: "Rentabilidad final",
   "pago del cliente": "Pago del cliente",
   eliminado: "Evento eliminado",
+  personal: "Personal",
+  kit: "Kit",
 };
 
 const ESTADOS = {
