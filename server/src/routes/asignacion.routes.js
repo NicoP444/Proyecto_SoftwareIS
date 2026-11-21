@@ -4,6 +4,7 @@ import {
   getAsignaciones,
   postAsignacion,
   deleteAsignacion,
+  getComisiones,
 } from "../controllers/asignacion.controller.js";
 import {
   validarId,
@@ -26,6 +27,15 @@ router.get(
 
 // RF-P3-01: dotación de un evento. Verla: cualquier usuario con sesión. Cambiarla: solo el Dueño.
 router.get("/eventos/:id/asignaciones", autenticar, validarId, getAsignaciones);
+
+// Comisiones del evento (aviso de utilidad del dueño): dato financiero, solo el Dueño
+router.get(
+  "/eventos/:id/comisiones",
+  autenticar,
+  permitirRoles("DUENO"),
+  validarId,
+  getComisiones,
+);
 router.post(
   "/eventos/:id/asignaciones",
   autenticar,

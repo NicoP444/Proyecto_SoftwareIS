@@ -1,6 +1,10 @@
 import prisma from "../config/prisma.js";
 import { ValidationError, NotFoundError } from "../utils/errores.js";
 import { fechaEsReal } from "./validacionesEvento.service.js";
+import {
+  resumirComisiones,
+  textoAvisoComision,
+} from "../utils/comisionEvento.js";
 
 const HORA = /^([01]\d|2[0-3]):[0-5]\d$/; // HH:MM real, de 00:00 a 23:59
 
@@ -221,6 +225,28 @@ export const listarAsignaciones = async (id_evento, id_dueno) => {
   });
 };
 
+// ---------- Comisiones del evento: total del personal y lo que le queda al dueño ----------
+// Solo informa (no bloquea): la decisión final de cuánto repartir es del dueño.
+const comisionesDe = async (db, id_evento, precio_acordado) => {
+  const asignaciones = await db.asignacionPersonal.findMany({
+    where: { id_evento },
+    select: {
+      porcentaje: true,
+      rol: { select: { porcentaje_referencial: true } },
+    },
+  });
+  return resumirComisiones(asignaciones, precio_acordado);
+};
+
+export const resumenComisiones = async (id_evento, id_dueno) => {
+  const evento = await prisma.evento.findFirst({
+    where: { id_evento, id_dueno },
+    select: { precio_acordado: true },
+  });
+  if (!evento) throw new NotFoundError("El evento no existe");
+  return comisionesDe(prisma, id_evento, evento.precio_acordado);
+};
+
 // ---------- RF-P3-01: asignar un trabajador a un evento con un rol ----------
 export const asignarTrabajador = async (
   id_evento,
@@ -362,7 +388,16 @@ export const asignarTrabajador = async (
     return creada;
   });
 
-  return { asignacion, advertencias };
+  // Comisión total del evento con la nueva persona: si es alta, se avisa (no se bloquea)
+  const comisiones = await comisionesDe(
+    prisma,
+    id_evento,
+    evento.precio_acordado,
+  );
+  const avisoComision = textoAvisoComision(comisiones);
+  if (avisoComision) advertencias.push(avisoComision);
+
+  return { asignacion, advertencias, comisiones };
 };
 
 // ---------- Quitar a un trabajador del evento (cuando cambia la dotación) ----------
