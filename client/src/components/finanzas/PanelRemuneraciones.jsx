@@ -30,17 +30,20 @@ export default function PanelRemuneraciones({ idEvento, idDueno, puedeEditar }) 
 
   const precio = datos?.precio_acordado ?? 0;
   const editable = puedeEditar && datos?.editable;
+  const tope = datos?.tope_porcentaje ?? 100; // el tope por trabajador lo define el back
 
   // Lo que se muestra de cada trabajador: lo que escribió, lo ya guardado o, si no hay nada, el porcentaje del rol
   const filas = (datos?.asignaciones ?? []).map((a) => {
     const cambiado = escrito[a.id_asignacion] !== undefined;
     const texto = String(escrito[a.id_asignacion] ?? a.porcentaje ?? a.porcentaje_referencial ?? '');
+    const valor = leer(texto);
     return {
       ...a,
       texto,
-      valor: leer(texto),
+      valor,
       sugerido: !cambiado && a.porcentaje === null && a.porcentaje_referencial !== null, // aún sin guardar
       pendiente: cambiado || (a.porcentaje === null && a.porcentaje_referencial !== null),
+      fueraDeRango: valor !== null && (valor < 0 || valor > tope), // no se puede guardar
     };
   });
 
@@ -49,6 +52,7 @@ export default function PanelRemuneraciones({ idEvento, idDueno, puedeEditar }) 
   const montoRepartido = filas.reduce((s, f) => s + (f.valor === null ? 0 : calcularMonto(f.valor, precio)), 0);
 
   async function guardar(f) {
+    if (f.fueraDeRango) return;
     try {
       await definirPorcentaje(f.id_asignacion, { id_dueno: idDueno, porcentaje: f.valor });
       setEscrito((e) => {
@@ -58,7 +62,7 @@ export default function PanelRemuneraciones({ idEvento, idDueno, puedeEditar }) 
       });
       setVersion((v) => v + 1);
     } catch (e) {
-      setError(e.message); // el back explica, por ejemplo, el máximo permitido
+      setError(e.message); // el back explica, por ejemplo, el tope o el máximo permitido
     }
   }
 
@@ -74,6 +78,12 @@ export default function PanelRemuneraciones({ idEvento, idDueno, puedeEditar }) 
               Queda para la empresa: {clp(precio - montoRepartido)} ({Math.round((100 - porcentajeRepartido) * 100) / 100}%)
             </span>
           </div>
+
+          {tope < 100 && (
+            <p className="fin-texto-suave" style={{ marginBottom: 16 }}>
+              Cada trabajador puede recibir como máximo el {tope}% del precio acordado.
+            </p>
+          )}
 
           {filas.length === 0 ? (
             <p className="fin-vacio">Este evento no tiene trabajadores asignados</p>
@@ -91,7 +101,7 @@ export default function PanelRemuneraciones({ idEvento, idDueno, puedeEditar }) 
                   </div>
 
                   <div className="fin-campo">
-                    <label htmlFor={`pct-${f.id_asignacion}`}>Porcentaje del precio</label>
+                    <label htmlFor={`pct-${f.id_asignacion}`}>Porcentaje del precio (máx. {tope}%)</label>
                     <div className="fin-pct-campo">
                       <input
                         id={`pct-${f.id_asignacion}`}
@@ -103,7 +113,14 @@ export default function PanelRemuneraciones({ idEvento, idDueno, puedeEditar }) 
                       />
                       <span>%</span>
                     </div>
-                    {f.sugerido && <span className="fin-pct-ayuda">Sugerido por el rol · aún sin guardar</span>}
+                    {f.fueraDeRango && (
+                      <span className="fin-pct-ayuda fin-pct-error">
+                        {f.valor > tope ? `Supera el tope de ${tope}% por trabajador` : 'El porcentaje no puede ser negativo'}
+                      </span>
+                    )}
+                    {!f.fueraDeRango && f.sugerido && (
+                      <span className="fin-pct-ayuda">Sugerido por el rol · aún sin guardar</span>
+                    )}
                   </div>
 
                   {editable && (
@@ -122,7 +139,7 @@ export default function PanelRemuneraciones({ idEvento, idDueno, puedeEditar }) 
                       <button
                         type="button"
                         className="fin-btn fin-btn-primario fin-btn-chico"
-                        disabled={!f.pendiente || f.valor === null}
+                        disabled={!f.pendiente || f.valor === null || f.fueraDeRango}
                         onClick={() => guardar(f)}
                       >
                         <Check size={15} /> Guardar

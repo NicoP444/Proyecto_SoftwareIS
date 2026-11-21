@@ -1,5 +1,6 @@
 import prisma from '../config/prisma.js';
 import { ValidationError, NotFoundError } from '../utils/errores.js';
+import { TOPE_PORCENTAJE } from '../schemas/remuneracion.schemas.js';
 
 // Estados en los que se pueden definir porcentajes: "después de realizada la transmisión
 // y antes de cerrar la jornada". Si el equipo decide permitirlos antes, agrega 'CONFIRMADO'.
@@ -35,6 +36,7 @@ export const listarPorEvento = async (id_evento) => {
     estado_evento: evento.estado,
     precio_acordado: evento.precio_acordado,
     editable: ESTADOS_EDITABLES.includes(evento.estado),
+    tope_porcentaje: TOPE_PORCENTAJE, // el front lo muestra y lo valida con este mismo número
     asignaciones: asignaciones.map((a) => ({
       id_asignacion: a.id_asignacion,
       id_trabajador: a.id_trabajador,

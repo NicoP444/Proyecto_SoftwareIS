@@ -8,9 +8,9 @@ import {
 } from '../../services/gastoEvento.service.js';
 
 //seccion de gastos
-
+//Componente funcional
 export default function PanelGastos({ idEvento, idContador, puedeEditar }) {
-  const [gastos, setGastos] = useState([]);
+  const [gastos, setGastos] = useState([]); // Manejos de estado
   const [trabajadores, setTrabajadores] = useState([]);
   const [error, setError] = useState('');
   const [version, setVersion] = useState(0);
@@ -21,9 +21,9 @@ export default function PanelGastos({ idEvento, idContador, puedeEditar }) {
 
   const recargar = () => setVersion((v) => v + 1); // obligamos a que recargue la pagina
 
-  useEffect(() => {
-    Promise.all([listarGastos(idEvento), listarRendiciones(idEvento)]) // ejecutamos en paralelo.
-      .then(([g, r]) => {
+  useEffect(() => { // hook de efecto secundario
+    Promise.all([listarGastos(idEvento), listarRendiciones(idEvento)]) // ejecucion concurrente 
+      .then(([g, r]) => { // destructuracion de arreglos
         setGastos(g);
         setTrabajadores(r.rendiciones);
         setError('');

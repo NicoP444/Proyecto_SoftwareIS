@@ -387,3 +387,36 @@
 .fin-sugerencia:hover,
 .fin-sugerencia.activa { background: var(--fin-azul-suave); color: var(--fin-azul); }
 .fin-sugerencia-vacia { padding: 10px 12px; font-size: 14px; color: var(--fin-suave); }
+
+/* ---------- Remuneraciones: porcentaje repartido y advertencia ---------- */
+.fin-reparto {
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  border: 1px solid var(--fin-borde);
+  border-radius: 12px;
+  background: #f8fafc;
+}
+.fin-reparto-cab { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 14px; color: var(--fin-suave); }
+.fin-reparto-cab strong { font-size: 26px; line-height: 1; color: var(--fin-texto); }
+.fin-barra { height: 10px; margin: 10px 0 8px; border-radius: 999px; background: #e5e7eb; overflow: hidden; }
+.fin-barra-relleno { height: 100%; border-radius: 999px; background: var(--fin-azul); transition: width 0.2s, background 0.2s; }
+.fin-reparto-pie { font-size: 13px; color: var(--fin-suave); }
+.fin-reparto-aviso { margin: 10px 0 0; padding: 10px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; }
+
+/* Atención (70% a 89%) */
+.fin-reparto-atencion { border-color: #f5d58a; background: #fffbeb; }
+.fin-reparto-atencion .fin-barra-relleno { background: #f5b942; }
+.fin-reparto-atencion .fin-reparto-cab strong { color: #b45309; }
+.fin-reparto-atencion .fin-reparto-aviso { background: #fef3c7; color: #92400e; }
+
+/* Alerta (90% a 99%) */
+.fin-reparto-alerta { border-color: #f9c79a; background: #fff7ed; }
+.fin-reparto-alerta .fin-barra-relleno { background: var(--fin-naranja); }
+.fin-reparto-alerta .fin-reparto-cab strong { color: #c2410c; }
+.fin-reparto-alerta .fin-reparto-aviso { background: #ffedd5; color: #9a3412; }
+
+/* Crítico (100% o más) */
+.fin-reparto-critico { border-color: #fecaca; background: #fef2f2; }
+.fin-reparto-critico .fin-barra-relleno { background: var(--fin-rojo); }
+.fin-reparto-critico .fin-reparto-cab strong { color: var(--fin-rojo); }
+.fin-reparto-critico .fin-reparto-aviso { background: #fee2e2; color: #b91c1c; }
