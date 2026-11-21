@@ -145,7 +145,7 @@ function VistaDueno({ datos }) {
         >
           <ListaEventos eventos={datos.proximos_eventos} />
         </Panel>
-        <Panel titulo="Alertas" enlace="Ver reportes" ruta="/finanzas">
+        <Panel titulo="Alertas">
           {datos.alertas.length === 0 ? (
             <Vacio texto="No hay alertas pendientes" />
           ) : (

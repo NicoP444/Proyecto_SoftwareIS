@@ -228,13 +228,30 @@ export const reservarKit = async (id_evento, { id_kit, id_dueno }) => {
     }
   }
 
-  const reserva = await prisma.reservaKit.create({
-    data: { id_evento, id_kit, id_dueno },
-    select: {
-      id_reserva: true,
-      id_kit: true,
-      kit: { select: { nombre: true, nivel: true, estado: true } },
-    },
+  // La reserva y su registro en el historial van juntos
+  const reserva = await prisma.$transaction(async (tx) => {
+    const creada = await tx.reservaKit.create({
+      data: { id_evento, id_kit, id_dueno },
+      select: {
+        id_reserva: true,
+        id_kit: true,
+        kit: { select: { nombre: true, nivel: true, estado: true } },
+      },
+    });
+
+    // RF-P1-07: el cambio de kits queda en el historial del evento
+    await tx.historialCambio.create({
+      data: {
+        tabla_afectada: "reserva_kit",
+        dato: `evento #${id_evento}: kit`,
+        valor_nuevo: creada.kit.nombre.slice(0, 255),
+        motivo: "Kit asignado al evento",
+        id_dueno,
+        id_evento,
+      },
+    });
+
+    return creada;
   });
 
   return { reserva, advertencias };
@@ -265,5 +282,18 @@ export const quitarKit = async (id_evento, id_reserva, id_dueno) => {
     );
   }
 
-  await prisma.reservaKit.delete({ where: { id_reserva } });
+  // Quitar y registrar en el historial van juntos
+  await prisma.$transaction([
+    prisma.reservaKit.delete({ where: { id_reserva } }),
+    prisma.historialCambio.create({
+      data: {
+        tabla_afectada: "reserva_kit",
+        dato: `evento #${id_evento}: kit`,
+        valor_anterior: reserva.kit.nombre.slice(0, 255),
+        motivo: "Kit quitado del evento",
+        id_dueno,
+        id_evento,
+      },
+    }),
+  ]);
 };

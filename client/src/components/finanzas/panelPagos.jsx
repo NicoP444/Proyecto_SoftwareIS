@@ -4,9 +4,9 @@ import { clp, formatearFecha } from './formato';
 import { listarPagos, registrarPago } from '../../services/pagoRemuneracion.service.js';
 
 const MEDIOS = ['Transferencia', 'Efectivo', 'Otro'];
-
+//componente funcional
 export default function PanelPagos({ idEvento, idContador, puedeEditar }) {
-  const [datos, setDatos] = useState(null);
+  const [datos, setDatos] = useState(null); // definimos variables, para cambios de estados...
   const [error, setError] = useState('');
   const [version, setVersion] = useState(0);
   const [pagando, setPagando] = useState(null); // la fila a la que se le registra el pago
@@ -14,7 +14,7 @@ export default function PanelPagos({ idEvento, idContador, puedeEditar }) {
   const [advertir, setAdvertir] = useState(false);
   const [errorPago, setErrorPago] = useState('');
 
-  useEffect(() => {
+  useEffect(() => { // hook ejecucion en segundo plano
     listarPagos(idEvento)
       .then((d) => {
         setDatos(d);

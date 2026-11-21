@@ -406,3 +406,55 @@ button.cal-mas { flex-shrink: 0; padding: 0; border: 0; background: none; text-a
 /* ===== Sugerencias de tipo y dirección (reemplazan al datalist del navegador) ===== */
 .campo-sugerencias li button { font-size: 0.85rem; color: var(--texto); }
 .campo-sugerencias li button.marcada { background: var(--primario-suave); }
+
+/* ---------- Historial de cambios del evento (RF-P1-07, RF-P1-08, RF-P1-10) ---------- */
+.cal-id { font-size: 0.8rem; font-weight: 600; color: var(--texto-tenue); font-variant-numeric: tabular-nums; }
+
+.hist-panel { display: flex; flex-direction: column; gap: 12px; }
+.hist-barra { display: flex; gap: 8px; align-items: flex-end; }
+.hist-barra .campo { flex: 1; max-width: 240px; }
+.hist-resumen { margin: 0; font-size: 0.78rem; color: var(--texto-suave); }
+
+.hist-tabla-contenedor { max-height: 60vh; overflow: auto; }
+.hist-tabla { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.hist-tabla th, .hist-tabla td { padding: 8px; border-bottom: 1px solid var(--borde); text-align: left; vertical-align: top; }
+.hist-tabla th { position: sticky; top: 0; z-index: 1; background: var(--blanco); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--texto-suave); }
+.hist-tabla tbody tr:hover { background: var(--fondo); }
+
+.hist-fecha { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.hist-fecha small,
+.hist-usuario small { display: block; font-size: 0.7rem; color: var(--texto-tenue); }
+.hist-usuario { white-space: nowrap; }
+.hist-evento { white-space: nowrap; font-weight: 600; color: var(--primario); font-variant-numeric: tabular-nums; }
+
+.hist-campo { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 600; white-space: nowrap; color: var(--primario); background: var(--primario-suave); }
+.hist-cambio { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.hist-cambio svg { flex-shrink: 0; width: 14px; height: 14px; color: var(--texto-tenue); }
+.hist-antes { color: var(--texto-suave); text-decoration: line-through; }
+.hist-despues { font-weight: 600; color: var(--texto); }
+.hist-motivo.generico { font-style: italic; color: var(--texto-tenue); }
+
+/* Eliminación: fila en rojo suave */
+.hist-tabla tbody tr.hist-fila-eliminado,
+.hist-tabla tbody tr.hist-fila-eliminado:hover { background: rgba(229, 72, 77, 0.06); }
+.hist-fila-eliminado .hist-campo { color: var(--rojo); background: rgba(229, 72, 77, 0.12); }
+
+/* ---------- Comisiones del evento: aviso de utilidad del dueño ---------- */
+.comision-tarjeta { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border: 1px solid var(--borde); border-left: 4px solid var(--verde); border-radius: 10px; background: var(--blanco); font-size: 0.8rem; }
+.comision-tarjeta.alto { border-left-color: var(--naranjo); background: rgba(240, 138, 60, 0.06); }
+.comision-tarjeta.sin-utilidad { border-left-color: var(--rojo); background: rgba(229, 72, 77, 0.06); }
+.comision-cabecera { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.comision-cabecera span { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+.comision-cabecera svg { width: 16px; height: 16px; }
+.comision-barra { position: relative; height: 8px; border-radius: 999px; background: var(--fondo); overflow: hidden; }
+.comision-relleno { height: 100%; border-radius: 999px; background: var(--verde); transition: width 0.2s; }
+.comision-tarjeta.alto .comision-relleno { background: var(--naranjo); }
+.comision-tarjeta.sin-utilidad .comision-relleno { background: var(--rojo); }
+.comision-marca { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--texto-tenue); }
+.comision-tarjeta p { margin: 0; }
+
+/* Ventana de confirmación antes de asignar */
+.comision-modal { display: flex; flex-direction: column; gap: 12px; font-size: 0.85rem; }
+.comision-modal p { margin: 0; }
+.comision-modal ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.comision-modal-acciones { display: flex; justify-content: flex-end; gap: 8px; }

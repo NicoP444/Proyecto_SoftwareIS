@@ -32,6 +32,8 @@ import ViabilidadEvento from "../components/calendario/ViabilidadEvento";
 import PagosEvento from "../components/calendario/PagosEvento";
 import DetalleFinancieroEvento from "../components/calendario/DetalleFinancieroEvento";
 import ConsultaPersonal from "../components/calendario/ConsultaPersonal";
+import HistorialEvento from "../components/calendario/HistorialEvento";
+import HistorialGeneral from "../components/calendario/HistorialGeneral";
 import MargenTraslado from "../components/calendario/MargenTraslado";
 import MenuHerramientas from "../components/calendario/MenuHerramientas";
 import ResumenIncidentesEvento from "../components/incidentes/ResumenIncidentesEvento";
@@ -140,6 +142,7 @@ export default function Calendario() {
   const [gestionandoClientes, setGestionandoClientes] = useState(false); // ventana "Clientes"
   const [consultandoPersonal, setConsultandoPersonal] = useState(false); // ventana "Personal disponible"
   const [configurandoMargen, setConfigurandoMargen] = useState(false); // ventana "Margen de traslado"
+  const [viendoHistorial, setViendoHistorial] = useState(false); // ventana "Historial de eventos"
   const [fechaNueva, setFechaNueva] = useState(""); // fecha que se precarga al crear
   const [errorEliminar, setErrorEliminar] = useState(""); // motivo si el back no deja eliminar
   const [eliminando, setEliminando] = useState(false);
@@ -337,6 +340,7 @@ export default function Calendario() {
               onClientes={() => setGestionandoClientes(true)}
               onPersonal={() => setConsultandoPersonal(true)}
               onMargen={() => setConfigurandoMargen(true)}
+              onHistorial={() => setViendoHistorial(true)}
             />
             <button
               type="button"
@@ -481,14 +485,16 @@ export default function Calendario() {
                         key={c.id_evento}
                         type="button"
                         className={`cal-evento ${ESTADOS[c.estado]?.clase ?? "cerrado"}`}
-                        title={`${c.tipo} · ${c.cliente?.nombre ?? ""} · ${c.direccion} · ${ESTADOS[c.estado]?.texto ?? c.estado}`}
+                        title={`#${c.id_evento} · ${c.tipo} · ${c.cliente?.nombre ?? ""} · ${c.direccion} · ${ESTADOS[c.estado]?.texto ?? c.estado}`}
                         onClick={(ev) => {
                           ev.stopPropagation(); // que no abra también "Nuevo evento"
                           setEventoAbierto(c);
                         }}
                       >
                         <b>{horaDe(c.hora_inicio)}</b> {c.tipo}
-                        <small>{c.cliente?.nombre}</small>
+                        <small>
+                          #{c.id_evento} · {c.cliente?.nombre}
+                        </small>
                         {/* En el mes la dirección no cabe: se ve en Semana, al pasar el mouse y en el detalle */}
                         {vista === "semana" && <small>{c.direccion}</small>}
                       </button>
@@ -532,6 +538,7 @@ export default function Calendario() {
             <div className="cal-tarjeta-cabecera">
               <div className="cal-tarjeta-titulo">
                 <h3>{e.tipo}</h3>
+                <span className="cal-id">#{e.id_evento}</span>
                 <span
                   className={`chip-cal ${ESTADOS[e.estado]?.clase ?? "cerrado"}`}
                 >
@@ -570,6 +577,7 @@ export default function Calendario() {
                 { id: "equipo", texto: "Personal y kits", ver: true },
                 { id: "finanzas", texto: "Finanzas", ver: verFinanzas }, // RF-P1-12 / RF-P1-13
                 { id: "convocatoria", texto: "Convocatoria", ver: puedeCrear },
+                { id: "historial", texto: "Historial", ver: verFinanzas },
               ]
                 .filter((p) => p.ver)
                 .map((p) => (
@@ -760,6 +768,13 @@ export default function Calendario() {
               </section>
             )}
 
+            {/* ---------- Historial (RF-P1-07, RF-P1-08, RF-P1-10) ---------- */}
+            {pestana === "historial" && verFinanzas && (
+              <section className="cal-bloque">
+                <HistorialEvento idEvento={e.id_evento} version={versionFin} />
+              </section>
+            )}
+
             {errorEliminar && (
               <div className="mensaje mensaje-error">{errorEliminar}</div>
             )}
@@ -879,6 +894,17 @@ export default function Calendario() {
       >
         <MargenTraslado />
       </Modal>
+
+      {/* Historial general de eventos, incluidos los eliminados (RF-P1-08) */}
+      <Modal
+        abierto={viendoHistorial}
+        onCerrar={() => setViendoHistorial(false)}
+        titulo="Historial de eventos"
+        ancho="amplio"
+      >
+        <HistorialGeneral />
+      </Modal>
+
       {/* Todos los eventos de un día (cuando no caben en la celda del mes) */}
       <Modal
         abierto={Boolean(diaAbierto)}
@@ -902,7 +928,9 @@ export default function Calendario() {
               {c.tipo}
               <small>{c.cliente?.nombre}</small>
               <small>{c.direccion}</small>
-              <small>{ESTADOS[c.estado]?.texto ?? c.estado}</small>
+              <small>
+                #{c.id_evento} · {ESTADOS[c.estado]?.texto ?? c.estado}
+              </small>
             </button>
           ))}
         </div>

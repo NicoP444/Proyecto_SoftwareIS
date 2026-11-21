@@ -56,19 +56,10 @@ export default function App() {
             <Route path="/kits" element={<Kits />} />
             <Route path="/salida-kits" element={<SalidaKits />} />
             <Route path="/perdidas-inventario" element={<PerdidasInventarioJefe />} />
+            <Route path="/incidentes" element={<Incidentes />} />
           </Route>
         </Route>
         
-          
-        <Route
-          path="/incidentes"
-          element={
-            <RutaProtegida>
-              <Incidentes />
-            </RutaProtegida>
-          }
-        />
-
         {/* Redirección por defecto */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

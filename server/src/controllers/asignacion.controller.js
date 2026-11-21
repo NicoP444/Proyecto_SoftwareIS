@@ -5,6 +5,7 @@ import {
   listarAsignaciones,
   asignarTrabajador,
   quitarAsignacion,
+  resumenComisiones,
 } from "../services/asignacion.service.js";
 
 // RF-P1-03: GET /api/personal-disponible?id_dueno=1&fecha=...&hora_inicio=...&hora_termino=...&id_rol=...
@@ -43,6 +44,17 @@ export const getAsignaciones = async (req, res) => {
   try {
     return res.json(
       await listarAsignaciones(Number(req.params.id), req.user.id_dueno),
+    );
+  } catch (error) {
+    return manejarError(res, error);
+  }
+};
+
+// GET /api/eventos/:id/comisiones: total de comisiones del personal y lo que le queda al dueño
+export const getComisiones = async (req, res) => {
+  try {
+    return res.json(
+      await resumenComisiones(Number(req.params.id), req.user.id_dueno),
     );
   } catch (error) {
     return manejarError(res, error);

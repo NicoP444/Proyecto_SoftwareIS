@@ -53,3 +53,7 @@ export const quitarAsignacion = (idEvento, idAsignacion) =>
   pedir(`/eventos/${idEvento}/asignaciones/${idAsignacion}`, {
     method: "DELETE",
   });
+
+// Comisiones del evento: total del personal (%) y lo que le queda al dueño. Solo el Dueño.
+export const verComisiones = (idEvento) =>
+  pedir(`/eventos/${idEvento}/comisiones`);

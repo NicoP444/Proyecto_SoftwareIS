@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Phone, UserPlus } from "lucide-react";
+import Modal from "../Modal";
 import { listarRoles } from "../../services/personalServicio.js";
 import {
   listarPersonalConEstado,
@@ -62,6 +63,25 @@ function motivoDe(t, estado) {
   return null;
 }
 
+const plata = (n) => "$" + Number(n).toLocaleString("es-CL");
+
+// Comisión total si se agrega a alguien con un rol: lo que ya hay + el % referencial del rol.
+// Los topes vienen del back (resumen de comisiones), así la regla vive en un solo lugar.
+function proyectarComision(comisiones, porcentajeRol) {
+  const total =
+    Math.round((comisiones.total_porcentaje + Number(porcentajeRol ?? 0)) * 100) /
+    100;
+  const nivel =
+    total >= comisiones.tope_sin_utilidad
+      ? "SIN_UTILIDAD"
+      : total > comisiones.tope_recomendado
+        ? "ALTO"
+        : "OK";
+  const quedaPct = Math.round((100 - total) * 100) / 100;
+  const quedaMonto = Math.round((comisiones.precio_acordado * quedaPct) / 100);
+  return { total, nivel, quedaPct, quedaMonto };
+}
+
 // Para buscar sin importar tildes ni mayúsculas ("matias" encuentra a "Matías")
 const normalizar = (texto) =>
   texto
@@ -75,8 +95,15 @@ const normalizar = (texto) =>
  * Lista a TODO el personal que aún no está en el evento, con su estado para el horario
  * del evento. Quien no se puede asignar aparece bloqueado y con el motivo, en vez de
  * desaparecer de la lista.
+ * Si con la nueva persona la comisión total pasa del tope recomendado (o deja al
+ * dueño sin utilidad), primero pide confirmación. No bloquea: el dueño decide.
  */
-export default function BuscadorPersonal({ evento, onAsignado, refresco = 0 }) {
+export default function BuscadorPersonal({
+  evento,
+  onAsignado,
+  refresco = 0,
+  comisiones = null,
+}) {
   const [idRol, setIdRol] = useState("");
   const [busqueda, setBusqueda] = useState("");
   const [roles, setRoles] = useState([]);
@@ -87,6 +114,7 @@ export default function BuscadorPersonal({ evento, onAsignado, refresco = 0 }) {
   const [error, setError] = useState("");
   const [aviso, setAviso] = useState(null); // { advertencia, textos }
   const [version, setVersion] = useState(0); // sube para volver a buscar
+  const [porConfirmar, setPorConfirmar] = useState(null); // { t, idRol, rol, proyeccion }
 
   // Roles para el filtro (solo los activos)
   useEffect(() => {
@@ -164,7 +192,30 @@ export default function BuscadorPersonal({ evento, onAsignado, refresco = 0 }) {
     return (delFiltro ?? t.roles[0])?.id_rol;
   }
 
-  async function asignar(t) {
+  // Antes de asignar: si la comisión total quedaría alta, se pide confirmación
+  function intentarAsignar(t) {
+    const idRolAsignar = rolDe(t);
+    if (comisiones) {
+      const rol = roles.find((r) => r.id_rol === Number(idRolAsignar));
+      const proyeccion = proyectarComision(
+        comisiones,
+        rol?.porcentaje_referencial,
+      );
+      if (proyeccion.nivel !== "OK") {
+        setPorConfirmar({ t, idRol: idRolAsignar, rol, proyeccion });
+        return;
+      }
+    }
+    asignar(t, idRolAsignar);
+  }
+
+  function confirmarAsignacion() {
+    const { t, idRol: idRolAsignar } = porConfirmar;
+    setPorConfirmar(null);
+    asignar(t, idRolAsignar);
+  }
+
+  async function asignar(t, idRolAsignar = rolDe(t)) {
     setAsignando(t.id_trabajador);
     setError("");
     setAviso(null);
@@ -172,7 +223,7 @@ export default function BuscadorPersonal({ evento, onAsignado, refresco = 0 }) {
       const res = await asignarTrabajador(
         evento.id_evento,
         t.id_trabajador,
-        rolDe(t),
+        idRolAsignar,
       );
       setAviso(
         res.advertencias?.length
@@ -307,7 +358,7 @@ export default function BuscadorPersonal({ evento, onAsignado, refresco = 0 }) {
                       type="button"
                       className={`boton ${t.estado === "DISPONIBLE" ? "boton-principal" : "boton-secundario"}`}
                       disabled={asignando !== null || !rolDe(t)}
-                      onClick={() => asignar(t)}
+                      onClick={() => intentarAsignar(t)}
                     >
                       <UserPlus />{" "}
                       {asignando === t.id_trabajador
@@ -323,6 +374,65 @@ export default function BuscadorPersonal({ evento, onAsignado, refresco = 0 }) {
           </ul>
         </>
       )}
+
+      {/* Aviso de comisión alta: se puede asignar igual, la decisión es del dueño */}
+      <Modal
+        abierto={porConfirmar !== null}
+        onCerrar={() => setPorConfirmar(null)}
+        titulo={
+          porConfirmar?.proyeccion.nivel === "SIN_UTILIDAD"
+            ? "El dueño quedaría sin utilidad"
+            : "Comisiones sobre lo recomendado"
+        }
+      >
+        {porConfirmar && comisiones && (
+          <div className="comision-modal">
+            <div
+              className={`mensaje ${porConfirmar.proyeccion.nivel === "SIN_UTILIDAD" ? "mensaje-error" : "mensaje-aviso"}`}
+            >
+              {porConfirmar.proyeccion.nivel === "SIN_UTILIDAD"
+                ? `Si asignas a ${porConfirmar.t.nombre}, las comisiones del personal llegan al ${porConfirmar.proyeccion.total}% del precio acordado y al dueño no le queda ganancia del evento.`
+                : `Si asignas a ${porConfirmar.t.nombre}, las comisiones del personal llegan al ${porConfirmar.proyeccion.total}%, sobre el ${comisiones.tope_recomendado}% recomendado.`}
+            </div>
+            <ul>
+              <li>
+                Comisión actual del evento: {comisiones.total_porcentaje}%
+              </li>
+              <li>
+                {porConfirmar.rol?.nombre ?? "Rol"}:{" "}
+                {porConfirmar.rol?.porcentaje_referencial != null
+                  ? `+${Number(porConfirmar.rol.porcentaje_referencial)}% (referencial)`
+                  : "sin porcentaje referencial"}
+              </li>
+              <li>
+                Al dueño le quedaría: {porConfirmar.proyeccion.quedaPct}% (
+                {plata(porConfirmar.proyeccion.quedaMonto)}), antes de gastos
+              </li>
+            </ul>
+            <p className="texto-tenue">
+              Lo recomendado es repartir hasta un {comisiones.tope_recomendado}%
+              en comisiones y dejar el resto como ganancia del dueño. Puedes
+              asignar igual: la decisión es tuya.
+            </p>
+            <div className="comision-modal-acciones">
+              <button
+                type="button"
+                className="boton boton-secundario"
+                onClick={() => setPorConfirmar(null)}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className={`boton ${porConfirmar.proyeccion.nivel === "SIN_UTILIDAD" ? "boton-peligro" : "boton-principal"}`}
+                onClick={confirmarAsignacion}
+              >
+                Asignar igual
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
