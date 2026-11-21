@@ -1,6 +1,10 @@
 import prisma from "../config/prisma.js";
 import { ValidationError, NotFoundError } from "../utils/errores.js";
 import { fechaEsReal } from "./validacionesEvento.service.js";
+import {
+  resumirComisiones,
+  textoAvisoComision,
+} from "../utils/comisionEvento.js";
 
 const HORA = /^([01]\d|2[0-3]):[0-5]\d$/; // HH:MM real, de 00:00 a 23:59
 
@@ -221,6 +225,28 @@ export const listarAsignaciones = async (id_evento, id_dueno) => {
   });
 };
 
+// ---------- Comisiones del evento: total del personal y lo que le queda al dueño ----------
+// Solo informa (no bloquea): la decisión final de cuánto repartir es del dueño.
+const comisionesDe = async (db, id_evento, precio_acordado) => {
+  const asignaciones = await db.asignacionPersonal.findMany({
+    where: { id_evento },
+    select: {
+      porcentaje: true,
+      rol: { select: { porcentaje_referencial: true } },
+    },
+  });
+  return resumirComisiones(asignaciones, precio_acordado);
+};
+
+export const resumenComisiones = async (id_evento, id_dueno) => {
+  const evento = await prisma.evento.findFirst({
+    where: { id_evento, id_dueno },
+    select: { precio_acordado: true },
+  });
+  if (!evento) throw new NotFoundError("El evento no existe");
+  return comisionesDe(prisma, id_evento, evento.precio_acordado);
+};
+
 // ---------- RF-P3-01: asignar un trabajador a un evento con un rol ----------
 export const asignarTrabajador = async (
   id_evento,
@@ -334,18 +360,44 @@ export const asignarTrabajador = async (
     }
   }
 
-  const asignacion = await prisma.asignacionPersonal.create({
-    data: { id_evento, id_trabajador, id_rol, id_dueno },
-    select: {
-      id_asignacion: true,
-      id_trabajador: true,
-      id_rol: true,
-      trabajador: { select: { nombre: true, telefono_whatsapp: true } },
-      rol: { select: { nombre: true } },
-    },
+  // La asignación y su registro en el historial van juntos: o se guardan ambos o ninguno
+  const asignacion = await prisma.$transaction(async (tx) => {
+    const creada = await tx.asignacionPersonal.create({
+      data: { id_evento, id_trabajador, id_rol, id_dueno },
+      select: {
+        id_asignacion: true,
+        id_trabajador: true,
+        id_rol: true,
+        trabajador: { select: { nombre: true, telefono_whatsapp: true } },
+        rol: { select: { nombre: true } },
+      },
+    });
+
+    // RF-P1-07: el cambio de dotación queda en el historial del evento
+    await tx.historialCambio.create({
+      data: {
+        tabla_afectada: "asignacion_personal",
+        dato: `evento #${id_evento}: personal`,
+        valor_nuevo: `${creada.trabajador.nombre} (${creada.rol.nombre})`.slice(0, 255),
+        motivo: "Trabajador asignado al evento",
+        id_dueno,
+        id_evento,
+      },
+    });
+
+    return creada;
   });
 
-  return { asignacion, advertencias };
+  // Comisión total del evento con la nueva persona: si es alta, se avisa (no se bloquea)
+  const comisiones = await comisionesDe(
+    prisma,
+    id_evento,
+    evento.precio_acordado,
+  );
+  const avisoComision = textoAvisoComision(comisiones);
+  if (avisoComision) advertencias.push(avisoComision);
+
+  return { asignacion, advertencias, comisiones };
 };
 
 // ---------- Quitar a un trabajador del evento (cuando cambia la dotación) ----------
@@ -355,6 +407,7 @@ export const quitarAsignacion = async (id_evento, id_asignacion, id_dueno) => {
     include: {
       evento: true,
       trabajador: { select: { nombre: true } },
+      rol: { select: { nombre: true } },
       _count: {
         select: {
           gastos: true,
@@ -385,5 +438,18 @@ export const quitarAsignacion = async (id_evento, id_asignacion, id_dueno) => {
     );
   }
 
-  await prisma.asignacionPersonal.delete({ where: { id_asignacion } });
+  // Quitar y registrar en el historial van juntos
+  await prisma.$transaction([
+    prisma.asignacionPersonal.delete({ where: { id_asignacion } }),
+    prisma.historialCambio.create({
+      data: {
+        tabla_afectada: "asignacion_personal",
+        dato: `evento #${id_evento}: personal`,
+        valor_anterior: `${asignacion.trabajador.nombre} (${asignacion.rol.nombre})`.slice(0, 255),
+        motivo: "Trabajador quitado del evento",
+        id_dueno,
+        id_evento,
+      },
+    }),
+  ]);
 };

@@ -4,6 +4,8 @@ import {
   postEvento,
   deleteEvento,
   putEvento,
+  getHistorialEvento,
+  getHistorialGeneral,
 } from "../controllers/evento.controller.js";
 import {
   validarId,
@@ -15,6 +17,22 @@ const router = Router();
 
 // Ver la agenda: cualquier usuario con sesión. Crear, modificar y eliminar: solo el Dueño.
 router.get("/", autenticar, getEventos);
+// Historial de cambios del evento: solo Dueño y Contador (trae precios y pagos)
+router.get(
+  "/:id/historial",
+  autenticar,
+  permitirRoles("DUENO", "CONTADOR"),
+  validarId,
+  getHistorialEvento,
+);
+
+// Historial general de eventos (incluye eliminados): solo el Dueño
+router.get(
+  "/historial",
+  autenticar,
+  permitirRoles("DUENO"),
+  getHistorialGeneral,
+);
 router.post(
   "/",
   autenticar,

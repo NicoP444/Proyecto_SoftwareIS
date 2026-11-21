@@ -43,3 +43,16 @@ export const eliminarEvento = async (id, motivo) => {
     throw new Error(data.mensaje || "No se pudo eliminar el evento");
   }
 };
+
+// Historial de cambios del evento (RF-P1-07, RF-P1-08, RF-P1-10)
+export const listarHistorialEvento = (id) =>
+  fetch(`${API_URL}/eventos/${id}/historial`, {
+    headers: cabecerasAuth(),
+  }).then(manejarRespuesta);
+
+// Historial general de eventos (solo Dueño). numeroEvento es opcional
+export const listarHistorialGeneral = (numeroEvento = "") =>
+  fetch(
+    `${API_URL}/eventos/historial${numeroEvento ? `?evento=${encodeURIComponent(numeroEvento)}` : ""}`,
+    { headers: cabecerasAuth() },
+  ).then(manejarRespuesta);

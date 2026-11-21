@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { FaCheckCircle } from 'react-icons/fa';
 import {
   AlertTriangle,
@@ -97,9 +97,11 @@ export default function Equipos() {
   const [equipoBaja, setEquipoBaja] = useState(null);
   const [motivoBaja, setMotivoBaja] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState('TODOS');
+  const [busquedaEquipo, setBusquedaEquipo] = useState('');
 
   // --- ESTADOS DE KITS ---
   const [kits, setKits] = useState([]);
+  const [busquedaKit, setBusquedaKit] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [nombreKit, setNombreKit] = useState('');
   const [nivelKit, setNivelKit] = useState('BASICO');
@@ -554,10 +556,51 @@ export default function Equipos() {
     });
   };
 
-  const equiposFiltrados = listaEquipos.filter((eq) => {
-    if (filtroCategoria === 'TODOS') return true;
-    return eq.categoria?.toUpperCase() === filtroCategoria;
-  });
+  const kitsFiltrados = useMemo(() => {
+    const q = busquedaKit.trim().toLowerCase();
+    if (!q) return kits;
+    return kits.filter((kit) => {
+      const nombre = (kit.nombre || '').toLowerCase();
+      const nivel = etiqueta(kit.nivel).toLowerCase();
+      const estado = etiqueta(kit.estado || 'DISPONIBLE').toLowerCase();
+      const equiposTexto = (kit.equipos || [])
+        .map((e) => `${e.codigo || ''} ${e.nombre || ''} ${formatearCategoria(e.categoria)}`)
+        .join(' ')
+        .toLowerCase();
+      return (
+        nombre.includes(q) ||
+        nivel.includes(q) ||
+        estado.includes(q) ||
+        equiposTexto.includes(q)
+      );
+    });
+  }, [kits, busquedaKit]);
+
+  const equiposFiltrados = useMemo(() => {
+    const q = busquedaEquipo.trim().toLowerCase();
+    return listaEquipos.filter((eq) => {
+      if (filtroCategoria !== 'TODOS' && eq.categoria?.toUpperCase() !== filtroCategoria) {
+        return false;
+      }
+      if (!q) return true;
+      const codigo = (eq.codigo || '').toLowerCase();
+      const nombre = (eq.nombre || '').toLowerCase();
+      const categoria = formatearCategoria(eq.categoria).toLowerCase();
+      const marca = (eq.marca || '').toLowerCase();
+      const modelo = (eq.modelo || '').toLowerCase();
+      const estado = etiqueta(eq.estado).toLowerCase();
+      const kitNombre = (eq.kit?.nombre || eq.kit || '').toString().toLowerCase();
+      return (
+        codigo.includes(q) ||
+        nombre.includes(q) ||
+        categoria.includes(q) ||
+        marca.includes(q) ||
+        modelo.includes(q) ||
+        estado.includes(q) ||
+        kitNombre.includes(q)
+      );
+    });
+  }, [listaEquipos, filtroCategoria, busquedaEquipo]);
 
   return (
     <div className="eqp-pagina">
@@ -627,15 +670,40 @@ export default function Equipos() {
         {/* ================= VISTA KITS ================= */}
         {activeTab === 'KITS' && (
           <div>
-            {kits.length === 0 ? (
+            <div className="eqp-buscador-wrap" style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '16px' }}>
+              <input
+                type="text"
+                value={busquedaKit}
+                onChange={(e) => setBusquedaKit(e.target.value)}
+                placeholder="Buscar kit por nombre, nivel, estado o equipo..."
+                className="eqp-buscador-input"
+                style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+              />
+              {busquedaKit && (
+                <button
+                  type="button"
+                  onClick={() => setBusquedaKit('')}
+                  className="eqp-btn-limpiar-busqueda"
+                  style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', cursor: 'pointer', fontSize: '13px' }}
+                >
+                  Limpiar
+                </button>
+              )}
+            </div>
+
+            {kitsFiltrados.length === 0 ? (
               <div className="eqp-vacio-kits">
                 <Box size={40} className="eqp-vacio-icono" />
-                <h3>No hay kits creados</h3>
-                <p>Haz clic en &ldquo;+ Crear kit&rdquo; para armar el primer kit con equipos operativos del inventario.</p>
+                <h3>{busquedaKit.trim() ? 'No se encontraron kits' : 'No hay kits creados'}</h3>
+                <p>
+                  {busquedaKit.trim()
+                    ? 'Intenta con otro término de búsqueda.'
+                    : 'Haz clic en “+ Crear kit” para armar el primer kit con equipos operativos del inventario.'}
+                </p>
               </div>
             ) : (
               <div className="eqp-kits-grid">
-                {kits.map((kit) => (
+                {kitsFiltrados.map((kit) => (
                   <div key={kit.id_kit} className="eqp-kit-card">
                     <div className="eqp-kit-cab">
                       <div>
@@ -712,11 +780,36 @@ export default function Equipos() {
               </div>
             </div>
 
+            <div className="eqp-buscador-wrap" style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '16px' }}>
+              <input
+                type="text"
+                value={busquedaEquipo}
+                onChange={(e) => setBusquedaEquipo(e.target.value)}
+                placeholder="Buscar equipo por código, nombre, marca, modelo, estado o kit..."
+                className="eqp-buscador-input"
+                style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+              />
+              {busquedaEquipo && (
+                <button
+                  type="button"
+                  onClick={() => setBusquedaEquipo('')}
+                  className="eqp-btn-limpiar-busqueda"
+                  style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', cursor: 'pointer', fontSize: '13px' }}
+                >
+                  Limpiar
+                </button>
+              )}
+            </div>
+
             {cargando ? (
               <p className="eqp-cargando">Cargando inventario...</p>
             ) : equiposFiltrados.length === 0 ? (
               <div className="eqp-vacio-tabla">
-                <p>No hay equipos registrados en esta categoría.</p>
+                <p>
+                  {busquedaEquipo.trim() || filtroCategoria !== 'TODOS'
+                    ? 'No hay equipos que coincidan con el filtro o búsqueda.'
+                    : 'No hay equipos registrados en esta categoría.'}
+                </p>
               </div>
             ) : (
               <div className="eqp-tabla-scroll">

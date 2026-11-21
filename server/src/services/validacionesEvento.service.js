@@ -192,10 +192,31 @@ export async function validarAgendaEvento(evento, nueva, id_dueno) {
   const asignaciones = await prisma.asignacionPersonal.findMany({
     where: { id_evento: evento.id_evento },
     include: {
-      trabajador: { select: { nombre: true, disponibilidades: true } },
+      trabajador: {
+        select: { nombre: true, estado: true, disponibilidades: true },
+      },
     },
   });
   if (asignaciones.length === 0) return advertencias;
+
+  // RF-P3-01: al modificar se repiten las validaciones, así que no puede seguir asignado
+  // quien pasó a licencia o quedó inactivo. Un evento ya realizado no se bloquea (la dotación fue real).
+  if (evento.estado !== "REALIZADO") {
+    const noActivos = asignaciones.filter(
+      (a) => a.trabajador.estado !== "ACTIVO",
+    );
+    if (noActivos.length > 0) {
+      const lista = noActivos
+        .map(
+          (a) =>
+            `${a.trabajador.nombre} (${a.trabajador.estado === "LICENCIA" ? "con licencia" : "inactivo"})`,
+        )
+        .join(", ");
+      throw new ValidationError(
+        `No se puede guardar: ${lista} sigue asignado al evento. Quítalo en "Personal y kits" antes de modificar`,
+      );
+    }
+  }
 
   // Los demás eventos de esos trabajadores el día del evento
   const otras = await prisma.asignacionPersonal.findMany({

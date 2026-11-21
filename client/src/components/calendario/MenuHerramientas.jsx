@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Timer, UserCheck, Users, Wrench } from "lucide-react";
+import { ChevronDown, History, Timer, UserCheck, Users, Wrench } from "lucide-react";
 
 /**
  * Botón "Herramientas" del calendario: agrupa lo que no es parte del calendario
  * en sí (clientes, personal disponible y margen de traslado) en un menú desplegable.
  */
-export default function MenuHerramientas({ onClientes, onPersonal, onMargen }) {
+export default function MenuHerramientas({ onClientes, onPersonal, onMargen, onHistorial }) {
   const [abierto, setAbierto] = useState(false);
   const contenedor = useRef(null);
 
@@ -64,6 +64,13 @@ export default function MenuHerramientas({ onClientes, onPersonal, onMargen }) {
             <span>
               Margen de traslado
               <small>Tiempo mínimo entre eventos</small>
+            </span>
+          </button>
+          <button type="button" role="menuitem" onClick={elegir(onHistorial)}>
+            <History size={16} />
+            <span>
+              Historial de eventos
+              <small>Cambios y eliminaciones</small>
             </span>
           </button>
         </div>

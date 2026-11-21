@@ -328,10 +328,17 @@ export const actualizarEvento = async (id, datos, idDueno) => {
     ["estado", existente.estado, estado],
   ].filter(([, antes, despues]) => texto(antes) !== texto(despues));
 
-  const motivo =
-    String(datos.motivo ?? "")
-      .trim()
-      .slice(0, 255) || "Modificación del evento";
+  // RF-P1-07: cada cambio queda en el historial con su motivo (obligatorio si algo cambió)
+  const motivo = String(datos.motivo ?? "").trim();
+  if (cambios.length > 0 && !motivo) {
+    throw new ValidationError("Debes indicar el motivo del cambio", "motivo");
+  }
+  if (motivo.length > 255) {
+    throw new ValidationError(
+      "El motivo no puede superar los 255 caracteres",
+      "motivo",
+    );
+  }
 
   // 6. Actualizar + historial + remuneraciones en la misma transacción: o se hace todo o nada
   const actualizado = await prisma.$transaction(async (tx) => {
@@ -374,3 +381,68 @@ export const actualizarEvento = async (id, datos, idDueno) => {
 
   return { ...actualizado, advertencias };
 };
+
+// RF-P1-07, RF-P1-08 y RF-P1-10: historial de cambios de un evento
+// Dueño y Contador lo consultan; el Jefe técnico no, porque incluye precios y pagos
+export async function listarHistorialEvento(id, usuario) {
+  const evento = await prisma.evento.findFirst({
+    where:
+      usuario.rol === "DUENO"
+        ? { id_evento: id, id_dueno: usuario.id_dueno }
+        : { id_evento: id },
+    select: { id_evento: true },
+  });
+  if (!evento) throw new NotFoundError("El evento no existe");
+
+  return prisma.historialCambio.findMany({
+    where: { id_evento: id },
+    orderBy: { fecha_hora: "desc" },
+    select: {
+      id_cambio: true,
+      fecha_hora: true,
+      tabla_afectada: true,
+      dato: true,
+      valor_anterior: true,
+      valor_nuevo: true,
+      motivo: true,
+      dueno: { select: { nombre: true } },
+      contador: { select: { nombre: true } },
+    },
+  });
+}
+
+// Historial general de eventos (incluye los eliminados, RF-P1-08). Solo el Dueño.
+// Se busca por el texto "evento #N:" porque al eliminar un evento sus filas quedan con id_evento = null
+export async function listarHistorialGeneral(usuario, numeroEvento) {
+  let prefijo = "evento #";
+  if (numeroEvento !== undefined && numeroEvento !== "") {
+    const n = Number(numeroEvento);
+    if (!Number.isInteger(n) || n <= 0) {
+      throw new ValidationError("El número de evento no es válido");
+    }
+    prefijo = `evento #${n}:`; // con ":" para que #1 no traiga también #12
+  }
+
+  return prisma.historialCambio.findMany({
+    where: {
+      dato: { startsWith: prefijo },
+      OR: [
+        { id_dueno: usuario.id_dueno }, // cambios hechos por el dueño (incluye eliminaciones)
+        { evento: { id_dueno: usuario.id_dueno } }, // cambios del contador en sus eventos (pagos)
+      ],
+    },
+    orderBy: { fecha_hora: "desc" },
+    take: 300,
+    select: {
+      id_cambio: true,
+      fecha_hora: true,
+      tabla_afectada: true,
+      dato: true,
+      valor_anterior: true,
+      valor_nuevo: true,
+      motivo: true,
+      dueno: { select: { nombre: true } },
+      contador: { select: { nombre: true } },
+    },
+  });
+}
