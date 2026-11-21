@@ -438,3 +438,23 @@ button.cal-mas { flex-shrink: 0; padding: 0; border: 0; background: none; text-a
 .hist-tabla tbody tr.hist-fila-eliminado,
 .hist-tabla tbody tr.hist-fila-eliminado:hover { background: rgba(229, 72, 77, 0.06); }
 .hist-fila-eliminado .hist-campo { color: var(--rojo); background: rgba(229, 72, 77, 0.12); }
+
+/* ---------- Comisiones del evento: aviso de utilidad del dueño ---------- */
+.comision-tarjeta { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border: 1px solid var(--borde); border-left: 4px solid var(--verde); border-radius: 10px; background: var(--blanco); font-size: 0.8rem; }
+.comision-tarjeta.alto { border-left-color: var(--naranjo); background: rgba(240, 138, 60, 0.06); }
+.comision-tarjeta.sin-utilidad { border-left-color: var(--rojo); background: rgba(229, 72, 77, 0.06); }
+.comision-cabecera { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.comision-cabecera span { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+.comision-cabecera svg { width: 16px; height: 16px; }
+.comision-barra { position: relative; height: 8px; border-radius: 999px; background: var(--fondo); overflow: hidden; }
+.comision-relleno { height: 100%; border-radius: 999px; background: var(--verde); transition: width 0.2s; }
+.comision-tarjeta.alto .comision-relleno { background: var(--naranjo); }
+.comision-tarjeta.sin-utilidad .comision-relleno { background: var(--rojo); }
+.comision-marca { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--texto-tenue); }
+.comision-tarjeta p { margin: 0; }
+
+/* Ventana de confirmación antes de asignar */
+.comision-modal { display: flex; flex-direction: column; gap: 12px; font-size: 0.85rem; }
+.comision-modal p { margin: 0; }
+.comision-modal ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.comision-modal-acciones { display: flex; justify-content: flex-end; gap: 8px; }

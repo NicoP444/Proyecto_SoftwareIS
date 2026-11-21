@@ -1,15 +1,19 @@
 import { useEffect, useState } from "react";
 import { UserPlus, X } from "lucide-react";
 import BuscadorPersonal from "./BuscadorPersonal";
+import ResumenComisiones from "./ResumenComisiones";
 import {
   listarAsignaciones,
   quitarAsignacion,
+  verComisiones,
 } from "../../services/asignacion.service.js";
 
 /**
  * Bloque "Trabajadores" del detalle del evento (RF-P3-01).
  * Muestra la dotación del evento y, si el usuario puede editar, deja
  * asignar más personal o quitar a alguien.
+ * Al Dueño también le muestra el total de comisiones del evento y lo que le
+ * queda a él (solo aviso, no bloquea la asignación).
  */
 export default function PanelPersonal({ evento, puedeEditar, onCambio }) {
   const [asignaciones, setAsignaciones] = useState([]);
@@ -17,6 +21,7 @@ export default function PanelPersonal({ evento, puedeEditar, onCambio }) {
   const [error, setError] = useState("");
   const [confirmando, setConfirmando] = useState(null); // id de la asignación que se está por quitar
   const [refresco, setRefresco] = useState(0); // sube al quitar a alguien: el buscador vuelve a consultar
+  const [comisiones, setComisiones] = useState(null); // resumen de comisiones (solo Dueño)
 
   const cerrado = evento.estado === "CERRADO";
 
@@ -26,11 +31,19 @@ export default function PanelPersonal({ evento, puedeEditar, onCambio }) {
     } catch (err) {
       setError(err.message);
     }
+    // Las comisiones son un dato financiero: solo las consulta quien puede editar (Dueño)
+    if (puedeEditar) {
+      try {
+        setComisiones(await verComisiones(evento.id_evento));
+      } catch {
+        setComisiones(null); // si falla, no se muestra la tarjeta (no impide trabajar)
+      }
+    }
   }
 
   useEffect(() => {
     cargar();
-  }, [evento.id_evento]);
+  }, [evento.id_evento, puedeEditar]);
 
   // Después de asignar o quitar: refresca este bloque y el calendario de fondo
   function alCambiar() {
@@ -66,6 +79,10 @@ export default function PanelPersonal({ evento, puedeEditar, onCambio }) {
       </div>
 
       {error && <div className="mensaje mensaje-error">{error}</div>}
+
+      {puedeEditar && asignaciones.length > 0 && (
+        <ResumenComisiones resumen={comisiones} />
+      )}
 
       {asignaciones.length === 0 ? (
         <p className="texto-tenue">Aún no hay trabajadores asignados</p>
@@ -120,6 +137,7 @@ export default function PanelPersonal({ evento, puedeEditar, onCambio }) {
           }}
           onAsignado={alCambiar}
           refresco={refresco}
+          comisiones={comisiones}
         />
       )}
     </div>
