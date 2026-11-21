@@ -1,5 +1,9 @@
 import { ValidationError } from '../utils/errores.js';
 
+// Tope del porcentaje que puede recibir UN trabajador por evento.
+// Para cambiarlo (30, 40...), se modifica solo este número.
+export const TOPE_PORCENTAJE = 20;
+
 const entero = (valor, campo) => {
   const n = Number(valor);
   if(valor === '' || valor === null || valor === undefined || !Number.isInteger(n) || n <= 0){
@@ -18,15 +22,21 @@ const texto = (valor, campo, max) => {
   return t;
 };
 
-// Porcentaje de 0 a 100 con hasta dos decimales (acepta "12.5" o "12,5")
+// Porcentaje de 0 al tope, con hasta dos decimales (acepta "12.5" o "12,5")
 const porcentaje = (valor, campo) => {
   const t = String(valor ?? '').trim().replace(',', '.');
-  if(!/^\d{1,3}(\.\d{1,2})?$/.test(t)){
-    throw new ValidationError('El porcentaje debe ser un número entre 0 y 100 con hasta dos decimales', campo);
+  if(!/^\d{1,3}(\.\d+)?$/.test(t)){
+    throw new ValidationError(
+      `El porcentaje debe ser un número par entre 0 y ${TOPE_PORCENTAJE}, sin decimales (ej: 2, 4, 6...)`,
+      campo,
+    );
   }
   const n = Number(t);
-  if(n > 100){
-    throw new ValidationError('El porcentaje no puede superar 100', campo);
+  if(n > TOPE_PORCENTAJE){
+    throw new ValidationError(`El porcentaje por trabajador no puede superar el ${TOPE_PORCENTAJE}%`, campo);
+  }
+  if(!Number.isInteger(n) || n % 2 !== 0){
+    throw new ValidationError('El porcentaje debe ser un número par, sin decimales (ej: 2, 4, 6...)', campo);
   }
   return n;
 };

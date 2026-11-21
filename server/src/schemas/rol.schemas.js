@@ -6,20 +6,25 @@ export const ValidarPorcentaje = (porcentaje) => {
     if (porcentaje === undefined) return undefined;
     if (porcentaje === null || porcentaje === '') return null;
 
-    const limpio = String(porcentaje).trim(); // quitamos espacios
-    if (!/^\d+(\.\d{1,2})?$/.test(limpio)) {// verificamos que sea un número con hasta 2 decimales
+    const limpio = String(porcentaje).trim().replace(',', '.'); // quitamos espacios y aceptamos coma
+    if (!/^\d+(\.\d+)?$/.test(limpio)) { // verificamos que sea un número
         throw new ValidationError(
-            'El porcentaje debe tener un formato numérico válido (ej: 50 o 33.33)', 
+            'El porcentaje debe ser un número válido (ej: 10 o 20)',
             'porcentaje_referencial'
         );
     }
-
     const numero = Number(limpio);
-    
-    if (numero < 0 || numero > 30) {
-        throw new ValidationError('El porcentaje debe estar entre 0 y 30', 'porcentaje_referencial');
+
+    if (numero < 0 || numero > 20) { // tope de 20%
+        throw new ValidationError('El porcentaje debe estar entre 0 y 20', 'porcentaje_referencial');
     }
-    return Number(numero.toFixed(2));
+    if (!Number.isInteger(numero) || numero % 2 !== 0) { // solo pares, sin decimales
+        throw new ValidationError(
+            'El porcentaje debe ser un número par, sin decimales (ej: 2, 4, 6...)',
+            'porcentaje_referencial'
+        );
+    }
+    return numero;
 };
 
 // validamos el nombre del rol, lo limpiamos y verificamos que no supere 10 caracteres
