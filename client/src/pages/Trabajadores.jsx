@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, Search, Tags, Users, UserCheck, UserMinus, UserX } from 'lucide-react';
 import Modal from '../components/Modal';
-import HistorialTrabajador from '../components/HistorialTrabajador.jsx';
+import HistorialTrabajador from '../components/historialTrabajador.jsx';
 import TarjetaTrabajador from '../components/trabajadores/TarjetaTrabajador';
 import FichaTrabajador from '../components/trabajadores/FichaTrabajador';
 import FormularioTrabajador from '../components/trabajadores/FormularioTrabajador';
