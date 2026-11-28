@@ -27,7 +27,6 @@ export function revisarSesion(respuesta) {
 export async function pedir(ruta, opciones = {}) {
   const headers = { 'Content-Type': 'application/json' };
 
-  // Si hay sesión, enviamos el token
   const token = localStorage.getItem('token');
   if (token) headers.Authorization = 'Bearer ' + token;
 
@@ -39,7 +38,14 @@ export async function pedir(ruta, opciones = {}) {
 
   revisarSesion(respuesta);
 
-  const datos = await respuesta.json();
+  // Leemos como texto: si viene vacío (ej. 204 al eliminar) usamos {}
+  const texto = await respuesta.text();
+  let datos = {};
+  try {
+    datos = texto ? JSON.parse(texto) : {};
+  } catch {
+    datos = {}; // la respuesta no era JSON
+  }
 
   if (!respuesta.ok) {
     throw new Error(datos.mensaje || 'Ocurrió un error');
