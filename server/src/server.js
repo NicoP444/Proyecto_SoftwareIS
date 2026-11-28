@@ -40,7 +40,7 @@ app.use('/api', routes);//gene y nico
 
 app.use('/uploads', express.static('uploads')); // Para servir archivos subidos (evidencias de gastos, etc.)
 
-//jorge
+//Eventos y clientes
 app.use('/api/clientes', clienteRoutes);
 app.use('/api', asignacionRoutes); // personal disponible y asignación de personal a eventos
 app.use('/api/configuracion', configuracionRoutes); // margen de traslado
